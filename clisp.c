@@ -1,7 +1,12 @@
+#include "table.h"
+
 #include <ctype.h>
 #include <editline/readline.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#define BUFSIZE 99
 
 #define NUM 256
 #define SYM 257
@@ -32,12 +37,25 @@ void skipspaces(char *input)
 int lexdigit(char *input)
 {
     int num = 0;
-    while (isdigit(curchar(input)))
+    while (curchar(input) && isdigit(curchar(input)))
     {
         num = num * 10 + (curchar(input) - '0');
         nextchar(input);
     }
     return num;
+}
+
+int lexsymbol(char *input)
+{
+    char sym[BUFSIZE];
+    int i = 0;
+    while (curchar(input) && !isdigit(curchar(input)))
+    {
+        sym[i++] = curchar(input);
+        nextchar(input);
+    }
+    sym[i] = EOS;
+    return insert(sym);
 }
 
 int lexan(char *input)
@@ -50,6 +68,11 @@ int lexan(char *input)
     {
         tokenval = lexdigit(input);
         return NUM;
+    }
+    else if (isalpha(cur))
+    {
+        tokenval = lexsymbol(input);
+        return SYM;
     }
     else
     {

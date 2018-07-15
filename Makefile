@@ -1,2 +1,2 @@
-clisp: clisp.c
-	cc clisp.c -ledit -o clisp
+clisp: clisp.c table.c
+	cc clisp.c table.c -ledit -o clisp
