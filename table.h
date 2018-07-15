@@ -13,6 +13,7 @@ typedef struct
 
 entry symtable[MAXSYM];
 
+void init();
 int insert(char *symbol);
 int lookup(char *symbol);
 

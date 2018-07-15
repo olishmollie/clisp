@@ -49,13 +49,16 @@ int lexsymbol(char *input)
 {
     char sym[BUFSIZE];
     int i = 0;
-    while (curchar(input) && !isdigit(curchar(input)))
+    while (curchar(input) && !isdigit(curchar(input)) && !isspace(curchar(input)))
     {
         sym[i++] = curchar(input);
         nextchar(input);
     }
     sym[i] = EOS;
-    return insert(sym);
+    int p = lookup(sym);
+    if (p < 0)
+        p = insert(sym);
+    return p;
 }
 
 int lexan(char *input)
@@ -84,6 +87,7 @@ int lexan(char *input)
 
 int main(void)
 {
+    init();
     printf("Welcome to clisp! Use ctrl+c to exit.\n");
     while (1)
     {

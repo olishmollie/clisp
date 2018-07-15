@@ -6,6 +6,24 @@
 
 int lastsym = 0, lastchar = 0;
 
+void init()
+{
+    char *builtins[] = {"car",
+                        "cdr",
+                        "log",
+                        "sin",
+                        "cos",
+                        "tan",
+                        "define",
+                        "list",
+                        "exit"};
+    int len = sizeof(builtins) / sizeof(builtins[0]);
+    for (int i = 0; i < len; i++)
+    {
+        insert(builtins[i]);
+    }
+}
+
 int insert(char *symbol)
 {
     int tmp = lastsym;
