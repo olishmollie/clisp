@@ -7,55 +7,74 @@
 #define SYM 257
 #define END 258
 #define NONE -1
+#define EOS '\0'
 
 int tokenval, pos, eof = -1;
 
-int nextchar(char *input) {
-  int n = input[++pos];
-  return n ? n : eof;
+int nextchar(char *input)
+{
+    return input[++pos];
 }
 
-int curchar(char *input) { return input[pos]; }
-
-void skipspaces(char *input) {
-  while (isspace(curchar(input))) {
-    nextchar(input);
-  }
+int curchar(char *input)
+{
+    return input[pos];
 }
 
-int lexdigit(char *input) {
-  int num = 0;
-  while (isdigit(curchar(input))) {
-    num = num * 10 + (curchar(input) - '0');
-    int n = nextchar(input);
-  }
-  return num;
+void skipspaces(char *input)
+{
+    while (isspace(curchar(input)))
+    {
+        nextchar(input);
+    }
 }
 
-int lexan(char *input) {
-  pos = 0;
-  skipspaces(input);
-  int cur = curchar(input);
-  if (cur < 0)
-    return END;
-  else if (isdigit(cur)) {
-    tokenval = lexdigit(input);
-    return NUM;
-  } else {
-    tokenval = NONE;
-    return cur;
-  }
+int lexdigit(char *input)
+{
+    int num = 0;
+    while (isdigit(curchar(input)))
+    {
+        num = num * 10 + (curchar(input) - '0');
+        nextchar(input);
+    }
+    return num;
 }
 
-int main(void) {
-  printf("Welcome to clisp! Use ctrl+c to exit.\n");
-  while (1) {
-    char *input = readline("clisp> ");
-    add_history(input);
-    int tok = lexan(input);
-    printf("tokenval = %d\n", tokenval);
-    free(input);
-  }
+int lexan(char *input)
+{
+    skipspaces(input);
+    int cur = curchar(input);
+    if (cur == EOS)
+        return END;
+    else if (isdigit(cur))
+    {
+        tokenval = lexdigit(input);
+        return NUM;
+    }
+    else
+    {
+        tokenval = NONE;
+        nextchar(input);
+        return cur;
+    }
+}
 
-  return 0;
+int main(void)
+{
+    printf("Welcome to clisp! Use ctrl+c to exit.\n");
+    while (1)
+    {
+        pos = 0;
+        char *input = readline("clisp> ");
+        add_history(input);
+        int tok = lexan(input);
+        while (tok != END)
+        {
+            printf("tokenval = %d\n", tokenval);
+            tok = lexan(input);
+        }
+        free(input);
+    }
+
+    return 0;
 }
