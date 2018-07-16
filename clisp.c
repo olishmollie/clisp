@@ -4,7 +4,7 @@
 #include "token.h"
 
 #include <ctype.h>
-#include <editline/readline.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +12,7 @@
 #define BUFSIZE 99
 #define MAXCHILDREN 10
 
+/* ============= LEXING ============== */
 int pos;
 
 int nextchar(char *input) { return input[++pos]; }
@@ -67,6 +68,7 @@ token lexan(char *input) {
     }
 }
 
+/* ============= PARSING ============== */
 token peektok, curtok;
 
 int match(token_t type, char *input) {
@@ -75,7 +77,7 @@ int match(token_t type, char *input) {
         peektok = lexan(input);
         return 1;
     }
-    fprintf(stderr, "expected token type %d, got %d\n", type, peektok.type);
+    // fprintf(stderr, "expected token type %d, got %d\n", type, peektok.type);
     return 0;
 }
 
@@ -113,25 +115,90 @@ ast *parse(char *input) {
     }
 }
 
-long eval_op(long x, char *op, long y) {
-    if (strcmp("+", op) == 0)
-        return x + y;
-    if (strcmp("-", op) == 0)
-        return x - y;
-    if (strcmp("*", op) == 0)
-        return x * y;
-    if (strcmp("/", op) == 0)
-        return x / y;
-    return 0;
+/* ============= EVALUATION ============== */
+typedef enum { LONG, ERROR } object_t;
+
+typedef enum { DIV_ZERO, BAD_NUM, BAD_OP } error_t;
+
+typedef struct {
+    object_t type;
+    union {
+        long lval;
+        error_t error;
+    };
+} object;
+
+object object_long(long lval) {
+    object o;
+    o.type = LONG;
+    o.lval = lval;
+    return o;
 }
 
-long eval(ast *root) {
-    if (root->tok.type == INT)
-        return atol(root->tok.val);
+object object_error(error_t error) {
+    object o;
+    o.type = ERROR;
+    o.error = error;
+    return o;
+}
+
+void print_error(error_t error) {
+    switch (error) {
+    case DIV_ZERO:
+        fprintf(stderr, "division by zero\n");
+        break;
+    case BAD_NUM:
+        fprintf(stderr, "bad number syntax\n");
+        break;
+    case BAD_OP:
+        fprintf(stderr, "unknown operator\n");
+    }
+}
+
+void object_print(object o) {
+    switch (o.type) {
+    case LONG:
+        printf("%li\n", o.lval);
+        break;
+    case ERROR:
+        print_error(o.error);
+    }
+}
+
+object eval_op(object x, char *op, object y) {
+
+    if (x.type == ERROR)
+        return x;
+    if (y.type == ERROR)
+        return y;
+
+    if (strcmp("+", op) == 0)
+        return object_long(x.lval + y.lval);
+    if (strcmp("-", op) == 0)
+        return object_long(x.lval - y.lval);
+    if (strcmp("*", op) == 0)
+        return object_long(x.lval * y.lval);
+    if (strcmp("/", op) == 0) {
+        return y.lval == 0 ? object_error(DIV_ZERO)
+                           : object_long(x.lval / y.lval);
+    }
+    if (strcmp("%", op) == 0) {
+        return y.lval == 0 ? object_error(DIV_ZERO)
+                           : object_long(x.lval % y.lval);
+    }
+    return object_error(BAD_OP);
+}
+
+object eval(ast *root) {
+    if (root->tok.type == INT) {
+        errno = 0;
+        long x = strtol(root->tok.val, NULL, 10);
+        return errno != ERANGE ? object_long(x) : object_error(BAD_NUM);
+    }
 
     char *op = root->tok.val;
 
-    long x = eval(root->children[0]);
+    object x = eval(root->children[0]);
     for (int i = 1; i < root->numchldrn; i++) {
         x = eval_op(x, op, eval(root->children[i]));
     }
@@ -139,6 +206,9 @@ long eval(ast *root) {
     return x;
 }
 
+#include <editline/readline.h>
+
+/* ============= REPL ============== */
 int main(void) {
     table_init();
     printf("clisp version 0.1\n\n");
@@ -153,8 +223,8 @@ int main(void) {
 
         ast *prog = parse(input);
         // ast_print(prog, 0);
-        long res = eval(prog);
-        printf("%li\n", res);
+        object res = eval(prog);
+        object_print(res);
         ast_delete(prog);
 
         free(input);
