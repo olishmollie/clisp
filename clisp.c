@@ -1,4 +1,6 @@
+#include "global.h"
 #include "table.h"
+#include "ast.h"
 
 #include <ctype.h>
 #include <editline/readline.h>
@@ -8,13 +10,9 @@
 
 #define BUFSIZE 99
 
-#define NUM 256
-#define SYM 257
-#define END 258
-#define NONE -1
-#define EOS '\0'
+#define MAXCHILDREN 10
 
-int tokenval, pos, eof = -1;
+int curtok, tokenval, pos, eof = -1;
 
 int nextchar(char *input)
 {
@@ -66,23 +64,74 @@ int lexan(char *input)
     skipspaces(input);
     int cur = curchar(input);
     if (cur == EOS)
-        return END;
+        curtok = END;
+    else if (cur == '(')
+    {
+        nextchar(input);
+        tokenval = NONE;
+        curtok = LPAR;
+    }
+    else if (cur == ')')
+    {
+        nextchar(input);
+        tokenval = NONE;
+        curtok = RPAR;
+    }
     else if (isdigit(cur))
     {
         tokenval = lexdigit(input);
-        return NUM;
-    }
-    else if (isalpha(cur))
-    {
-        tokenval = lexsymbol(input);
-        return SYM;
+        curtok = NUM;
     }
     else
     {
-        tokenval = NONE;
-        nextchar(input);
-        return cur;
+        tokenval = lexsymbol(input);
+        curtok = SYM;
     }
+    return curtok;
+}
+
+int match(int type, char *input)
+{
+    if (curtok == type)
+    {
+        curtok = lexan(input);
+        return 1;
+    }
+    fprintf(stderr, "expected token type %d, got %d", type, curtok);
+    return 0;
+}
+
+ast *parse(char *input)
+{
+    ast *child_store[MAXCHILDREN];
+    int child_store_pos = 0;
+    int token = lexan(input);
+    switch (token)
+    {
+    case NUM:
+        return ast_new(NUM, tokenval, 0, 0);
+    case SYM:
+        return ast_new(SYM, tokenval, 0, 0);
+    case LPAR:
+        match(LPAR, input);
+        int val = tokenval;
+        while (curtok != RPAR)
+        {
+            ast *child = parse(input);
+            if (child)
+                child_store[child_store_pos++] = child;
+        }
+        match(RPAR, input);
+        int numchldrn = child_store_pos;
+        ast **children = malloc(sizeof(ast *) * numchldrn);
+        for (int i = 0; i < numchldrn; i++)
+        {
+            children[i] = child_store[i];
+        }
+        return ast_new(EXP, val, numchldrn, children);
+    }
+
+    return NULL;
 }
 
 int main(void)
@@ -94,11 +143,11 @@ int main(void)
         pos = 0;
         char *input = readline("clisp> ");
         add_history(input);
-        int tok = lexan(input);
-        while (tok != END)
+        ast *prog = parse(input);
+        if (prog)
         {
-            printf("tokenval = %d\n", tokenval);
-            tok = lexan(input);
+            ast_print(prog, 0);
+            ast_delete(prog);
         }
         free(input);
     }

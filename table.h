@@ -1,17 +1,9 @@
 #ifndef _TABLE_H
 #define _TABLE_H
 
-#define MAXCHAR 999
-#define MAXSYM 100
+#define MAXCHAR 2048
 
 char lexemes[MAXCHAR];
-
-typedef struct
-{
-    char *symbol;
-} entry;
-
-entry symtable[MAXSYM];
 
 void init();
 int insert(char *symbol);

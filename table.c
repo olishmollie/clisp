@@ -1,4 +1,5 @@
 #include "table.h"
+#include "global.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,15 +9,12 @@ int lastsym = 0, lastchar = 0;
 
 void init()
 {
-    char *builtins[] = {"car",
-                        "cdr",
-                        "log",
-                        "sin",
-                        "cos",
-                        "tan",
-                        "define",
-                        "list",
-                        "exit"};
+    char *builtins[] = {
+        "+", "-", "*", "/",
+        "car", "cdr",
+        "pi", "e", "log",
+        "sin", "cos", "tan",
+        "define", "list", "exit"};
     int len = sizeof(builtins) / sizeof(builtins[0]);
     for (int i = 0; i < len; i++)
     {
