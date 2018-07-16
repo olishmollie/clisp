@@ -22,9 +22,14 @@ void ast_delete(ast *a) {
 }
 
 void ast_print(ast *a, int offset) {
-    char *sp = malloc(sizeof(char) * offset);
-    for (int i = 0; i < offset; i++) {
-        sp[i] = ' ';
+    char *sp;
+    if (offset > 0) {
+        sp = malloc(sizeof(char) * offset);
+        for (int i = 0; i < offset; i++) {
+            sp[i] = ' ';
+        }
+    } else {
+        sp = "";
     }
     switch (a->type) {
     case AST_NUM:
@@ -34,7 +39,8 @@ void ast_print(ast *a, int offset) {
         printf("%s<type: SYM, val: '%s'>\n", sp, a->tok.val);
         break;
     case AST_EXP:
-        printf("%s<type: EXP, op: '%s'>\n", sp, a->tok.val);
+        printf("%s<type: EXP, op: '%s', numchlrdn: %d>\n", sp, a->tok.val,
+               a->numchldrn);
         for (int i = 0; i < a->numchldrn; i++) {
             ast_print(a->children[i], offset + 4);
         }
@@ -42,5 +48,6 @@ void ast_print(ast *a, int offset) {
     case AST_ERR:
         printf("%s<type: ERR, op: '%s'>\n", sp, a->tok.val);
     }
-    free(sp);
+    if (offset > 0)
+        free(sp);
 }

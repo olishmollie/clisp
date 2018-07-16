@@ -71,30 +71,32 @@ token lexan(char *input) {
 /* ============= PARSING ============== */
 token peektok, curtok;
 
+void lex_advance(char *input) {
+    curtok = peektok;
+    peektok = lexan(input);
+}
+
 int match(token_t type, char *input) {
     if (peektok.type == type) {
-        curtok = peektok;
-        peektok = lexan(input);
+        lex_advance(input);
         return 1;
     }
     // fprintf(stderr, "expected token type %d, got %d\n", type, peektok.type);
     return 0;
 }
 
+// TODO: parser errors
 ast *parse(char *input) {
     switch (peektok.type) {
     case INT:
         match(INT, input);
-        return ast_new(curtok, 0, 0);
+        return ast_new(AST_NUM, curtok, 0, 0);
     case SYM:
         match(SYM, input);
-        return ast_new(curtok, 0, 0);
+        return ast_new(AST_SYM, curtok, 0, 0);
     case LPAREN:
         match(LPAREN, input);
-        token_delete(curtok);
-
-        match(SYM, input);
-        token op = curtok;
+        token lparen = curtok;
 
         ast *tmp_children[MAXCHILDREN];
         int childpos = 0;
@@ -103,12 +105,12 @@ ast *parse(char *input) {
         }
 
         match(RPAREN, input);
-        token_delete(curtok);
+        token_delete(curtok); /* don't need ')' */
 
         ast **children = malloc(sizeof(ast *) * childpos);
         memcpy(children, tmp_children, sizeof(ast *) * childpos);
 
-        return ast_new(op, childpos, children);
+        return ast_new(AST_EXP, lparen, childpos, children);
     default:
         fprintf(stderr, "error: returning null from ast *parse()...\n");
         return NULL;
@@ -116,94 +118,162 @@ ast *parse(char *input) {
 }
 
 /* ============= EVALUATION ============== */
-typedef enum { LONG, ERROR } object_t;
+typedef enum { OBJ_LONG, OBJ_SYM, OBJ_SEXP, OBJ_ERROR } object_t;
 
-typedef enum { DIV_ZERO, BAD_NUM, BAD_OP } error_t;
-
-typedef struct {
+typedef struct object {
     object_t type;
+    int numobj;
     union {
         long lval;
-        error_t error;
+        char *ident;
+        struct object **cell;
+        char *error;
     };
 } object;
 
-object object_long(long lval) {
-    object o;
-    o.type = LONG;
-    o.lval = lval;
+object *object_long(long lval) {
+    object *o = malloc(sizeof(object));
+    o->numobj = 0;
+    o->type = OBJ_LONG;
+    o->lval = lval;
     return o;
 }
 
-object object_error(error_t error) {
-    object o;
-    o.type = ERROR;
-    o.error = error;
+object *object_sym(char *ident) {
+    object *o = malloc(sizeof(object));
+    o->numobj = 0;
+    o->type = OBJ_SYM;
+    o->ident = malloc(sizeof(char) * strlen(ident));
+    strcpy(o->ident, ident);
     return o;
 }
 
-void print_error(error_t error) {
-    switch (error) {
-    case DIV_ZERO:
-        fprintf(stderr, "division by zero\n");
+object *object_sexp(void) {
+    object *o = malloc(sizeof(object));
+    o->numobj = 0;
+    o->type = OBJ_SEXP;
+    o->cell = NULL;
+    return o;
+}
+
+object *object_error(char *error) {
+    object *o = malloc(sizeof(object));
+    o->numobj = 0;
+    o->type = OBJ_ERROR;
+    o->error = malloc(sizeof(char) * strlen(error));
+    strcpy(o->error, error);
+    return o;
+}
+
+void object_delete(object *o) {
+    switch (o->type) {
+    case OBJ_LONG:
         break;
-    case BAD_NUM:
-        fprintf(stderr, "bad number syntax\n");
+    case OBJ_SYM:
+        free(o->ident);
         break;
-    case BAD_OP:
-        fprintf(stderr, "unknown operator\n");
+    case OBJ_ERROR:
+        free(o->error);
+        break;
+    case OBJ_SEXP:
+        for (int i = 0; i < o->numobj; i++) {
+            object_delete(o->cell[i]);
+        }
+        free(o->cell);
+        break;
+    }
+    free(o);
+}
+
+void object_print(object *o);
+
+void print_sexp(object *o) {
+    putchar('(');
+    for (int i = 0; i < o->numobj; i++) {
+        object_print(o->cell[i]);
+        if (i != o->numobj - 1) {
+            putchar(' ');
+        }
+    }
+    putchar(')');
+}
+
+void object_println(object *o) {
+    object_print(o);
+    putchar('\n');
+}
+
+void object_print(object *o) {
+    switch (o->type) {
+    case OBJ_LONG:
+        printf("%li", o->lval);
+        break;
+    case OBJ_SYM:
+        printf("%s", o->ident);
+        break;
+    case OBJ_ERROR:
+        printf("error: %s", o->error);
+        break;
+    case OBJ_SEXP:
+        print_sexp(o);
     }
 }
 
-void object_print(object o) {
-    switch (o.type) {
-    case LONG:
-        printf("%li\n", o.lval);
-        break;
-    case ERROR:
-        print_error(o.error);
-    }
+object *object_add(object *o, object *x) {
+    o->numobj++;
+    o->cell = o->cell ? realloc(o->cell, sizeof(object *) * o->numobj)
+                      : malloc(sizeof(object *) * o->numobj);
+    o->cell[o->numobj - 1] = x;
+    return o;
 }
 
-object eval_op(object x, char *op, object y) {
+object *eval_op(object *x, char *op, object *y) {
 
-    if (x.type == ERROR)
+    if (x->type == OBJ_ERROR)
         return x;
-    if (y.type == ERROR)
+    if (y->type == OBJ_ERROR)
         return y;
 
     if (strcmp("+", op) == 0)
-        return object_long(x.lval + y.lval);
+        return object_long(x->lval + y->lval);
     if (strcmp("-", op) == 0)
-        return object_long(x.lval - y.lval);
+        return object_long(x->lval - y->lval);
     if (strcmp("*", op) == 0)
-        return object_long(x.lval * y.lval);
+        return object_long(x->lval * y->lval);
     if (strcmp("/", op) == 0) {
-        return y.lval == 0 ? object_error(DIV_ZERO)
-                           : object_long(x.lval / y.lval);
+        return y->lval == 0 ? object_error("division by zero")
+                            : object_long(x->lval / y->lval);
     }
     if (strcmp("%", op) == 0) {
-        return y.lval == 0 ? object_error(DIV_ZERO)
-                           : object_long(x.lval % y.lval);
+        return y->lval == 0 ? object_error("division by zero")
+                            : object_long(x->lval % y->lval);
     }
-    return object_error(BAD_OP);
+    return object_error("unknown operator");
 }
 
-object eval(ast *root) {
-    if (root->tok.type == INT) {
+object *eval(ast *root) {
+    if (root->type == AST_NUM) {
         errno = 0;
         long x = strtol(root->tok.val, NULL, 10);
-        return errno != ERANGE ? object_long(x) : object_error(BAD_NUM);
+        return errno != ERANGE ? object_long(x)
+                               : object_error("bad number syntax");
     }
 
-    char *op = root->tok.val;
-
-    object x = eval(root->children[0]);
-    for (int i = 1; i < root->numchldrn; i++) {
-        x = eval_op(x, op, eval(root->children[i]));
+    if (root->type == AST_SYM) {
+        return object_sym(root->tok.val);
     }
 
-    return x;
+    if (root->type == AST_EXP) {
+        object *x = object_sexp();
+        for (int i = 0; i < root->numchldrn; i++) {
+            x = object_add(x, eval(root->children[i]));
+        }
+
+        return x;
+    }
+
+    printf("Error, returning null");
+    return NULL;
 }
 
 #include <editline/readline.h>
@@ -223,8 +293,9 @@ int main(void) {
 
         ast *prog = parse(input);
         // ast_print(prog, 0);
-        object res = eval(prog);
-        object_print(res);
+        object *res = eval(prog);
+        object_println(res);
+        object_delete(res);
         ast_delete(prog);
 
         free(input);
