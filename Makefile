@@ -1,2 +1,2 @@
-clisp: clisp.c token.c table.c ast.c object.c
-	cc clisp.c token.c table.c ast.c object.c -ledit -o clisp
+clisp: clisp.c src/token.c src/table.c src/ast.c src/object.c
+	cc clisp.c src/token.c src/table.c src/ast.c src/object.c -ledit -o bin/clisp

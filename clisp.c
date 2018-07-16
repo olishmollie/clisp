@@ -1,8 +1,8 @@
-#include "ast.h"
-#include "global.h"
-#include "object.h"
-#include "table.h"
-#include "token.h"
+#include "src/ast.h"
+#include "src/global.h"
+#include "src/object.h"
+#include "src/table.h"
+#include "src/token.h"
 
 #include <ctype.h>
 #include <errno.h>
