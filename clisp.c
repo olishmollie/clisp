@@ -143,12 +143,26 @@ object *eval_op(object *x, char *op, object *y) {
     return object_error("unknown operator");
 }
 
-object *eval(ast *root) {
+object *eval_long(ast *a) {
+    errno = 0;
+    long x = strtol(a->tok.val, NULL, 10);
+    return errno != ERANGE ? object_long(x) : object_error("bad number syntax");
+}
+
+object *object_eval(ast *root);
+
+object *eval_sexp(ast *a) {
+    object *x = object_sexp();
+    for (int i = 0; i < a->numchldrn; i++) {
+        x = object_add(x, object_eval(a->children[i]));
+    }
+
+    return x;
+}
+
+object *object_eval(ast *root) {
     if (root->type == AST_NUM) {
-        errno = 0;
-        long x = strtol(root->tok.val, NULL, 10);
-        return errno != ERANGE ? object_long(x)
-                               : object_error("bad number syntax");
+        return eval_long(root);
     }
 
     if (root->type == AST_SYM) {
@@ -156,15 +170,10 @@ object *eval(ast *root) {
     }
 
     if (root->type == AST_EXP) {
-        object *x = object_sexp();
-        for (int i = 0; i < root->numchldrn; i++) {
-            x = object_add(x, eval(root->children[i]));
-        }
-
-        return x;
+        return eval_sexp(root);
     }
 
-    printf("Error, returning null");
+    fprintf(stderr, "error: returning null from object_eval()\n");
     return NULL;
 }
 
@@ -185,7 +194,7 @@ int main(void) {
 
         ast *prog = parse(input);
         // ast_print(prog, 0);
-        object *res = eval(prog);
+        object *res = object_eval(prog);
         object_println(res);
         object_delete(res);
         ast_delete(prog);
