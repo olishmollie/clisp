@@ -20,5 +20,5 @@ void token_delete(token t)
 
 void token_print(token t)
 {
-    printf("<type: %d, val: %s>\n", t.type, t.val);
+    printf("<type: %d, val: '%s'>\n", t.type, t.val);
 }

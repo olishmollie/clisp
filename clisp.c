@@ -129,10 +129,7 @@ ast *parse(char *input)
         token_delete(curtok);
 
         ast **children = malloc(sizeof(ast *) * childpos);
-        for (int i = 0; i < childpos; i++)
-        {
-            children[i] = tmp_children[i];
-        }
+        memcpy(children, tmp_children, sizeof(ast *) * childpos);
 
         return ast_new(op, childpos, children);
     default:

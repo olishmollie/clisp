@@ -30,30 +30,20 @@ void ast_print(ast *a, int offset)
     {
         sp[i] = ' ';
     }
-    switch (a->tok.type)
+    if (a->tok.type == INT)
+        printf("%s<type: NUM, val: '%s'>\n", sp, a->tok.val);
+    else
     {
-    case INT:
-        printf("%s<type: NUM, val: %s>\n", sp, a->tok.val);
-        break;
-    case SYM:
         if (a->numchldrn)
         {
-            printf("%s<type: SYM, val: %s>\n", sp, a->tok.val);
+            printf("%s<type: EXP, val: '%s'>\n", sp, a->tok.val);
             for (int i = 0; i < a->numchldrn; i++)
             {
                 ast_print(a->children[i], offset + 4);
             }
         }
         else
-            printf("%s<type: SYM, val: %s>\n", sp, a->tok.val);
-        break;
-    default:
-        printf("%s<type: EXP, val: %s, numchldrn: %d>\n", sp, a->tok.val, a->numchldrn);
-        for (int i = 0; i < a->numchldrn; i++)
-        {
-            ast_print(a->children[i], offset + 4);
-        }
-        break;
+            printf("%s<type: SYM, val: '%s'>\n", sp, a->tok.val);
     }
     free(sp);
 }
