@@ -1,19 +1,9 @@
 #ifndef _TOKEN_H
 #define _TOKEN_H
 
-typedef enum
-{
-    INT,
-    FLOAT,
-    RAT,
-    SYM,
-    LPAREN,
-    RPAREN,
-    END
-} token_t;
+typedef enum { INT, FLOAT, RAT, SYM, LPAREN, RPAREN, END } token_t;
 
-typedef struct
-{
+typedef struct {
     token_t type;
     char *val;
 } token;

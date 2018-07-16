@@ -6,8 +6,7 @@
 
 #define MAXSYM 100
 
-typedef struct
-{
+typedef struct {
     char *symbol;
 } entry;
 

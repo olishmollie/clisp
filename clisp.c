@@ -1,6 +1,6 @@
+#include "ast.h"
 #include "global.h"
 #include "table.h"
-#include "ast.h"
 #include "token.h"
 
 #include <ctype.h>
@@ -10,35 +10,24 @@
 #include <string.h>
 
 #define BUFSIZE 99
-
 #define MAXCHILDREN 10
 
 int pos;
 
-int nextchar(char *input)
-{
-    return input[++pos];
-}
+int nextchar(char *input) { return input[++pos]; }
 
-int curchar(char *input)
-{
-    return input[pos];
-}
+int curchar(char *input) { return input[pos]; }
 
-void skipspaces(char *input)
-{
-    while (isspace(curchar(input)))
-    {
+void skipspaces(char *input) {
+    while (isspace(curchar(input))) {
         nextchar(input);
     }
 }
 
-token lexdigit(char *input)
-{
+token lexdigit(char *input) {
     char num[BUFSIZE];
     int i = 0;
-    while (curchar(input) && isdigit(curchar(input)))
-    {
+    while (curchar(input) && isdigit(curchar(input))) {
         num[i++] = curchar(input);
         nextchar(input);
     }
@@ -46,12 +35,11 @@ token lexdigit(char *input)
     return token_new(INT, num);
 }
 
-token lexsymbol(char *input)
-{
+token lexsymbol(char *input) {
     char sym[BUFSIZE];
     int i = 0;
-    while (curchar(input) && !isspace(curchar(input)) && curchar(input) != ')')
-    {
+    while (curchar(input) && !isspace(curchar(input)) &&
+           curchar(input) != ')') {
         sym[i++] = curchar(input);
         nextchar(input);
     }
@@ -61,38 +49,28 @@ token lexsymbol(char *input)
     return token_new(SYM, sym);
 }
 
-token lexan(char *input)
-{
+token lexan(char *input) {
     skipspaces(input);
     int cur = curchar(input);
     if (cur == EOS)
         return token_new(END, "end");
-    else if (cur == '(')
-    {
+    else if (cur == '(') {
         nextchar(input);
         return token_new(LPAREN, "(");
-    }
-    else if (cur == ')')
-    {
+    } else if (cur == ')') {
         nextchar(input);
         return token_new(RPAREN, ")");
-    }
-    else if (isdigit(cur))
-    {
+    } else if (isdigit(cur)) {
         return lexdigit(input);
-    }
-    else
-    {
+    } else {
         return lexsymbol(input);
     }
 }
 
 token peektok, curtok;
 
-int match(token_t type, char *input)
-{
-    if (peektok.type == type)
-    {
+int match(token_t type, char *input) {
+    if (peektok.type == type) {
         curtok = peektok;
         peektok = lexan(input);
         return 1;
@@ -101,10 +79,8 @@ int match(token_t type, char *input)
     return 0;
 }
 
-ast *parse(char *input)
-{
-    switch (peektok.type)
-    {
+ast *parse(char *input) {
+    switch (peektok.type) {
     case INT:
         match(INT, input);
         return ast_new(curtok, 0, 0);
@@ -120,8 +96,7 @@ ast *parse(char *input)
 
         ast *tmp_children[MAXCHILDREN];
         int childpos = 0;
-        while (peektok.type != RPAREN)
-        {
+        while (peektok.type != RPAREN) {
             tmp_children[childpos++] = parse(input);
         }
 
@@ -138,8 +113,7 @@ ast *parse(char *input)
     }
 }
 
-long eval_op(long x, char *op, long y)
-{
+long eval_op(long x, char *op, long y) {
     if (strcmp("+", op) == 0)
         return x + y;
     if (strcmp("-", op) == 0)
@@ -151,18 +125,17 @@ long eval_op(long x, char *op, long y)
     return 0;
 }
 
-long eval(ast *root)
-{
+long eval(ast *root) {
+    if (root->tok.type == INT)
+        return atoi(root->tok.val);
     return -1;
 }
 
-int main(void)
-{
+int main(void) {
     table_init();
     printf("Welcome to clisp! Use ctrl+c to exit.\n");
 
-    while (1)
-    {
+    while (1) {
         pos = 0;
         char *input = readline("clisp> ");
         add_history(input);
@@ -171,7 +144,9 @@ int main(void)
         peektok = lexan(input);
 
         ast *prog = parse(input);
-        ast_print(prog, 0);
+        // ast_print(prog, 0);
+        long res = eval(prog);
+        printf("%li\n", res);
         ast_delete(prog);
 
         free(input);

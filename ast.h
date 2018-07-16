@@ -3,8 +3,7 @@
 
 #include "token.h"
 
-typedef struct ast
-{
+typedef struct ast {
     token tok;
     int numchldrn;
     struct ast **children;
