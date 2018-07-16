@@ -25,26 +25,26 @@ void ast_delete(ast *a)
 
 void ast_print(ast *a, int offset)
 {
-    char *sp = malloc(sizeof(char) * offset);
-    for (int i = 0; i < offset; i++)
-    {
-        sp[i] = ' ';
-    }
-    switch (a->type)
-    {
-    case NUM:
-        printf("%s<type: NUM, val: %d>\n", sp, a->val);
-        break;
-    case SYM:
-        printf("%s<type: SYM, val: %s>\n", sp, symtable[a->val].symbol);
-        break;
-    case EXP:
-        printf("%s<type: EXP, val: %s, numchldrn: %d>\n", sp, symtable[a->val].symbol, a->numchldrn);
-        for (int i = 0; i < a->numchldrn; i++)
-        {
-            ast_print(a->children[i], offset + 4);
-        }
-        break;
-    }
-    free(sp);
+    // char *sp = malloc(sizeof(char) * offset);
+    // for (int i = 0; i < offset; i++)
+    // {
+    //     sp[i] = ' ';
+    // }
+    // switch (a->type)
+    // {
+    // case NUM:
+    //     printf("%s<type: NUM, val: %d>\n", sp, a->val);
+    //     break;
+    // case SYM:
+    //     printf("%s<type: SYM, val: %s>\n", sp, symtable[a->val].symbol);
+    //     break;
+    // case EXP:
+    //     printf("%s<type: EXP, val: %s, numchldrn: %d>\n", sp, symtable[a->val].symbol, a->numchldrn);
+    //     for (int i = 0; i < a->numchldrn; i++)
+    //     {
+    //         ast_print(a->children[i], offset + 4);
+    //     }
+    //     break;
+    // }
+    // free(sp);
 }

@@ -1,6 +1,7 @@
 #include "global.h"
 #include "table.h"
 #include "ast.h"
+#include "token.h"
 
 #include <ctype.h>
 #include <editline/readline.h>
@@ -12,7 +13,8 @@
 
 #define MAXCHILDREN 10
 
-int peektok, curtok, tokenval, pos;
+int pos;
+token peektok, curtok;
 
 int nextchar(char *input)
 {
@@ -32,18 +34,20 @@ void skipspaces(char *input)
     }
 }
 
-int lexdigit(char *input)
+token lexdigit(char *input)
 {
-    int num = 0;
+    char num[BUFSIZE];
+    int i = 0;
     while (curchar(input) && isdigit(curchar(input)))
     {
-        num = num * 10 + (curchar(input) - '0');
+        num[i++] = curchar(input);
         nextchar(input);
     }
-    return num;
+    num[i] = EOS;
+    return token_new(INT, num);
 }
 
-int lexsymbol(char *input)
+token lexsymbol(char *input)
 {
     char sym[BUFSIZE];
     int i = 0;
@@ -54,87 +58,51 @@ int lexsymbol(char *input)
     }
     sym[i] = EOS;
     int p = lookup(sym);
-    if (p < 0)
-        p = insert(sym);
-    return p;
+    if (lookup(sym) < 0)
+        insert(sym);
+    return token_new(SYM, sym);
 }
 
-int lexan(char *input)
+token lexan(char *input)
 {
     skipspaces(input);
     int cur = curchar(input);
     if (cur == EOS)
-        return END;
+        return token_new(END, "end");
     else if (cur == '(')
     {
         nextchar(input);
-        tokenval = NONE;
-        return LPAR;
+        return token_new(LPAREN, "(");
     }
     else if (cur == ')')
     {
         nextchar(input);
-        tokenval = NONE;
-        return RPAR;
+        return token_new(RPAREN, ")");
     }
     else if (isdigit(cur))
     {
-        tokenval = lexdigit(input);
-        return NUM;
+        return lexdigit(input);
     }
     else
     {
-        tokenval = lexsymbol(input);
-        return SYM;
+        return lexsymbol(input);
     }
 }
 
-int match(int type, char *input)
+int match(token_t type, char *input)
 {
-    if (peektok == type)
+    if (peektok.type == type)
     {
         curtok = peektok;
         peektok = lexan(input);
         return 1;
     }
-    fprintf(stderr, "expected token type %d, got %d\n", type, peektok);
+    fprintf(stderr, "expected token type %d, got %d\n", type, peektok.type);
     return 0;
 }
 
 ast *parse(char *input)
 {
-    ast *child_store[MAXCHILDREN];
-    int child_store_pos = 0;
-    int val;
-    switch (peektok)
-    {
-    case NUM:
-        val = tokenval;
-        match(NUM, input);
-        return ast_new(NUM, val, 0, 0);
-    case SYM:
-        val = tokenval;
-        match(SYM, input);
-        return ast_new(SYM, val, 0, 0);
-    case LPAR:
-        match(LPAR, input);
-        val = tokenval;
-        match(SYM, input);
-        while (peektok != RPAR)
-        {
-            ast *child = parse(input);
-            child_store[child_store_pos++] = child;
-        }
-        match(RPAR, input);
-        int numchldrn = child_store_pos;
-        ast **children = malloc(sizeof(ast *) * numchldrn);
-        for (int i = 0; i < numchldrn; i++)
-        {
-            children[i] = child_store[i];
-        }
-        return ast_new(EXP, val, numchldrn, children);
-    }
-
     return NULL;
 }
 
@@ -153,21 +121,6 @@ long eval_op(long x, char *op, long y)
 
 long eval(ast *root)
 {
-    if (root->type == NUM)
-    {
-        return root->val;
-    }
-    else if (root->type == EXP)
-    {
-        char *op = symtable[root->val].symbol;
-        long x = eval(root->children[0]);
-        for (int i = 1; i < root->numchldrn; i++)
-        {
-            x = eval_op(x, op, eval(root->children[i]));
-        }
-        return x;
-    }
-
     return -1;
 }
 
@@ -183,15 +136,12 @@ int main(void)
         add_history(input);
 
         // Initialize the lexer.
-        peektok = lexan(input);
-
-        ast *prog = parse(input);
-        if (prog)
+        curtok = lexan(input);
+        while (curtok.type != END)
         {
-            // ast_print(prog, 0);
-            long res = eval(prog);
-            printf("%li\n", res);
-            ast_delete(prog);
+            token_print(curtok);
+            token_delete(curtok);
+            curtok = lexan(input);
         }
 
         free(input);
