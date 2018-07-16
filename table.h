@@ -5,7 +5,7 @@
 
 char lexemes[MAXCHAR];
 
-void init();
+void table_init();
 int insert(char *symbol);
 int lookup(char *symbol);
 

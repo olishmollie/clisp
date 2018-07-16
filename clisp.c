@@ -14,7 +14,6 @@
 #define MAXCHILDREN 10
 
 int pos;
-token peektok, curtok;
 
 int nextchar(char *input)
 {
@@ -57,7 +56,6 @@ token lexsymbol(char *input)
         nextchar(input);
     }
     sym[i] = EOS;
-    int p = lookup(sym);
     if (lookup(sym) < 0)
         insert(sym);
     return token_new(SYM, sym);
@@ -89,6 +87,8 @@ token lexan(char *input)
     }
 }
 
+token peektok, curtok;
+
 int match(token_t type, char *input)
 {
     if (peektok.type == type)
@@ -103,7 +103,42 @@ int match(token_t type, char *input)
 
 ast *parse(char *input)
 {
-    return NULL;
+    switch (peektok.type)
+    {
+    case INT:
+        match(INT, input);
+        return ast_new(curtok, 0, 0);
+    case SYM:
+        match(SYM, input);
+        return ast_new(curtok, 0, 0);
+    case LPAREN:
+        match(LPAREN, input);
+        token_delete(curtok);
+        match(SYM, input);
+
+        token op = curtok;
+
+        ast *tmp_children[MAXCHILDREN];
+        int childpos = 0;
+        while (peektok.type != RPAREN)
+        {
+            tmp_children[childpos++] = parse(input);
+        }
+
+        match(RPAREN, input);
+        token_delete(curtok);
+
+        ast **children = malloc(sizeof(ast *) * childpos);
+        for (int i = 0; i < childpos; i++)
+        {
+            children[i] = tmp_children[i];
+        }
+
+        return ast_new(op, childpos, children);
+    default:
+        fprintf(stderr, "error: returning null from ast *parse()...\n");
+        return NULL;
+    }
 }
 
 long eval_op(long x, char *op, long y)
@@ -126,7 +161,7 @@ long eval(ast *root)
 
 int main(void)
 {
-    init();
+    table_init();
     printf("Welcome to clisp! Use ctrl+c to exit.\n");
 
     while (1)
@@ -136,13 +171,11 @@ int main(void)
         add_history(input);
 
         // Initialize the lexer.
-        curtok = lexan(input);
-        while (curtok.type != END)
-        {
-            token_print(curtok);
-            token_delete(curtok);
-            curtok = lexan(input);
-        }
+        peektok = lexan(input);
+
+        ast *prog = parse(input);
+        ast_print(prog, 0);
+        ast_delete(prog);
 
         free(input);
     }

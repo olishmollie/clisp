@@ -7,7 +7,7 @@
 
 int lastsym = 0, lastchar = 0;
 
-void init()
+void table_init()
 {
     char *builtins[] = {
         "+", "-", "*", "/",
