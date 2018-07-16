@@ -44,8 +44,8 @@ token lexsymbol(char *input) {
         nextchar(input);
     }
     sym[i] = EOS;
-    if (lookup(sym) < 0)
-        insert(sym);
+    if (table_lookup(sym) < 0)
+        table_insert(sym);
     return token_new(SYM, sym);
 }
 
@@ -90,8 +90,8 @@ ast *parse(char *input) {
     case LPAREN:
         match(LPAREN, input);
         token_delete(curtok);
-        match(SYM, input);
 
+        match(SYM, input);
         token op = curtok;
 
         ast *tmp_children[MAXCHILDREN];
@@ -127,17 +127,25 @@ long eval_op(long x, char *op, long y) {
 
 long eval(ast *root) {
     if (root->tok.type == INT)
-        return atoi(root->tok.val);
-    return -1;
+        return atol(root->tok.val);
+
+    char *op = root->tok.val;
+
+    long x = eval(root->children[0]);
+    for (int i = 1; i < root->numchldrn; i++) {
+        x = eval_op(x, op, eval(root->children[i]));
+    }
+
+    return x;
 }
 
 int main(void) {
     table_init();
-    printf("Welcome to clisp! Use ctrl+c to exit.\n");
+    printf("clisp version 0.1\n\n");
 
     while (1) {
         pos = 0;
-        char *input = readline("clisp> ");
+        char *input = readline("> ");
         add_history(input);
 
         // Initialize the lexer.

@@ -13,11 +13,11 @@ void table_init() {
                         "cos", "tan", "define", "list", "exit"};
     int len = sizeof(builtins) / sizeof(builtins[0]);
     for (int i = 0; i < len; i++) {
-        insert(builtins[i]);
+        table_insert(builtins[i]);
     }
 }
 
-int insert(char *symbol) {
+int table_insert(char *symbol) {
     int tmp = lastsym;
     int len = strlen(symbol);
     if (lastchar + len + 1 > MAXCHAR) {
@@ -37,7 +37,7 @@ int insert(char *symbol) {
     return tmp;
 }
 
-int lookup(char *symbol) {
+int table_lookup(char *symbol) {
     for (int i = 0; i < lastsym; i++) {
         if (strcmp(symtable[i].symbol, symbol) == 0) {
             return i;
