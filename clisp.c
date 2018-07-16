@@ -1,5 +1,6 @@
 #include "ast.h"
 #include "global.h"
+#include "object.h"
 #include "table.h"
 #include "token.h"
 
@@ -118,115 +119,6 @@ ast *parse(char *input) {
 }
 
 /* ============= EVALUATION ============== */
-typedef enum { OBJ_LONG, OBJ_SYM, OBJ_SEXP, OBJ_ERROR } object_t;
-
-typedef struct object {
-    object_t type;
-    int numobj;
-    union {
-        long lval;
-        char *ident;
-        struct object **cell;
-        char *error;
-    };
-} object;
-
-object *object_long(long lval) {
-    object *o = malloc(sizeof(object));
-    o->numobj = 0;
-    o->type = OBJ_LONG;
-    o->lval = lval;
-    return o;
-}
-
-object *object_sym(char *ident) {
-    object *o = malloc(sizeof(object));
-    o->numobj = 0;
-    o->type = OBJ_SYM;
-    o->ident = malloc(sizeof(char) * strlen(ident));
-    strcpy(o->ident, ident);
-    return o;
-}
-
-object *object_sexp(void) {
-    object *o = malloc(sizeof(object));
-    o->numobj = 0;
-    o->type = OBJ_SEXP;
-    o->cell = NULL;
-    return o;
-}
-
-object *object_error(char *error) {
-    object *o = malloc(sizeof(object));
-    o->numobj = 0;
-    o->type = OBJ_ERROR;
-    o->error = malloc(sizeof(char) * strlen(error));
-    strcpy(o->error, error);
-    return o;
-}
-
-void object_delete(object *o) {
-    switch (o->type) {
-    case OBJ_LONG:
-        break;
-    case OBJ_SYM:
-        free(o->ident);
-        break;
-    case OBJ_ERROR:
-        free(o->error);
-        break;
-    case OBJ_SEXP:
-        for (int i = 0; i < o->numobj; i++) {
-            object_delete(o->cell[i]);
-        }
-        free(o->cell);
-        break;
-    }
-    free(o);
-}
-
-void object_print(object *o);
-
-void print_sexp(object *o) {
-    putchar('(');
-    for (int i = 0; i < o->numobj; i++) {
-        object_print(o->cell[i]);
-        if (i != o->numobj - 1) {
-            putchar(' ');
-        }
-    }
-    putchar(')');
-}
-
-void object_println(object *o) {
-    object_print(o);
-    putchar('\n');
-}
-
-void object_print(object *o) {
-    switch (o->type) {
-    case OBJ_LONG:
-        printf("%li", o->lval);
-        break;
-    case OBJ_SYM:
-        printf("%s", o->ident);
-        break;
-    case OBJ_ERROR:
-        printf("error: %s", o->error);
-        break;
-    case OBJ_SEXP:
-        print_sexp(o);
-    }
-}
-
-object *object_add(object *o, object *x) {
-    o->numobj++;
-    o->cell = o->cell ? realloc(o->cell, sizeof(object *) * o->numobj)
-                      : malloc(sizeof(object *) * o->numobj);
-    o->cell[o->numobj - 1] = x;
-    return o;
-}
-
 object *eval_op(object *x, char *op, object *y) {
 
     if (x->type == OBJ_ERROR)
