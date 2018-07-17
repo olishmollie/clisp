@@ -6,24 +6,21 @@
 
 object *object_long(long lval) {
     object *o = malloc(sizeof(object));
-    o->numobj = 0;
     o->type = OBJ_LONG;
     o->lval = lval;
     return o;
 }
 
-object *object_sym(char *ident) {
+object *object_sym(char *sym) {
     object *o = malloc(sizeof(object));
-    o->numobj = 0;
     o->type = OBJ_SYM;
-    o->ident = malloc(sizeof(char) * strlen(ident));
-    strcpy(o->ident, ident);
+    o->sym = malloc(sizeof(char) * strlen(sym));
+    strcpy(o->sym, sym);
     return o;
 }
 
 object *object_sexp(void) {
     object *o = malloc(sizeof(object));
-    o->numobj = 0;
     o->type = OBJ_SEXP;
     o->cell = list_new();
     return o;
@@ -31,7 +28,6 @@ object *object_sexp(void) {
 
 object *object_error(char *error) {
     object *o = malloc(sizeof(object));
-    o->numobj = 0;
     o->type = OBJ_ERROR;
     o->error = malloc(sizeof(char) * strlen(error));
     strcpy(o->error, error);
@@ -43,7 +39,7 @@ void object_delete(object *o) {
     case OBJ_LONG:
         break;
     case OBJ_SYM:
-        free(o->ident);
+        free(o->sym);
         break;
     case OBJ_ERROR:
         free(o->error);
@@ -57,9 +53,9 @@ void object_delete(object *o) {
 
 void print_sexp(object *o) {
     putchar('(');
-    for (int i = 0; i < o->numobj; i++) {
+    for (int i = 0; i < list_size(o->cell); i++) {
         object_print(list_at(o->cell, i));
-        if (i != o->numobj - 1) {
+        if (i != list_size(o->cell) - 1) {
             putchar(' ');
         }
     }
@@ -77,7 +73,7 @@ void object_print(object *o) {
         printf("%li", o->lval);
         break;
     case OBJ_SYM:
-        printf("%s", o->ident);
+        printf("%s", o->sym);
         break;
     case OBJ_ERROR:
         printf("error: %s", o->error);
@@ -85,10 +81,4 @@ void object_print(object *o) {
     case OBJ_SEXP:
         print_sexp(o);
     }
-}
-
-object *object_add(object *o, object *x) {
-    list_push(o->cell, x);
-    o->numobj = list_size(o->cell);
-    return o;
 }

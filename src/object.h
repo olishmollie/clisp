@@ -7,10 +7,9 @@ typedef enum { OBJ_LONG, OBJ_SYM, OBJ_SEXP, OBJ_ERROR } object_t;
 
 typedef struct object {
     object_t type;
-    int numobj;
     union {
         long lval;
-        char *ident;
+        char *sym;
         list *cell;
         char *error;
     };
@@ -18,7 +17,7 @@ typedef struct object {
 
 object *object_long(long lval);
 
-object *object_sym(char *ident);
+object *object_sym(char *sym);
 
 object *object_sexp(void);
 

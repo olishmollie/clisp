@@ -105,8 +105,8 @@ ast *parse(char *input) {
             tmp_children[childpos++] = parse(input);
         }
 
-        match(RPAREN, input);
-        token_delete(curtok); /* don't need ')' */
+        if (match(RPAREN, input))
+            token_delete(curtok);
 
         ast **children = malloc(sizeof(ast *) * childpos);
         memcpy(children, tmp_children, sizeof(ast *) * childpos);
@@ -119,6 +119,44 @@ ast *parse(char *input) {
 }
 
 /* ============= EVALUATION ============== */
+object *object_add(object *o, object *x) {
+    list_insert(o->cell, x, list_size(o->cell));
+    return o;
+}
+
+object *read_long(ast *a) {
+    errno = 0;
+    long x = strtol(a->tok.val, NULL, 10);
+    return errno != ERANGE ? object_long(x) : object_error("bad number syntax");
+}
+
+object *object_read(ast *root);
+
+object *read_sexp(ast *a) {
+    object *x = object_sexp();
+    for (int i = 0; i < a->numchldrn; i++) {
+        x = object_add(x, object_read(a->children[i]));
+    }
+    return x;
+}
+
+object *object_read(ast *root) {
+    if (root->type == AST_NUM) {
+        return read_long(root);
+    }
+
+    if (root->type == AST_SYM) {
+        return object_sym(root->tok.val);
+    }
+
+    if (root->type == AST_EXP) {
+        return read_sexp(root);
+    }
+
+    fprintf(stderr, "error: returning null from object_read()\n");
+    return NULL;
+}
+
 object *eval_op(object *x, char *op, object *y) {
 
     if (x->type == OBJ_ERROR)
@@ -143,43 +181,110 @@ object *eval_op(object *x, char *op, object *y) {
     return object_error("unknown operator");
 }
 
-object *eval_long(ast *a) {
-    errno = 0;
-    long x = strtol(a->tok.val, NULL, 10);
-    return errno != ERANGE ? object_long(x) : object_error("bad number syntax");
+object *object_take(object *o, int index) {
+    object *p = list_remove(o->cell, index);
+    object_delete(o);
+    return p;
 }
 
-object *object_eval(ast *root);
+object *builtin_op(object *o, char *sym) {
 
-object *eval_sexp(ast *a) {
-    object *x = object_sexp();
-    for (int i = 0; i < a->numchldrn; i++) {
-        x = object_add(x, object_eval(a->children[i]));
+    /* Ensure all arguments are long */
+    for (int i = 0; i < list_size(o->cell); i++) {
+        object *p = list_at(o->cell, i);
+        if (p->type != OBJ_LONG) {
+            object_delete(o);
+            return object_error("cannot operate on non-number");
+        }
     }
+
+    /* Pop the first element */
+    object *x = list_remove(o->cell, 0);
+
+    /* If no arguments and sum then perform unary neg */
+    if ((strcmp(sym, "-") == 0) && list_size(o->cell) == 0) {
+        x->lval = -x->lval;
+    }
+
+    /* While there are still elements remaining */
+    while (list_size(o->cell) > 0) {
+        object *y = list_remove(o->cell, 0);
+
+        if (strcmp(sym, "+") == 0)
+            x->lval += y->lval;
+        if (strcmp(sym, "-") == 0)
+            x->lval -= y->lval;
+        if (strcmp(sym, "*") == 0)
+            x->lval *= y->lval;
+        if (strcmp(sym, "/") == 0) {
+            if (y->lval == 0) {
+                object_delete(x);
+                object_delete(y);
+                x = object_error("division by zero");
+                break;
+            }
+            x->lval /= y->lval;
+        }
+
+        object_delete(y);
+    }
+
+    object_delete(o);
 
     return x;
 }
 
-object *object_eval(ast *root) {
-    if (root->type == AST_NUM) {
-        return eval_long(root);
-    }
+object *eval_sexp(object *o);
 
-    if (root->type == AST_SYM) {
-        return object_sym(root->tok.val);
+object *object_eval(object *o) {
+    if (o->type == OBJ_SEXP) {
+        return eval_sexp(o);
     }
-
-    if (root->type == AST_EXP) {
-        return eval_sexp(root);
-    }
-
-    fprintf(stderr, "error: returning null from object_eval()\n");
-    return NULL;
+    return o;
 }
 
-#include <editline/readline.h>
+object *eval_sexp(object *o) {
+    /* Evaluate children */
+    for (int i = 0; i < list_size(o->cell); i++) {
+        object *p = list_at(o->cell, i);
+        list_replace(o->cell, object_eval(p), i);
+    }
+
+    /* Error checking */
+    for (int i = 0; i < list_size(o->cell); i++) {
+        object *p = list_at(o->cell, i);
+        if (p->type == OBJ_ERROR) {
+            return object_take(o, i);
+        }
+    }
+
+    /* Empty list */
+    if (list_size(o->cell) == 0)
+        return o;
+
+    /* Single Expression */
+    if (list_size(o->cell) == 1)
+        return object_take(o, 0);
+
+    /* Ensure first element is symbol */
+    object *p = list_remove(o->cell, 0);
+
+    if (p->type != OBJ_SYM) {
+        object_delete(o);
+        object_delete(p);
+        return object_error("s-expression doesn't start with a symbol");
+    }
+
+    object *res = builtin_op(o, p->sym);
+
+    object_delete(p);
+
+    return res;
+}
 
 /* ============= REPL ============== */
+#include <editline/readline.h>
+
 int main(void) {
     table_init();
     printf("clisp version 0.1\n\n");
@@ -194,11 +299,14 @@ int main(void) {
 
         ast *prog = parse(input);
         // ast_print(prog, 0);
-        object *res = object_eval(prog);
+
+        object *o = object_read(prog);
+
+        object *res = object_eval(o);
         object_println(res);
+
         object_delete(res);
         ast_delete(prog);
-
         free(input);
     }
 
