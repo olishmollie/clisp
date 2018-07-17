@@ -1,6 +1,8 @@
 #ifndef _OBJECT_H
 #define _OBJECT_H
 
+#include "list.h"
+
 typedef enum { OBJ_LONG, OBJ_SYM, OBJ_SEXP, OBJ_ERROR } object_t;
 
 typedef struct object {
@@ -9,7 +11,7 @@ typedef struct object {
     union {
         long lval;
         char *ident;
-        struct object **cell;
+        list *cell;
         char *error;
     };
 } object;

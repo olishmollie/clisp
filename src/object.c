@@ -25,7 +25,7 @@ object *object_sexp(void) {
     object *o = malloc(sizeof(object));
     o->numobj = 0;
     o->type = OBJ_SEXP;
-    o->cell = NULL;
+    o->cell = list_new();
     return o;
 }
 
@@ -49,10 +49,7 @@ void object_delete(object *o) {
         free(o->error);
         break;
     case OBJ_SEXP:
-        for (int i = 0; i < o->numobj; i++) {
-            object_delete(o->cell[i]);
-        }
-        free(o->cell);
+        list_delete(o->cell, (void *)object_delete);
         break;
     }
     free(o);
@@ -61,7 +58,7 @@ void object_delete(object *o) {
 void print_sexp(object *o) {
     putchar('(');
     for (int i = 0; i < o->numobj; i++) {
-        object_print(o->cell[i]);
+        object_print(list_at(o->cell, i));
         if (i != o->numobj - 1) {
             putchar(' ');
         }
@@ -91,9 +88,7 @@ void object_print(object *o) {
 }
 
 object *object_add(object *o, object *x) {
-    o->numobj++;
-    o->cell = o->cell ? realloc(o->cell, sizeof(object *) * o->numobj)
-                      : malloc(sizeof(object *) * o->numobj);
-    o->cell[o->numobj - 1] = x;
+    list_push(o->cell, x);
+    o->numobj = list_size(o->cell);
     return o;
 }
