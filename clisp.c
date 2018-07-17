@@ -198,6 +198,11 @@ object *builtin_op(object *o, char *sym) {
         }
     }
 
+    if (list_size(o->cell) == 0) {
+        object_delete(o);
+        return object_long(0);
+    }
+
     /* Pop the first element */
     object *x = list_remove(o->cell, 0);
 
@@ -224,6 +229,15 @@ object *builtin_op(object *o, char *sym) {
                 break;
             }
             x->lval /= y->lval;
+        }
+        if (strcmp(sym, "%") == 0) {
+            if (y->lval == 0) {
+                object_delete(x);
+                object_delete(y);
+                x = object_error("division by zero");
+                break;
+            }
+            x->lval %= y->lval;
         }
 
         object_delete(y);
@@ -262,17 +276,13 @@ object *eval_sexp(object *o) {
     if (list_size(o->cell) == 0)
         return o;
 
-    /* Single Expression */
-    if (list_size(o->cell) == 1)
-        return object_take(o, 0);
-
     /* Ensure first element is symbol */
     object *p = list_remove(o->cell, 0);
 
     if (p->type != OBJ_SYM) {
         object_delete(o);
         object_delete(p);
-        return object_error("s-expression doesn't start with a symbol");
+        return object_error("attempt to apply non-expression");
     }
 
     object *res = builtin_op(o, p->sym);
