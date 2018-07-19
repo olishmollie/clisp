@@ -14,4 +14,6 @@ token token_new(token_t type, char *val) {
 
 void token_delete(token t) { free(t.val); }
 
-void token_print(token t) { printf("<type: %d, val: '%s'>\n", t.type, t.val); }
+void token_println(token t) {
+    printf("<type: %d, val: '%s'>\n", t.type, t.val);
+}

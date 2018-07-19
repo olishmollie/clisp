@@ -4,81 +4,114 @@
 #include <stdlib.h>
 #include <string.h>
 
-object *object_long(long lval) {
-    object *o = malloc(sizeof(object));
-    o->type = OBJ_LONG;
-    o->lval = lval;
+num_t mk_num(long val) {
+    num_t n;
+    n.val = val;
+    return n;
+}
+
+sym_t mk_sym(char *sym) {
+    sym_t s;
+    s.name = malloc(sizeof(char) * strlen(sym) + 1);
+    strcpy(s.name, sym);
+    return s;
+}
+
+cons_t mk_cons(obj *a, obj *b) {
+    cons_t c;
+    c.car = a;
+    c.cdr = b;
+    return c;
+}
+
+obj *obj_num(long val) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_NUM;
+    o->num = mk_num(val);
     return o;
 }
 
-object *object_sym(char *sym) {
-    object *o = malloc(sizeof(object));
+obj *obj_sym(char *name) {
+    obj *o = malloc(sizeof(obj));
     o->type = OBJ_SYM;
-    o->sym = malloc(sizeof(char) * strlen(sym));
-    strcpy(o->sym, sym);
+    o->sym = mk_sym(name);
     return o;
 }
 
-object *object_sexp(void) {
-    object *o = malloc(sizeof(object));
-    o->type = OBJ_SEXP;
-    o->cell = list_new();
+obj *obj_cons(obj *car, obj *cdr) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_CONS;
+    o->cons = mk_cons(car, cdr);
     return o;
 }
 
-object *object_error(char *error) {
-    object *o = malloc(sizeof(object));
-    o->type = OBJ_ERROR;
-    o->error = malloc(sizeof(char) * strlen(error));
-    strcpy(o->error, error);
+obj *obj_nil(void) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_NIL;
     return o;
 }
 
-void object_delete(object *o) {
-    switch (o->type) {
-    case OBJ_LONG:
-        break;
-    case OBJ_SYM:
-        free(o->sym);
-        break;
-    case OBJ_ERROR:
-        free(o->error);
-        break;
-    case OBJ_SEXP:
-        list_delete(o->cell, (void *)object_delete);
-        break;
-    }
-    free(o);
+obj *obj_err(char *err) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_ERR;
+    o->err = malloc(sizeof(char) * strlen(err) + 1);
+    strcpy(o->err, err);
+    return o;
 }
 
-void print_sexp(object *o) {
+void obj_print(obj *o);
+
+void print_cons(cons_t c) {
     putchar('(');
-    for (int i = 0; i < list_size(o->cell); i++) {
-        object_print(list_at(o->cell, i));
-        if (i != list_size(o->cell) - 1) {
-            putchar(' ');
-        }
-    }
+    obj_print(c.car);
+    printf(" . ");
+    obj_print(c.cdr);
     putchar(')');
 }
 
-void object_println(object *o) {
-    object_print(o);
+void obj_print(obj *o) {
+    switch (o->type) {
+    case OBJ_NUM:
+        printf("%li", o->num.val);
+        break;
+    case OBJ_SYM:
+        printf("%s", o->sym.name);
+        break;
+    case OBJ_CONS:
+        print_cons(o->cons);
+        break;
+    case OBJ_NIL:
+        printf("nil");
+        break;
+    case OBJ_ERR:
+        printf("%s", o->err);
+        break;
+    default:
+        printf("Cannot print unknown obj type\n");
+        exit(1);
+    }
+}
+
+void obj_println(obj *o) {
+    obj_print(o);
     putchar('\n');
 }
 
-void object_print(object *o) {
+void obj_delete(obj *o) {
     switch (o->type) {
-    case OBJ_LONG:
-        printf("%li", o->lval);
+    case OBJ_NUM:
         break;
     case OBJ_SYM:
-        printf("%s", o->sym);
+        free(o->sym.name);
         break;
-    case OBJ_ERROR:
-        printf("error: %s", o->error);
+    case OBJ_CONS:
+        obj_delete(o->cons.car);
+        obj_delete(o->cons.cdr);
         break;
-    case OBJ_SEXP:
-        print_sexp(o);
+    case OBJ_NIL:
+        break;
+    case OBJ_ERR:
+        free(o->err);
     }
+    free(o);
 }

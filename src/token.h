@@ -10,6 +10,6 @@ typedef struct {
 
 token token_new(token_t type, char *val);
 void token_delete(token t);
-void token_print(token t);
+void token_println(token t);
 
 #endif

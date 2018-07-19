@@ -3,32 +3,45 @@
 
 #include "list.h"
 
-typedef enum { OBJ_LONG, OBJ_SYM, OBJ_SEXP, OBJ_ERROR } object_t;
+typedef struct {
+    long val;
+} num_t;
 
-typedef struct object {
-    object_t type;
+typedef struct {
+    char *name;
+} sym_t;
+
+typedef struct obj obj;
+
+typedef struct {
+    obj *car;
+    obj *cdr;
+} cons_t;
+
+typedef enum { OBJ_NUM, OBJ_SYM, OBJ_CONS, OBJ_NIL, OBJ_ERR } obj_t;
+
+struct obj {
+    obj_t type;
     union {
-        long lval;
-        char *sym;
-        list *cell;
-        char *error;
+        num_t num;
+        sym_t sym;
+        cons_t cons;
+        char *err;
     };
-} object;
+};
 
-object *object_long(long lval);
+num_t mk_num(long num);
+sym_t mk_sym(char *sym);
+cons_t mk_cons(obj *a, obj *b);
 
-object *object_sym(char *sym);
+obj *obj_num(long val);
+obj *obj_sym(char *name);
+obj *obj_cons(obj *car, obj *cdr);
+obj *obj_nil(void);
+obj *obj_err(char *err);
 
-object *object_sexp(void);
+void obj_println(obj *o);
 
-object *object_error(char *error);
-
-void object_delete(object *o);
-
-void object_println(object *o);
-
-void object_print(object *o);
-
-object *object_add(object *o, object *x);
+void obj_delete(obj *o);
 
 #endif
