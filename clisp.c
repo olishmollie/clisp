@@ -213,8 +213,7 @@ obj *read(char *input) {
     case RPAREN:
         return obj_err("unexpected ')'");
     default:
-        fprintf(stderr, "error: returning null from read()...\n");
-        return NULL;
+        return obj_err("unknown token '%s'", tok.val);
     }
 }
 
@@ -304,13 +303,16 @@ obj *builtin_op(obj *args, obj *f) {
     obj *cur = args;
     while (cur->type != OBJ_NIL) {
         if (_car(cur)->type != OBJ_NUM) {
+            // TODO: handle printing symbol or error in error msg
+            obj *err = obj_err("cannot operate on non-number");
             obj_delete(f);
             obj_delete(args);
-            return obj_err("cannot operate on non-number");
+            return err;
         }
         cur = _cdr(cur);
     }
 
+    printf("got past number check\n");
     /* if no args and sum then unary negation */
     if ((strcmp(f->sym.name, "-") == 0) && _cdr(args)->type == OBJ_NIL) {
         obj *res = obj_pop(&args);
@@ -381,10 +383,10 @@ obj *eval_cons(obj *o) {
 
     obj *f = obj_pop(&o);
     if (table_lookup(f->sym.name) == -1) {
+        obj *err = obj_err("symbol '%s' is not defined", f->sym.name);
         obj_delete(o);
         obj_delete(f);
-        // TODO: add format string to obj_err
-        return obj_err("symbol is not defined");
+        return err;
     }
 
     obj *res = builtin_op(o, f);

@@ -42,7 +42,7 @@ obj *obj_sym(char *name);
 obj *obj_cons(obj *car, obj *cdr);
 obj *obj_nil(void);
 obj *obj_bool(char *val);
-obj *obj_err(char *err);
+obj *obj_err(char *fmt, ...);
 
 obj *_car(obj *o);
 obj *_cdr(obj *o);

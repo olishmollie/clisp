@@ -1,5 +1,6 @@
 #include "object.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,11 +59,18 @@ obj *obj_bool(char *val) {
     return o;
 }
 
-obj *obj_err(char *err) {
+obj *obj_err(char *fmt, ...) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_ERR;
-    o->err = malloc(sizeof(char) * strlen(err) + 1);
-    strcpy(o->err, err);
+
+    va_list args;
+    va_start(args, fmt);
+    int len = vsnprintf(NULL, 0, fmt, args);
+
+    o->err = malloc(sizeof(char) * len + 1);
+    vsprintf(o->err, fmt, args);
+    va_end(args);
+
     return o;
 }
 
@@ -113,7 +121,7 @@ void obj_print(obj *o) {
         printf("%s", o->bool == TRUE ? "true" : "false");
         break;
     case OBJ_ERR:
-        printf("%s", o->err);
+        printf("Error: %s", o->err);
         break;
     default:
         printf("Cannot print unknown obj type\n");
