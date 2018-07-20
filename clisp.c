@@ -25,12 +25,13 @@ typedef enum {
     END
 } token_t;
 
-int pos, numtok;
-
 typedef struct {
     token_t type;
     char *val;
 } token;
+
+int pos, numtok;
+token curtok;
 
 token token_new(token_t type, char *val) {
     token t;
@@ -125,13 +126,17 @@ token lexan(char *input) {
     }
 }
 
-/* PARSING ------------------------------------------------------------------ */
-token peektok, curtok;
-
-void lex_advance(char *input) {
-    curtok = peektok;
-    peektok = lexan(input);
+void lex_init(char *input) {
+    numtok = 0;
+    pos = 0;
+    curtok = lexan(input);
 }
+
+void lex_cleanup(void) { token_delete(curtok); /* delete 'end' token */ }
+
+/* PARSING ------------------------------------------------------------------ */
+
+void lex_advance(char *input) { curtok = lexan(input); }
 
 int take(token_t type, char *input) {
     if (curtok.type == type) {
@@ -158,10 +163,8 @@ obj *read_sym(token tok) {
 obj *read(char *input);
 
 obj *read_list(char *input) {
-    if (curtok.type == END) {
-        token_delete(curtok);
+    if (curtok.type == END)
         return obj_err("unexpected eof, expected ')'");
-    }
     if (curtok.type == RPAREN) {
         token tok = curtok;
         take(RPAREN, input);
@@ -415,18 +418,15 @@ int main(void) {
     printf("clisp version 0.1\n\n");
 
     while (1) {
-        numtok = 0;
-        pos = 0;
         char *input = readline("> ");
         add_history(input);
 
-        /* Initialize the lexer. */
-        curtok = lexan(input);
-        peektok = lexan(input);
+        lex_init(input);
 
         obj *o = eval(read(input));
         obj_println(o);
 
+        lex_cleanup();
         obj_delete(o);
         free(input);
     }
