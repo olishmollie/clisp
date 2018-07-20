@@ -18,7 +18,9 @@ typedef struct {
     obj *cdr;
 } cons_t;
 
-typedef enum { OBJ_NUM, OBJ_SYM, OBJ_CONS, OBJ_NIL, OBJ_ERR } obj_t;
+typedef enum { OBJ_NUM, OBJ_SYM, OBJ_CONS, OBJ_NIL, OBJ_BOOL, OBJ_ERR } obj_t;
+
+typedef enum { TRUE, FALSE } bool_t;
 
 struct obj {
     obj_t type;
@@ -26,6 +28,7 @@ struct obj {
         num_t num;
         sym_t sym;
         cons_t cons;
+        bool_t bool;
         char *err;
     };
 };
@@ -38,7 +41,13 @@ obj *obj_num(long val);
 obj *obj_sym(char *name);
 obj *obj_cons(obj *car, obj *cdr);
 obj *obj_nil(void);
+obj *obj_bool(char *val);
 obj *obj_err(char *err);
+
+obj *_car(obj *o);
+obj *_cdr(obj *o);
+
+obj *obj_pop(obj **o);
 
 void obj_println(obj *o);
 

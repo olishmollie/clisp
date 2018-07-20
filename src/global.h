@@ -5,6 +5,7 @@
 #define EOS '\0'
 
 #define MAXSYM 100
+#define NUMBUILTINS 10
 
 typedef struct {
     char *symbol;

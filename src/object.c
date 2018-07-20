@@ -51,6 +51,13 @@ obj *obj_nil(void) {
     return o;
 }
 
+obj *obj_bool(char *val) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_BOOL;
+    o->bool = strcmp(val, "true") == 0 ? TRUE : FALSE;
+    return o;
+}
+
 obj *obj_err(char *err) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_ERR;
@@ -59,13 +66,31 @@ obj *obj_err(char *err) {
     return o;
 }
 
+obj *_car(obj *o) {
+    if (o->type == OBJ_CONS)
+        return o->cons.car;
+    return obj_err("param passed to car not a cons");
+}
+
+obj *_cdr(obj *o) {
+    if (o->type == OBJ_CONS)
+        return o->cons.cdr;
+    return obj_err("param passed to cdr not a cons");
+}
+
+obj *obj_pop(obj **o) {
+    obj *res = _car(*o);
+    *o = _cdr(*o);
+    return res;
+}
+
 void obj_print(obj *o);
 
-void print_cons(cons_t c) {
+void print_cons(obj *o) {
     putchar('(');
-    obj_print(c.car);
+    obj_print(_car(o));
     printf(" . ");
-    obj_print(c.cdr);
+    obj_print(_cdr(o));
     putchar(')');
 }
 
@@ -78,10 +103,14 @@ void obj_print(obj *o) {
         printf("%s", o->sym.name);
         break;
     case OBJ_CONS:
-        print_cons(o->cons);
+        print_cons(o);
         break;
     case OBJ_NIL:
+        // TODO
         printf("nil");
+        break;
+    case OBJ_BOOL:
+        printf("%s", o->bool == TRUE ? "true" : "false");
         break;
     case OBJ_ERR:
         printf("%s", o->err);
@@ -109,6 +138,7 @@ void obj_delete(obj *o) {
         obj_delete(o->cons.cdr);
         break;
     case OBJ_NIL:
+    case OBJ_BOOL:
         break;
     case OBJ_ERR:
         free(o->err);
