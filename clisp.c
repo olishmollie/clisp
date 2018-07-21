@@ -312,7 +312,6 @@ obj *builtin_op(obj *args, obj *f) {
         cur = _cdr(cur);
     }
 
-    printf("got past number check\n");
     /* if no args and sum then unary negation */
     if ((strcmp(f->sym.name, "-") == 0) && _cdr(args)->type == OBJ_NIL) {
         obj *res = obj_pop(&args);
