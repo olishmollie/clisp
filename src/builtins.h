@@ -17,6 +17,8 @@ obj *builtin_divide(env *, obj *);
 obj *builtin_remainder(env *, obj *);
 
 obj *builtin_cons(env *, obj *);
+obj *builtin_car(env *, obj *);
+obj *builtin_cdr(env *, obj *);
 obj *builtin_exit(env *, obj *);
 
 #endif

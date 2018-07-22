@@ -84,6 +84,18 @@ obj *builtin_cons(env *e, obj *args) {
     return obj_cons(car, cdr);
 }
 
+obj *builtin_car(env *e, obj *args) {
+    NUMARGSASSERT(args, "car", 1);
+    TYPEASSERT(args, OBJ_CONS);
+    return obj_take(args, 0)->cons->car;
+}
+
+obj *builtin_cdr(env *e, obj *args) {
+    NUMARGSASSERT(args, "cdr", 1);
+    TYPEASSERT(args, OBJ_CONS);
+    return obj_take(args, 0)->cons->cdr;
+}
+
 obj *builtin_exit(env *e, obj *args) {
     NUMARGSASSERT(args, "exit", 0);
     env_delete(e);
