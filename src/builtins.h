@@ -16,6 +16,6 @@ obj *builtin_times(env *, obj *);
 obj *builtin_divide(env *, obj *);
 obj *builtin_remainder(env *, obj *);
 
-obj *builtin_define(env *, obj *);
+obj *builtin_exit(env *, obj *);
 
 #endif

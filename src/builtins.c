@@ -1,5 +1,7 @@
 #include "builtins.h"
 
+#include <stdlib.h>
+
 obj *builtin_plus(env *e, obj *args) {
     LASSERT(args, args->sexpr->count > 0, "plus passed no arguments");
     obj *x = obj_pop(args, 0);
@@ -63,4 +65,14 @@ obj *builtin_remainder(env *e, obj *args) {
         obj_delete(y);
     }
     return x;
+}
+
+obj *builtin_exit(env *e, obj *args) {
+    LASSERT(args, args->sexpr->count == 0,
+            "incorrect number of args passed to exit. expected 0, got %d",
+            args->sexpr->count);
+    env_delete(e);
+    obj_delete(args);
+    exit(0);
+    return NULL;
 }
