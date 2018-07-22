@@ -3,8 +3,6 @@
 
 #include "object.h"
 
-// #define MAXCHAR 2048
-
 struct obj;
 typedef struct obj obj;
 
@@ -14,7 +12,7 @@ typedef struct env {
     obj **vals;
 } env;
 
-env *env_new(void);
+env *env_init(void);
 
 obj *env_lookup(env *e, obj *k);
 void env_insert(env *e, obj *k, obj *v);

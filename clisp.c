@@ -1,3 +1,5 @@
+#include "src/env.h"
+#include "src/errors.h"
 #include "src/object.h"
 
 #include <ctype.h>
@@ -20,6 +22,7 @@ typedef enum {
     NIL,
     LPAREN,
     RPAREN,
+    DEFINE,
     END
 } token_t;
 
@@ -101,6 +104,8 @@ token lexsymbol(char *input) {
         return token_new(TRU, sym);
     if (strcmp(sym, "false") == 0)
         return token_new(FALS, sym);
+    if (strcmp(sym, "define") == 0)
+        return token_new(DEFINE, sym);
 
     return token_new(SYM, sym);
 }
@@ -139,15 +144,6 @@ token nexttok(char *input) {
     return curtok;
 }
 
-int take(token_t type, char *input) {
-    if (curtok.type == type) {
-        curtok = lexan(input);
-        return 1;
-    }
-    fprintf(stderr, "whooops! unexpected token type %d\n", curtok.type);
-    return 0;
-}
-
 obj *read_long(token tok) {
     errno = 0;
     long x = strtol(tok.val, NULL, 10);
@@ -164,10 +160,12 @@ obj *read_sym(token tok) {
 obj *read(char *input);
 
 obj *read_sexpr(char *input) {
-    if (curtok.type == END)
-        return obj_err("unexpected eof, expected ')'");
     obj *o = obj_sexpr();
     while (peektok.type != RPAREN) {
+        if (curtok.type == END) {
+            obj_delete(o);
+            return obj_err("unexpected eof, expected ')'");
+        }
         obj_add(o, read(input));
     }
     return o;
@@ -178,74 +176,118 @@ obj *read(char *input) {
     token tok;
     switch (curtok.type) {
     case INT:
-        // tok = curtok;
-        // take(INT, input);
         return read_long(curtok);
     case SYM:
-        // tok = curtok;
-        // take(SYM, input);
         return read_sym(curtok);
     case NIL:
-        // tok = curtok;
-        // take(NIL, input);
         token_delete(curtok);
         return obj_nil();
     case LPAREN:
-        // tok = curtok;
-        // take(LPAREN, input);
         token_delete(curtok);
-        // curtok = lexan(input);
         return read_sexpr(input);
     case TRU:
     case FALS:
         tok = curtok;
-        // take(curtok.type, input);
         obj *b = obj_bool(tok.val);
         token_delete(tok);
         return b;
+    case DEFINE:
+        tok = curtok;
+        obj *k = obj_keyword("define");
+        token_delete(tok);
+        return k;
     case RPAREN:
         return obj_err("unexpected ')'");
     default:
-        return obj_err("unknown token '%s'", tok.val);
+        return obj_err("unknown token '%s'", curtok.val);
     }
 }
 
 /* EVAL --------------------------------------------------------------------- */
 
-obj *eval(obj *o);
+obj *eval(env *, obj *);
 
-obj *eval_sexpr(obj *o) {
+int context;
+
+void eval_init() { context = 0; }
+
+obj *builtin_define(env *e, obj *args) {
+    LASSERT(args, args->sexpr->count == 2,
+            "incorrect number of arguments for define. expected %d, got %d", 2,
+            args->sexpr->count);
+    LASSERT(args, args->sexpr->cell[0]->type == OBJ_SYM,
+            "first argument in define should be a symbol");
+
+    env_insert(e, args->sexpr->cell[0], eval(e, args->sexpr->cell[1]));
+
+    obj_delete(args);
+    return obj_nil();
+}
+
+obj *eval_keyword(env *e, obj *o) {
+
+    obj *res;
+    obj *k = obj_pop(o, 0);
+    if (strcmp(k->keyword, "define") == 0) {
+        res = context == 0 ? builtin_define(e, o)
+                           : obj_err("improper context for define");
+    }
+
+    obj_delete(k);
+
+    return res;
+}
+
+obj *eval_sexpr(env *e, obj *o) {
+
+    /* check for keyword */
+    if (o->sexpr->cell[0]->type == OBJ_KEYWORD) {
+        return eval_keyword(e, o);
+    }
+
+    context++;
 
     /* evaluate all children */
-    for (int i = 0; i < o->sexpr.count; i++) {
-        o->sexpr.cell[i] = eval(o->sexpr.cell[i]);
-        if (o->sexpr.cell[i]->type == OBJ_ERR) {
+    for (int i = 0; i < o->sexpr->count; i++) {
+        o->sexpr->cell[i] = eval(e, o->sexpr->cell[i]);
+        if (o->sexpr->cell[i]->type == OBJ_ERR) {
             return obj_take(o, i);
         }
     }
 
-    /* first obj in list should be symbol */
-    // obj *f = obj_pop(o, 0);
-    // if (f->type != OBJ_SYM) {
-    //     obj_delete(f);
-    //     obj_delete(o);
-    //     return obj_err("first obj in s-expr not a symbol");
-    // }
+    /* first obj in list should be function */
+    obj *f = obj_pop(o, 0);
+    if (f->type != OBJ_FUN) {
+        obj_delete(f);
+        obj_delete(o);
+        return obj_err("first obj in s-expr not a function");
+    }
 
-    return o;
+    obj *res = f->fun->proc(e, o);
+
+    obj_delete(f);
+    obj_delete(o);
+
+    return res;
 }
 
-obj *eval(obj *o) {
+obj *eval(env *e, obj *o) {
     switch (o->type) {
     case OBJ_NUM:
     case OBJ_NIL:
     case OBJ_BOOL:
-    case OBJ_SYM:
     case OBJ_CONS:
     case OBJ_ERR:
+    case OBJ_FUN:
         return o;
     case OBJ_SEXPR:
-        return eval_sexpr(o);
+        return eval_sexpr(e, o);
+    case OBJ_SYM:
+        return env_lookup(e, o);
+    case OBJ_KEYWORD:;
+        obj *err = obj_err("invalid syntax %s", o->keyword);
+        obj_delete(o);
+        return err;
     }
     return NULL;
 }
@@ -253,22 +295,29 @@ obj *eval(obj *o) {
 /* REPL --------------------------------------------------------------------- */
 #include <editline/readline.h>
 
+env *global;
+void cleanup() { env_delete(global); }
+
 int main(void) {
     printf("clisp version 0.1\n\n");
+    global = env_init();
 
     while (1) {
         char *input = readline("> ");
         add_history(input);
 
         lex_init(input);
+        eval_init();
 
-        obj *o = read(input);
+        obj *o = eval(global, read(input));
         obj_println(o);
 
         lex_cleanup();
         obj_delete(o);
         free(input);
     }
+
+    cleanup();
 
     return 0;
 }

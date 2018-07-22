@@ -1,6 +1,7 @@
 #include "env.h"
 #include "object.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,19 +13,37 @@ env *env_new(void) {
     return e;
 }
 
+void register_builtin(env *e, builtin fun, char *name) {
+    obj *k = obj_sym(name);
+    obj *v = obj_fun(name, fun);
+    env_insert(e, k, v);
+    obj_delete(k);
+    obj_delete(v);
+}
+
+env *env_init(void) {
+    env *e = env_new();
+    register_builtin(e, builtin_plus, "+");
+    register_builtin(e, builtin_minus, "-");
+    register_builtin(e, builtin_times, "*");
+    register_builtin(e, builtin_divide, "/");
+    register_builtin(e, builtin_remainder, "%");
+    return e;
+}
+
 obj *env_lookup(env *e, obj *k) {
     for (int i = 0; i < e->count; i++) {
-        if (strcmp(e->syms[i], k->sym.name) == 0)
+        if (strcmp(e->syms[i], k->sym) == 0)
             return obj_cpy(e->vals[i]);
     }
-    return obj_err("unbound symbol '%s'", k->sym.name);
+    return obj_err("unbound symbol '%s'", k->sym);
 }
 
 void env_insert(env *e, obj *k, obj *v) {
 
     /* Overwrite an exisiting symbol if exists */
     for (int i = 0; i < e->count; i++) {
-        if (strcmp(e->syms[i], k->sym.name) == 0) {
+        if (strcmp(e->syms[i], k->sym) == 0) {
             obj_delete(e->vals[i]);
             e->vals[i] = obj_cpy(v);
         }
@@ -36,8 +55,8 @@ void env_insert(env *e, obj *k, obj *v) {
     e->syms = realloc(e->syms, sizeof(char *) * e->count);
 
     e->vals[e->count - 1] = obj_cpy(v);
-    e->syms[e->count - 1] = malloc(sizeof(char) * (strlen(k->sym.name) + 1));
-    strcpy(e->syms[e->count - 1], k->sym.name);
+    e->syms[e->count - 1] = malloc(sizeof(char) * (strlen(k->sym) + 1));
+    strcpy(e->syms[e->count - 1], k->sym);
 }
 
 void env_delete(env *e) {
