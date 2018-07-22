@@ -29,10 +29,16 @@ fun_t *mk_fun(char *name, builtin proc) {
 }
 
 sexpr_t *mk_sexpr(void) {
-    sexpr_t *s = malloc(sizeof(sexpr_t));
-    s->count = 0;
-    s->cell = NULL;
-    return s;
+    sexpr_t *e = malloc(sizeof(sexpr_t));
+    e->count = 0;
+    e->cell = NULL;
+    return e;
+}
+
+qexpr_t *mk_qexpr(obj *o) {
+    qexpr_t *q = malloc(sizeof(qexpr_t));
+    q->child = o;
+    return q;
 }
 
 obj *obj_num(long val) {
@@ -81,6 +87,13 @@ obj *obj_sexpr(void) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_SEXPR;
     o->sexpr = mk_sexpr();
+    return o;
+}
+
+obj *obj_qexpr(obj *child) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_QEXPR;
+    o->qexpr = mk_qexpr(child);
     return o;
 }
 
@@ -145,6 +158,8 @@ obj *obj_cpy(obj *o) {
         return obj_cons(obj_cpy(obj_car(o)), obj_cpy(obj_cdr(o)));
     case OBJ_SEXPR:
         return cpy_sexpr(o);
+    case OBJ_QEXPR:
+        return obj_qexpr(obj_cpy(o->qexpr->child));
     case OBJ_FUN:
         return obj_fun(o->fun->name, o->fun->proc);
     case OBJ_ERR:
@@ -153,8 +168,6 @@ obj *obj_cpy(obj *o) {
     case OBJ_BOOL:
     case OBJ_NIL:
         return o;
-    default:
-        return obj_err("unknown copy type");
     }
 }
 
@@ -172,8 +185,12 @@ char *obj_typename(obj_t type) {
         return "error";
     case OBJ_NIL:
         return "nil";
+    case OBJ_FUN:
+        return "function";
     case OBJ_SEXPR:
         return "s-expression";
+    case OBJ_QEXPR:
+        return "q-expression";
     case OBJ_KEYWORD:
         return "keyword";
     default:
@@ -194,7 +211,6 @@ void print_cons(obj *o) {
 void print_sexpr(obj *o) {
     putchar('(');
     for (int i = 0; i < o->sexpr->count; i++) {
-        char *delim = i == o->sexpr->count - 1 ? "" : " ";
         obj_print(o->sexpr->cell[i]);
         printf("%s", i != o->sexpr->count - 1 ? " " : "");
     }
@@ -218,6 +234,9 @@ void obj_print(obj *o) {
             break;
         case OBJ_SEXPR:
             print_sexpr(o);
+            break;
+        case OBJ_QEXPR:
+            obj_print(o->qexpr->child);
             break;
         case OBJ_BOOL:
             printf("%s", o->bool == TRUE ? "true" : "false");
@@ -273,6 +292,10 @@ void obj_delete(obj *o) {
             break;
         case OBJ_SEXPR:
             delete_sexpr(o);
+            break;
+        case OBJ_QEXPR:
+            obj_delete(o->qexpr->child);
+            free(o->qexpr);
             break;
         case OBJ_FUN:
             free(o->fun->name);

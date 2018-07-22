@@ -9,4 +9,16 @@
         }                                                                      \
     }
 
+#define TYPEASSERT(args, typ)                                                  \
+    {                                                                          \
+        for (int i = 0; i < args->sexpr->count; i++) {                         \
+            if (args->sexpr->cell[i]->type != typ) {                           \
+                obj *err =                                                     \
+                    obj_err("argument is not of type %s", obj_typename(typ));  \
+                obj_delete(args);                                              \
+                return err;                                                    \
+            }                                                                  \
+        }                                                                      \
+    }
+
 #endif

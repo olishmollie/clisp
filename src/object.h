@@ -19,6 +19,10 @@ typedef struct {
     obj **cell;
 } sexpr_t;
 
+typedef struct {
+    obj *child;
+} qexpr_t;
+
 typedef struct env env;
 typedef obj *(*builtin)(env *, obj *);
 typedef struct {
@@ -34,6 +38,7 @@ typedef enum {
     OBJ_BOOL,
     OBJ_FUN,
     OBJ_SEXPR,
+    OBJ_QEXPR,
     OBJ_KEYWORD,
     OBJ_ERR
 } obj_t;
@@ -49,6 +54,7 @@ struct obj {
         bool_t bool;
         fun_t *fun;
         sexpr_t *sexpr;
+        qexpr_t *qexpr;
         char *keyword;
         char *err;
     };
@@ -58,6 +64,7 @@ num_t *mk_num(long);
 cons_t *mk_cons(obj *, obj *);
 fun_t *mk_fun(char *, builtin);
 sexpr_t *mk_sexpr(void);
+qexpr_t *mk_qexpr(obj *);
 
 obj *obj_num(long);
 obj *obj_sym(char *);
@@ -73,6 +80,8 @@ obj *obj_sexpr(void);
 void obj_add(obj *, obj *);
 obj *obj_pop(obj *, int);
 obj *obj_take(obj *, int);
+
+obj *obj_qexpr(obj *);
 
 obj *obj_cpy(obj *o);
 

@@ -48,6 +48,7 @@ void env_insert(env *e, obj *k, obj *v) {
         if (strcmp(e->syms[i], k->sym) == 0) {
             obj_delete(e->vals[i]);
             e->vals[i] = obj_cpy(v);
+            return;
         }
     }
 
@@ -69,4 +70,13 @@ void env_delete(env *e) {
     free(e->syms);
     free(e->vals);
     free(e);
+}
+
+void env_print(env *e) {
+    printf("{\n");
+    for (int i = 0; i < e->count; i++) {
+        printf("\t%s: ", e->syms[i]);
+        obj_println(e->vals[i]);
+    }
+    printf("}\n");
 }

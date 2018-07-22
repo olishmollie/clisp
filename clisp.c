@@ -23,6 +23,8 @@ typedef enum {
     LPAREN,
     RPAREN,
     DEFINE,
+    QUOTE,
+    TICK,
     END
 } token_t;
 
@@ -106,6 +108,8 @@ token lexsymbol(char *input) {
         return token_new(FALS, sym);
     if (strcmp(sym, "define") == 0)
         return token_new(DEFINE, sym);
+    if (strcmp(sym, "quote") == 0)
+        return token_new(QUOTE, sym);
 
     return token_new(SYM, sym);
 }
@@ -123,9 +127,11 @@ token lexan(char *input) {
     } else if (cur == ')') {
         nextchar(input);
         return token_new(RPAREN, ")");
-    } else {
+    } else if (cur == '\'') {
+        nextchar(input);
+        return token_new(TICK, "'");
+    } else
         return lexsymbol(input);
-    }
 }
 
 void lex_init(char *input) {
@@ -168,8 +174,11 @@ obj *read_sexpr(char *input) {
         }
         obj_add(o, read(input));
     }
+    nexttok(input); /* take ')' */
     return o;
 }
+
+obj *read_qexpr(char *input);
 
 obj *read(char *input) {
     curtok = nexttok(input);
@@ -185,6 +194,9 @@ obj *read(char *input) {
     case LPAREN:
         token_delete(curtok);
         return read_sexpr(input);
+    case TICK:
+        token_delete(curtok);
+        return obj_qexpr(read(input));
     case TRU:
     case FALS:
         tok = curtok;
@@ -192,8 +204,9 @@ obj *read(char *input) {
         token_delete(tok);
         return b;
     case DEFINE:
+    case QUOTE:
         tok = curtok;
-        obj *k = obj_keyword("define");
+        obj *k = obj_keyword(tok.val);
         token_delete(tok);
         return k;
     case RPAREN:
@@ -211,30 +224,41 @@ int context;
 
 void eval_init() { context = 0; }
 
-obj *builtin_define(env *e, obj *args) {
+obj *eval_define(env *e, obj *args) {
     LASSERT(args, args->sexpr->count == 2,
             "incorrect number of arguments for define. expected %d, got %d", 2,
             args->sexpr->count);
     LASSERT(args, args->sexpr->cell[0]->type == OBJ_SYM,
             "first argument in define should be a symbol");
 
-    env_insert(e, args->sexpr->cell[0], eval(e, args->sexpr->cell[1]));
+    obj *k = obj_pop(args, 0);
+    obj *v = eval(e, obj_pop(args, 0));
 
+    env_insert(e, k, v);
+
+    obj_delete(k);
+    obj_delete(v);
     obj_delete(args);
     return obj_nil();
 }
 
-obj *eval_keyword(env *e, obj *o) {
+obj *eval_quote(env *e, obj *args) {
+    LASSERT(args, args->sexpr->count == 1,
+            "incorrect number of args for quote. expected %d, got %d", 1,
+            args->sexpr->count);
+    return obj_qexpr(obj_take(args, 0));
+}
 
+obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_pop(o, 0);
-    if (strcmp(k->keyword, "define") == 0) {
-        res = context == 0 ? builtin_define(e, o)
+    if (strcmp(k->keyword, "quote") == 0)
+        res = eval_quote(e, o);
+    else if (strcmp(k->keyword, "define") == 0) {
+        res = context == 0 ? eval_define(e, o)
                            : obj_err("improper context for define");
     }
-
     obj_delete(k);
-
     return res;
 }
 
@@ -266,7 +290,6 @@ obj *eval_sexpr(env *e, obj *o) {
     obj *res = f->fun->proc(e, o);
 
     obj_delete(f);
-    obj_delete(o);
 
     return res;
 }
@@ -279,6 +302,7 @@ obj *eval(env *e, obj *o) {
     case OBJ_CONS:
     case OBJ_ERR:
     case OBJ_FUN:
+    case OBJ_QEXPR:
         return o;
     case OBJ_SEXPR:
         return eval_sexpr(e, o);
@@ -310,11 +334,14 @@ int main(void) {
         eval_init();
 
         obj *o = eval(global, read(input));
+        // obj *o = read(input);
+        // printf("type = %s\n", obj_typename(o->type));
         obj_println(o);
 
         lex_cleanup();
         obj_delete(o);
         free(input);
+        // env_print(global);
     }
 
     cleanup();

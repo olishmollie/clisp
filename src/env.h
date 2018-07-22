@@ -19,4 +19,6 @@ void env_insert(env *e, obj *k, obj *v);
 
 void env_delete(env *e);
 
+void env_print(env *e);
+
 #endif
