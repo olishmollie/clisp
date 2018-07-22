@@ -76,10 +76,16 @@ obj *builtin_remainder(env *e, obj *args) {
     return x;
 }
 
+obj *builtin_cons(env *e, obj *args) {
+    NUMARGSASSERT(args, "cons", 2);
+    obj *car = obj_pop(args, 0);
+    obj *cdr = obj_pop(args, 0);
+    obj_delete(args);
+    return obj_cons(car, cdr);
+}
+
 obj *builtin_exit(env *e, obj *args) {
-    LASSERT(args, args->sexpr->count == 0,
-            "incorrect number of args passed to exit. expected 0, got %d",
-            args->sexpr->count);
+    NUMARGSASSERT(args, "exit", 0);
     env_delete(e);
     obj_delete(args);
     exit(0);

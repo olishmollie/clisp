@@ -29,6 +29,7 @@ env *env_init(void) {
     register_builtin(e, builtin_divide, "/");
     register_builtin(e, builtin_remainder, "%");
 
+    register_builtin(e, builtin_cons, "cons");
     register_builtin(e, builtin_exit, "exit");
     return e;
 }
