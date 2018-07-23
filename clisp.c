@@ -178,6 +178,7 @@ obj *read_list(char *input) {
 
     obj *cons = obj_cons(car, cdr);
 
+    // TODO: Find a better way of counting nargs
     obj *cur = cons;
     int nargs = 0;
     while (cur->type != OBJ_NIL && cur->type != OBJ_ERR) {
@@ -284,6 +285,8 @@ obj *eval_sexpr(env *e, obj *o) {
         cur->cons->car = eval(e, cur->cons->car);
         cur = obj_cdr(cur);
     }
+
+    ERRCHECK(o);
 
     /* first obj in list should be function */
     obj *f = obj_popcar(&o);

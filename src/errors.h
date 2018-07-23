@@ -34,4 +34,21 @@
         }                                                                      \
     }
 
+#define ERRCHECK(args)                                                         \
+    {                                                                          \
+        obj *cur = args;                                                       \
+        for (int i = 0; i < args->count; i++) {                                \
+            if (obj_car(cur)->type == OBJ_ERR) {                               \
+                obj *err = obj_err(obj_car(cur)->err);                         \
+                obj_delete(args);                                              \
+                return err;                                                    \
+            } else if (obj_cdr(cur)->type == OBJ_ERR) {                        \
+                obj *err = obj_err(obj_cdr(cur)->err);                         \
+                obj_delete(args);                                              \
+                return err;                                                    \
+            }                                                                  \
+            cur = obj_cdr(cur);                                                \
+        }                                                                      \
+    }
+
 #endif
