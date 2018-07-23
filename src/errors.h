@@ -1,7 +1,7 @@
 #ifndef _ERRORS_H
 #define _ERRORS_H
 
-#define LASSERT(args, cond, fmt, ...)                                          \
+#define CASSERT(args, cond, fmt, ...)                                          \
     {                                                                          \
         if (!(cond)) {                                                         \
             obj_delete(args);                                                  \
@@ -9,26 +9,28 @@
         }                                                                      \
     }
 
-#define NUMARGSASSERT(args, fun, num)                                          \
+#define NARGCHECK(args, fun, num)                                              \
     {                                                                          \
-        if (args->sexpr->count != num) {                                       \
+        if (args->count != num) {                                              \
             obj *err = obj_err(                                                \
                 "incorrect number of arguments to %s. expected %d, got %d",    \
-                fun, num, args->sexpr->count);                                 \
+                fun, num, args->count);                                        \
             obj_delete(args);                                                  \
             return err;                                                        \
         }                                                                      \
     }
 
-#define TYPEASSERT(args, typ)                                                  \
+#define TARGCHECK(args, typ)                                                   \
     {                                                                          \
-        for (int i = 0; i < args->sexpr->count; i++) {                         \
-            if (args->sexpr->cell[i]->type != typ) {                           \
-                obj *err =                                                     \
-                    obj_err("argument is not of type %s", obj_typename(typ));  \
+        obj *cur = args;                                                       \
+        for (int i = 0; i < args->count; i++) {                                \
+            if (obj_car(cur)->type != typ) {                                   \
+                obj *err = obj_err("argument is not of type %s, got %s",       \
+                                   obj_typename(typ), obj_car(cur)->type);     \
                 obj_delete(args);                                              \
                 return err;                                                    \
             }                                                                  \
+            cur = obj_cdr(cur);                                                \
         }                                                                      \
     }
 

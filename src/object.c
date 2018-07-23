@@ -13,10 +13,10 @@ num_t *mk_num(long val) {
     return n;
 }
 
-cons_t *mk_cons(obj *a, obj *b) {
+cons_t *mk_cons(obj *car, obj *cdr) {
     cons_t *c = malloc(sizeof(cons_t));
-    c->car = a;
-    c->cdr = b;
+    c->car = car;
+    c->cdr = cdr;
     return c;
 }
 
@@ -28,13 +28,6 @@ fun_t *mk_fun(char *name, builtin proc) {
     return f;
 }
 
-sexpr_t *mk_sexpr(void) {
-    sexpr_t *e = malloc(sizeof(sexpr_t));
-    e->count = 0;
-    e->cell = NULL;
-    return e;
-}
-
 qexpr_t *mk_qexpr(obj *o) {
     qexpr_t *q = malloc(sizeof(qexpr_t));
     q->child = o;
@@ -43,6 +36,7 @@ qexpr_t *mk_qexpr(obj *o) {
 
 obj *obj_num(long val) {
     obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_NUM;
     o->num = mk_num(val);
     return o;
@@ -50,6 +44,7 @@ obj *obj_num(long val) {
 
 obj *obj_sym(char *name) {
     obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_SYM;
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
@@ -58,6 +53,7 @@ obj *obj_sym(char *name) {
 
 obj *obj_cons(obj *car, obj *cdr) {
     obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_CONS;
     o->cons = mk_cons(car, cdr);
     return o;
@@ -65,33 +61,23 @@ obj *obj_cons(obj *car, obj *cdr) {
 
 obj *obj_fun(char *name, builtin proc) {
     obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_FUN;
     o->fun = mk_fun(name, proc);
     return o;
 }
 
-obj *obj_nil(void) {
+obj *obj_bool(bool_t b) {
     obj *o = malloc(sizeof(obj));
-    o->type = OBJ_NIL;
-    return o;
-}
-
-obj *obj_bool(char *val) {
-    obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_BOOL;
-    o->bool = strcmp(val, "true") == 0 ? TRUE : FALSE;
-    return o;
-}
-
-obj *obj_sexpr(void) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_SEXPR;
-    o->sexpr = mk_sexpr();
+    o->bool = b;
     return o;
 }
 
 obj *obj_qexpr(obj *child) {
     obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_QEXPR;
     o->qexpr = mk_qexpr(child);
     return o;
@@ -99,14 +85,23 @@ obj *obj_qexpr(obj *child) {
 
 obj *obj_keyword(char *name) {
     obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_KEYWORD;
     o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->keyword, name);
     return o;
 }
 
+obj *obj_nil(void) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_NIL;
+    o->count = 0;
+    return o;
+}
+
 obj *obj_err(char *fmt, ...) {
     obj *o = malloc(sizeof(obj));
+    o->count = 0;
     o->type = OBJ_ERR;
 
     va_list args;
@@ -121,54 +116,51 @@ obj *obj_err(char *fmt, ...) {
 obj *obj_car(obj *o) { return o->cons->car; }
 obj *obj_cdr(obj *o) { return o->cons->cdr; }
 
-void obj_add(obj *o, obj *p) {
-    o->sexpr->cell = realloc(o->sexpr->cell, sizeof(obj *) * ++o->sexpr->count);
-    o->sexpr->cell[o->sexpr->count - 1] = p;
+obj *obj_popcar(obj **o) {
+    obj *car = obj_car(*o);
+    *o = obj_cdr(*o);
+    return car;
 }
 
-obj *obj_pop(obj *o, int i) {
-    obj *res = o->sexpr->cell[i];
-    memmove(&o->sexpr->cell[i], &o->sexpr->cell[i + 1],
-            sizeof(obj *) * (o->sexpr->count - i - 1));
-    o->sexpr->cell = realloc(o->sexpr->cell, sizeof(obj *) * --o->sexpr->count);
-    return res;
+obj *obj_popcdr(obj **o) {
+    obj *cdr = obj_cdr(*o);
+    *o = obj_car(*o);
+    return cdr;
 }
 
-obj *obj_take(obj *o, int i) {
-    obj *res = obj_pop(o, i);
-    obj_delete(o);
-    return res;
-}
-
-obj *cpy_sexpr(obj *o) {
-    obj *cpy = obj_sexpr();
-    for (int i = 0; i < o->sexpr->count; i++) {
-        obj_add(cpy, obj_cpy(o->sexpr->cell[i]));
-    }
+obj *cpy_cons(obj *o) {
+    obj *car = obj_cpy(obj_car(o));
+    obj *cdr = obj_cpy(obj_cdr(o));
+    obj *cpy = obj_cons(car, cdr);
+    cpy->cons->car = car;
+    cpy->cons->cdr = cdr;
     return cpy;
 }
 
 obj *obj_cpy(obj *o) {
-    switch (o->type) {
-    case OBJ_NUM:
-        return obj_num(o->num->val);
-    case OBJ_SYM:
-        return obj_sym(o->sym);
-    case OBJ_CONS:
-        return obj_cons(obj_cpy(obj_car(o)), obj_cpy(obj_cdr(o)));
-    case OBJ_SEXPR:
-        return cpy_sexpr(o);
-    case OBJ_QEXPR:
-        return obj_qexpr(obj_cpy(o->qexpr->child));
-    case OBJ_FUN:
-        return obj_fun(o->fun->name, o->fun->proc);
-    case OBJ_ERR:
-        return obj_err(o->err);
-    case OBJ_KEYWORD:
-    case OBJ_BOOL:
-    case OBJ_NIL:
-        return o;
+    if (o) {
+        switch (o->type) {
+        case OBJ_NUM:
+            return obj_num(o->num->val);
+        case OBJ_SYM:
+            return obj_sym(o->sym);
+        case OBJ_CONS:
+            return cpy_cons(o);
+        case OBJ_QEXPR:
+            return obj_qexpr(obj_cpy(o->qexpr->child));
+        case OBJ_FUN:
+            return obj_fun(o->fun->name, o->fun->proc);
+        case OBJ_ERR:
+            return obj_err(o->err);
+        case OBJ_NIL:
+            return obj_nil();
+        case OBJ_KEYWORD:
+            return obj_keyword(o->keyword);
+        case OBJ_BOOL:
+            return obj_bool(o->bool);
+        }
     }
+    return NULL;
 }
 
 char *obj_typename(obj_t type) {
@@ -183,12 +175,8 @@ char *obj_typename(obj_t type) {
         return "cons";
     case OBJ_ERR:
         return "error";
-    case OBJ_NIL:
-        return "nil";
     case OBJ_FUN:
         return "function";
-    case OBJ_SEXPR:
-        return "s-expression";
     case OBJ_QEXPR:
         return "q-expression";
     case OBJ_KEYWORD:
@@ -202,19 +190,21 @@ void obj_print(obj *o);
 
 void print_cons(obj *o) {
     putchar('(');
-    obj_print(obj_car(o));
-    printf(" . ");
-    obj_print(obj_cdr(o));
-    putchar(')');
-}
-
-void print_sexpr(obj *o) {
-    putchar('(');
-    for (int i = 0; i < o->sexpr->count; i++) {
-        obj_print(o->sexpr->cell[i]);
-        printf("%s", i != o->sexpr->count - 1 ? " " : "");
+    obj *p = o;
+    while (1) {
+        obj_print(obj_car(p));
+        obj *cdr = obj_cdr(p);
+        if (cdr->type != OBJ_CONS) {
+            if (cdr->type != OBJ_NIL) {
+                printf(" . ");
+                obj_print(cdr);
+            }
+            putchar(')');
+            break;
+        }
+        putchar(' ');
+        p = obj_cdr(p);
     }
-    putchar(')');
 }
 
 void obj_print(obj *o) {
@@ -228,12 +218,6 @@ void obj_print(obj *o) {
             break;
         case OBJ_CONS:
             print_cons(o);
-            break;
-        case OBJ_NIL:
-            printf("nil");
-            break;
-        case OBJ_SEXPR:
-            print_sexpr(o);
             break;
         case OBJ_QEXPR:
             obj_print(o->qexpr->child);
@@ -250,6 +234,9 @@ void obj_print(obj *o) {
         case OBJ_KEYWORD:
             printf("%s", o->keyword);
             break;
+        case OBJ_NIL:
+            printf("()");
+            break;
         default:
             printf("Cannot print unknown obj type\n");
         }
@@ -263,13 +250,6 @@ void obj_println(obj *o) {
 
 void obj_delete(obj *o);
 
-void delete_sexpr(obj *o) {
-    for (int i = 0; i < o->sexpr->count; i++) {
-        obj_delete(o->sexpr->cell[i]);
-    }
-    free(o->sexpr->cell);
-}
-
 void obj_delete(obj *o) {
     if (o) {
         switch (o->type) {
@@ -280,18 +260,14 @@ void obj_delete(obj *o) {
             free(o->sym);
             break;
         case OBJ_CONS:
-            obj_delete(o->cons->car);
-            obj_delete(o->cons->cdr);
+            obj_delete(obj_car(o));
+            obj_delete(obj_cdr(o));
             free(o->cons);
             break;
-        case OBJ_NIL:
         case OBJ_BOOL:
             break;
         case OBJ_ERR:
             free(o->err);
-            break;
-        case OBJ_SEXPR:
-            delete_sexpr(o);
             break;
         case OBJ_QEXPR:
             obj_delete(o->qexpr->child);
@@ -303,6 +279,9 @@ void obj_delete(obj *o) {
             break;
         case OBJ_KEYWORD:
             free(o->keyword);
+            break;
+        case OBJ_NIL:
+            break;
         }
     }
     free(o);
