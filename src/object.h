@@ -54,11 +54,13 @@ struct obj {
     };
 };
 
+/* interior types ---------------------------------------------------------- */
 num_t *mk_num(long);
 cons_t *mk_cons(obj *, obj *);
 fun_t *mk_fun(char *, builtin);
 qexpr_t *mk_qexpr(obj *);
 
+/* object types ------------------------------------------------------------ */
 obj *obj_num(long);
 obj *obj_sym(char *);
 obj *obj_bool(bool_t);
@@ -66,21 +68,23 @@ obj *obj_cons(obj *, obj *);
 obj *obj_keyword(char *);
 obj *obj_nil(void);
 obj *obj_err(char *, ...);
-
 obj *obj_qexpr(obj *);
 obj *obj_fun(char *, builtin);
+char *obj_typename(obj_t);
 
+/* list fns ---------------------------------------------------------------- */
 obj *obj_car(obj *);
 obj *obj_cdr(obj *);
 obj *obj_popcar(obj **);
 obj *obj_popcdr(obj **);
 
+/* copying ----------------------------------------------------------------- */
 obj *obj_cpy(obj *o);
 
-char *obj_typename(obj_t);
-
+/* printing ---------------------------------------------------------------- */
 void obj_println(obj *o);
 
+/* deleting ---------------------------------------------------------------- */
 void obj_delete(obj *o);
 
 #endif

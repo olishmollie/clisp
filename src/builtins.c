@@ -2,7 +2,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+/* builtins ---------------------------------------------------------------- */
 obj *builtin_plus(env *e, obj *args) {
     CASSERT(args, args->count > 0, "plus passed no arguments");
     TARGCHECK(args, OBJ_NUM);
@@ -106,6 +108,55 @@ obj *builtin_cdr(env *e, obj *args) {
 }
 
 obj *builtin_list(env *e, obj *args) { return args; }
+
+obj *builtin_eq(env *e, obj *args) {
+    NARGCHECK(args, "eq", 2);
+    obj *x = obj_popcar(&args);
+    obj *y = obj_popcar(&args);
+
+    if (x->type != y->type) {
+        obj_delete(x);
+        obj_delete(y);
+        obj_delete(args);
+        return obj_bool(FALSE);
+    }
+
+    obj *res;
+    switch (x->type) {
+    case OBJ_NUM:
+        res = x->num->val == y->num->val ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
+    case OBJ_SYM:
+        res = strcpy(x->sym, y->sym) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
+    case OBJ_BOOL:
+        res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
+    case OBJ_FUN:
+        res = strcpy(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
+                                                      : obj_bool(FALSE);
+    default:
+        res = obj_err("parameter passed to eq must be atomic");
+    }
+
+    obj_delete(x);
+    obj_delete(y);
+    obj_delete(args);
+
+    return res;
+}
+
+obj *builtin_atom(env *e, obj *args) {
+    NARGCHECK(args, "atom", 1);
+    obj *x = obj_popcar(&args);
+
+    obj *res = x->type != OBJ_CONS ? obj_bool(TRUE) : obj_bool(FALSE);
+
+    obj_delete(x);
+    obj_delete(args);
+
+    return res;
+}
 
 obj *builtin_exit(env *e, obj *args) {
     NARGCHECK(args, "exit", 0);

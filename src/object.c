@@ -7,6 +7,8 @@
 
 int numobj = 0;
 
+/* interior types ---------------------------------------------------------- */
+
 num_t *mk_num(long val) {
     num_t *n = malloc(sizeof(num_t));
     n->val = val;
@@ -33,6 +35,8 @@ qexpr_t *mk_qexpr(obj *o) {
     q->child = o;
     return q;
 }
+
+/* obj types --------------------------------------------------------------- */
 
 obj *obj_num(long val) {
     obj *o = malloc(sizeof(obj));
@@ -113,6 +117,31 @@ obj *obj_err(char *fmt, ...) {
     return o;
 }
 
+char *obj_typename(obj_t type) {
+    switch (type) {
+    case OBJ_NUM:
+        return "number";
+    case OBJ_SYM:
+        return "symbol";
+    case OBJ_BOOL:
+        return "bool";
+    case OBJ_CONS:
+        return "cons";
+    case OBJ_ERR:
+        return "error";
+    case OBJ_FUN:
+        return "function";
+    case OBJ_QEXPR:
+        return "q-expression";
+    case OBJ_KEYWORD:
+        return "keyword";
+    default:
+        return "unknown";
+    }
+}
+
+/* list fns ---------------------------------------------------------------- */
+
 obj *obj_car(obj *o) { return o->cons->car; }
 obj *obj_cdr(obj *o) { return o->cons->cdr; }
 
@@ -121,12 +150,13 @@ obj *obj_popcar(obj **o) {
     *o = obj_cdr(*o);
     return car;
 }
-
 obj *obj_popcdr(obj **o) {
     obj *cdr = obj_cdr(*o);
     *o = obj_car(*o);
     return cdr;
 }
+
+/* copying ----------------------------------------------------------------- */
 
 obj *cpy_cons(obj *o) {
     obj *car = obj_cpy(obj_car(o));
@@ -163,28 +193,7 @@ obj *obj_cpy(obj *o) {
     return NULL;
 }
 
-char *obj_typename(obj_t type) {
-    switch (type) {
-    case OBJ_NUM:
-        return "number";
-    case OBJ_SYM:
-        return "symbol";
-    case OBJ_BOOL:
-        return "bool";
-    case OBJ_CONS:
-        return "cons";
-    case OBJ_ERR:
-        return "error";
-    case OBJ_FUN:
-        return "function";
-    case OBJ_QEXPR:
-        return "q-expression";
-    case OBJ_KEYWORD:
-        return "keyword";
-    default:
-        return "unknown";
-    }
-}
+/* printing ---------------------------------------------------------------- */
 
 void obj_print(obj *o);
 
@@ -247,6 +256,8 @@ void obj_println(obj *o) {
     obj_print(o);
     putchar('\n');
 }
+
+/* deleting ---------------------------------------------------------------- */
 
 void obj_delete(obj *o);
 

@@ -20,6 +20,8 @@ obj *builtin_cons(env *, obj *);
 obj *builtin_car(env *, obj *);
 obj *builtin_cdr(env *, obj *);
 obj *builtin_list(env *, obj *);
+obj *builtin_eq(env *, obj *);
+obj *builtin_atom(env *, obj *);
 obj *builtin_exit(env *, obj *);
 
 #endif

@@ -33,6 +33,8 @@ env *env_init(void) {
     register_builtin(e, builtin_car, "car");
     register_builtin(e, builtin_cdr, "cdr");
     register_builtin(e, builtin_list, "list");
+    register_builtin(e, builtin_eq, "eq");
+    register_builtin(e, builtin_atom, "atom");
     register_builtin(e, builtin_exit, "exit");
     return e;
 }
