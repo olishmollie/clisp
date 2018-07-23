@@ -105,6 +105,8 @@ obj *builtin_cdr(env *e, obj *args) {
     return res;
 }
 
+obj *builtin_list(env *e, obj *args) { return args; }
+
 obj *builtin_exit(env *e, obj *args) {
     NARGCHECK(args, "exit", 0);
     env_delete(e);
