@@ -100,6 +100,7 @@ token lexsymbol(char *input) {
         nextchar(input);
     }
     sym[i] = EOS;
+
     if (strcmp(sym, "nil") == 0)
         return token_new(NIL, sym);
     if (strcmp(sym, "true") == 0)
@@ -234,6 +235,15 @@ int nestlevel;
 
 void eval_init() { nestlevel = 0; }
 
+obj *eval_quote(env *e, obj *args) {
+    CASSERT(args, args->count == 1,
+            "incorrect number of args for quote. expected %d, got %d", 1,
+            args->count);
+    obj *car = obj_popcar(&args);
+    obj_delete(args);
+    return obj_qexpr(car);
+}
+
 obj *eval_def(env *e, obj *args) {
     NARGCHECK(args, "define", 2);
     CASSERT(args, obj_car(args)->type == OBJ_SYM,
@@ -247,15 +257,6 @@ obj *eval_def(env *e, obj *args) {
     obj_delete(v);
     obj_delete(args);
     return obj_nil();
-}
-
-obj *eval_quote(env *e, obj *args) {
-    CASSERT(args, args->count == 1,
-            "incorrect number of args for quote. expected %d, got %d", 1,
-            args->count);
-    obj *car = obj_popcar(&args);
-    obj_delete(args);
-    return obj_qexpr(car);
 }
 
 obj *eval_keyword(env *e, obj *o) {

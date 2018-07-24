@@ -136,6 +136,9 @@ obj *builtin_eq(env *e, obj *args) {
         res = strcpy(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
                                                       : obj_bool(FALSE);
         break;
+    case OBJ_NIL:
+        res = obj_bool(TRUE);
+        break;
     case OBJ_ERR:
         res = obj_err("fuuuuck");
         break;
