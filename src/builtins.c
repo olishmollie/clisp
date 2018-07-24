@@ -135,6 +135,10 @@ obj *builtin_eq(env *e, obj *args) {
     case OBJ_FUN:
         res = strcpy(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
                                                       : obj_bool(FALSE);
+        break;
+    case OBJ_ERR:
+        res = obj_err("fuuuuck");
+        break;
     default:
         res = obj_err("parameter passed to eq must be atomic");
     }

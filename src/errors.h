@@ -26,7 +26,8 @@
         for (int i = 0; i < args->count; i++) {                                \
             if (obj_car(cur)->type != typ) {                                   \
                 obj *err = obj_err("argument is not of type %s, got %s",       \
-                                   obj_typename(typ), obj_car(cur)->type);     \
+                                   obj_typename(typ),                          \
+                                   obj_typename(obj_car(cur)->type));          \
                 obj_delete(args);                                              \
                 return err;                                                    \
             }                                                                  \
