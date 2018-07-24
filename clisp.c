@@ -22,7 +22,7 @@ typedef enum {
     NIL,
     LPAREN,
     RPAREN,
-    DEFINE,
+    DEF,
     QUOTE,
     TICK,
     END
@@ -106,8 +106,8 @@ token lexsymbol(char *input) {
         return token_new(TRU, sym);
     if (strcmp(sym, "false") == 0)
         return token_new(FALS, sym);
-    if (strcmp(sym, "define") == 0)
-        return token_new(DEFINE, sym);
+    if (strcmp(sym, "def") == 0)
+        return token_new(DEF, sym);
     if (strcmp(sym, "quote") == 0)
         return token_new(QUOTE, sym);
 
@@ -213,7 +213,7 @@ obj *read(char *input) {
         obj *b = obj_bool(strcmp(tok.val, "true") == 0 ? TRUE : FALSE);
         token_delete(tok);
         return b;
-    case DEFINE:
+    case DEF:
     case QUOTE:
         tok = curtok;
         obj *k = obj_keyword(tok.val);
@@ -234,7 +234,7 @@ int nestlevel;
 
 void eval_init() { nestlevel = 0; }
 
-obj *eval_define(env *e, obj *args) {
+obj *eval_def(env *e, obj *args) {
     NARGCHECK(args, "define", 2);
     CASSERT(args, obj_car(args)->type == OBJ_SYM,
             "first arg to define must be symbol");
@@ -263,8 +263,8 @@ obj *eval_keyword(env *e, obj *o) {
     obj *k = obj_popcar(&o);
     if (strcmp(k->keyword, "quote") == 0)
         res = eval_quote(e, o);
-    else if (strcmp(k->keyword, "define") == 0) {
-        res = nestlevel == 0 ? eval_define(e, o)
+    else if (strcmp(k->keyword, "def") == 0) {
+        res = nestlevel == 0 ? eval_def(e, o)
                              : obj_err("improper context for define");
     }
     obj_delete(k);
