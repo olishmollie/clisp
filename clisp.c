@@ -277,7 +277,7 @@ obj *eval_sexpr(env *e, obj *o) {
         return eval_keyword(e, o);
     }
 
-    nestlevel++; /* nest level */
+    nestlevel++;
 
     /* evaluate all children */
     obj *cur = o;
@@ -287,15 +287,10 @@ obj *eval_sexpr(env *e, obj *o) {
     }
 
     ERRCHECK(o);
+    CASSERT(o, obj_car(o)->type == OBJ_FUN,
+            "first obj in s-expr is not a function");
 
-    /* first obj in list should be function */
     obj *f = obj_popcar(&o);
-    if (f->type != OBJ_FUN) {
-        obj_delete(f);
-        obj_delete(o);
-        return obj_err("first obj in s-expr not a function");
-    }
-
     obj *res = f->fun->proc(e, o);
 
     obj_delete(f);
