@@ -30,12 +30,6 @@ fun_t *mk_fun(char *name, builtin proc) {
     return f;
 }
 
-qexpr_t *mk_qexpr(obj *o) {
-    qexpr_t *q = malloc(sizeof(qexpr_t));
-    q->child = o;
-    return q;
-}
-
 /* obj types --------------------------------------------------------------- */
 
 obj *obj_num(long val) {
@@ -76,14 +70,6 @@ obj *obj_bool(bool_t b) {
     o->count = 0;
     o->type = OBJ_BOOL;
     o->bool = b;
-    return o;
-}
-
-obj *obj_qexpr(obj *child) {
-    obj *o = malloc(sizeof(obj));
-    o->count = 0;
-    o->type = OBJ_QEXPR;
-    o->qexpr = mk_qexpr(child);
     return o;
 }
 
@@ -131,8 +117,6 @@ char *obj_typename(obj_t type) {
         return "error";
     case OBJ_FUN:
         return "function";
-    case OBJ_QEXPR:
-        return "q-expression";
     case OBJ_KEYWORD:
         return "keyword";
     default:
@@ -176,8 +160,6 @@ obj *obj_cpy(obj *o) {
             return obj_sym(o->sym);
         case OBJ_CONS:
             return cpy_cons(o);
-        case OBJ_QEXPR:
-            return obj_qexpr(obj_cpy(o->qexpr->child));
         case OBJ_FUN:
             return obj_fun(o->fun->name, o->fun->proc);
         case OBJ_ERR:
@@ -228,9 +210,6 @@ void obj_print(obj *o) {
         case OBJ_CONS:
             print_cons(o);
             break;
-        case OBJ_QEXPR:
-            obj_print(o->qexpr->child);
-            break;
         case OBJ_BOOL:
             printf("%s", o->bool == TRUE ? "true" : "false");
             break;
@@ -279,10 +258,6 @@ void obj_delete(obj *o) {
             break;
         case OBJ_ERR:
             free(o->err);
-            break;
-        case OBJ_QEXPR:
-            obj_delete(o->qexpr->child);
-            free(o->qexpr);
             break;
         case OBJ_FUN:
             free(o->fun->name);

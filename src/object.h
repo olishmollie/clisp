@@ -31,7 +31,6 @@ typedef enum {
     OBJ_CONS,
     OBJ_BOOL,
     OBJ_FUN,
-    OBJ_QEXPR,
     OBJ_KEYWORD,
     OBJ_NIL,
     OBJ_ERR
@@ -48,7 +47,6 @@ struct obj {
         cons_t *cons;
         bool_t bool;
         fun_t *fun;
-        qexpr_t *qexpr;
         char *keyword;
         char *err;
     };
@@ -58,7 +56,6 @@ struct obj {
 num_t *mk_num(long);
 cons_t *mk_cons(obj *, obj *);
 fun_t *mk_fun(char *, builtin);
-qexpr_t *mk_qexpr(obj *);
 
 /* object types ------------------------------------------------------------ */
 obj *obj_num(long);
@@ -68,7 +65,6 @@ obj *obj_cons(obj *, obj *);
 obj *obj_keyword(char *);
 obj *obj_nil(void);
 obj *obj_err(char *, ...);
-obj *obj_qexpr(obj *);
 obj *obj_fun(char *, builtin);
 char *obj_typename(obj_t);
 

@@ -191,6 +191,15 @@ obj *read_list(char *input) {
     return cons;
 }
 
+obj *expand_quote(char *input) {
+    nexttok(input);
+    obj *quote = obj_keyword("quote");
+    obj *cons = obj_cons(read_list(input), obj_nil());
+    cons->count = 1;
+    obj *res = obj_cons(quote, cons);
+    return res;
+}
+
 obj *read(char *input) {
     curtok = nexttok(input);
     token tok;
@@ -205,15 +214,15 @@ obj *read(char *input) {
     case LPAREN:
         token_delete(curtok);
         return read_list(input);
-    case TICK:
-        token_delete(curtok);
-        return obj_qexpr(read(input));
     case TRU:
     case FALS:
         tok = curtok;
         obj *b = obj_bool(strcmp(tok.val, "true") == 0 ? TRUE : FALSE);
         token_delete(tok);
         return b;
+    case TICK:
+        token_delete(curtok);
+        return expand_quote(input);
     case DEF:
     case QUOTE:
         tok = curtok;
@@ -239,9 +248,9 @@ obj *eval_quote(env *e, obj *args) {
     CASSERT(args, args->count == 1,
             "incorrect number of args for quote. expected %d, got %d", 1,
             args->count);
-    obj *car = obj_popcar(&args);
+    obj *quote = obj_popcar(&args);
     obj_delete(args);
-    return obj_qexpr(car);
+    return quote;
 }
 
 obj *eval_def(env *e, obj *args) {
