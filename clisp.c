@@ -166,9 +166,19 @@ obj *read_sym(token tok) {
 
 obj *read(char *input);
 
+void count_args(obj *o) {
+    obj *cur = o;
+    int nargs = 0;
+    while (cur->type != OBJ_NIL) {
+        nargs++;
+        cur = obj_cdr(cur);
+    }
+    o->count = nargs;
+}
+
 obj *read_list(char *input) {
     if (peektok.type == END)
-        return obj_err("unexpected eof, expected ')'");
+        return obj_cons(obj_err("unexpected eof, expected ')'"), obj_nil());
     if (peektok.type == RPAREN) {
         nexttok(input);
         return obj_nil();
@@ -179,24 +189,16 @@ obj *read_list(char *input) {
 
     obj *cons = obj_cons(car, cdr);
 
-    // TODO: Find a better way of counting nargs
-    obj *cur = cons;
-    int nargs = 0;
-    while (cur->type != OBJ_NIL && cur->type != OBJ_ERR) {
-        nargs++;
-        cur = obj_cdr(cur);
-    }
-    cons->count = nargs;
+    count_args(cons);
 
     return cons;
 }
 
 obj *expand_quote(char *input) {
-    nexttok(input);
     obj *quote = obj_keyword("quote");
-    obj *cons = obj_cons(read_list(input), obj_nil());
-    cons->count = 1;
-    obj *res = obj_cons(quote, cons);
+    obj *data = obj_cons(read(input), obj_nil());
+    count_args(data);
+    obj *res = obj_cons(quote, data);
     return res;
 }
 
@@ -245,9 +247,7 @@ int nestlevel;
 void eval_init() { nestlevel = 0; }
 
 obj *eval_quote(env *e, obj *args) {
-    CASSERT(args, args->count == 1,
-            "incorrect number of args for quote. expected %d, got %d", 1,
-            args->count);
+    NARGCHECK(args, "quote", 1);
     obj *quote = obj_popcar(&args);
     obj_delete(args);
     return quote;
@@ -271,6 +271,7 @@ obj *eval_def(env *e, obj *args) {
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_popcar(&o);
+    ERRCHECK(o);
     if (strcmp(k->keyword, "quote") == 0)
         res = eval_quote(e, o);
     else if (strcmp(k->keyword, "def") == 0) {

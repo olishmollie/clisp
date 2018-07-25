@@ -35,6 +35,7 @@
         }                                                                      \
     }
 
+// TODO: visit every node in error check
 #define ERRCHECK(args)                                                         \
     {                                                                          \
         obj *cur = args;                                                       \
