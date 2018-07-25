@@ -113,6 +113,8 @@ obj *builtin_eq(env *e, obj *args) {
     NARGCHECK(args, "eq", 2);
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
+    CASSERT(args, x->type != OBJ_CONS && y->type != OBJ_CONS,
+            "parameters passed to eq must be atomic");
 
     if (x->type != y->type) {
         obj_delete(x);
@@ -127,13 +129,13 @@ obj *builtin_eq(env *e, obj *args) {
         res = x->num->val == y->num->val ? obj_bool(TRUE) : obj_bool(FALSE);
         break;
     case OBJ_SYM:
-        res = strcpy(x->sym, y->sym) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        res = strcmp(x->sym, y->sym) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
         break;
     case OBJ_BOOL:
         res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
         break;
     case OBJ_FUN:
-        res = strcpy(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
+        res = strcmp(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
                                                       : obj_bool(FALSE);
         break;
     case OBJ_NIL:
