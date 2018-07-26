@@ -267,6 +267,9 @@ obj *eval_def(env *e, obj *args) {
 
 obj *eval_cond(env *e, obj *args) {
 
+    // TODO: decide if empty cond should throw error and if
+    // cond can be evaluated after keywords are checked
+
     // CASSERT(args, args->count > 0, "invalid syntax cond");
     TARGCHECK(args, OBJ_CONS);
 
@@ -321,7 +324,7 @@ obj *eval_sexpr(env *e, obj *o) {
         return eval_keyword(e, o);
     }
 
-    nestlevel++;
+    nestlevel++; /* define should be top level */
 
     /* evaluate all children */
     obj *cur = o;
