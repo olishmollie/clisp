@@ -134,9 +134,9 @@ obj *builtin_eq(env *e, obj *args) {
     case OBJ_BOOL:
         res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
         break;
-    case OBJ_FUN:
-        res = strcmp(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
-                                                      : obj_bool(FALSE);
+    case OBJ_BUILTIN:
+        res = strcmp(x->bltin->name, y->bltin->name) == 0 ? obj_bool(TRUE)
+                                                          : obj_bool(FALSE);
         break;
     case OBJ_NIL:
         res = obj_bool(TRUE);

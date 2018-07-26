@@ -22,12 +22,20 @@ cons_t *mk_cons(obj *car, obj *cdr) {
     return c;
 }
 
-fun_t *mk_fun(char *name, builtin proc) {
-    fun_t *f = malloc(sizeof(fun_t));
-    f->proc = proc;
-    f->name = malloc(sizeof(char) * (strlen(name) + 1));
-    strcpy(f->name, name);
-    return f;
+builtin_t *mk_builtin(char *name, builtin bltin) {
+    builtin_t *b = malloc(sizeof(builtin_t));
+    b->proc = bltin;
+    b->name = malloc(sizeof(char) * (strlen(name) + 1));
+    strcpy(b->name, name);
+    return b;
+}
+
+lambda_t *mk_lambda(obj *params, obj *body) {
+    lambda_t *l = malloc(sizeof(lambda_t));
+    l->e = env_new();
+    l->params = params;
+    l->body = body;
+    return l;
 }
 
 /* obj types --------------------------------------------------------------- */
@@ -57,11 +65,19 @@ obj *obj_cons(obj *car, obj *cdr) {
     return o;
 }
 
-obj *obj_fun(char *name, builtin proc) {
+obj *obj_builtin(char *name, builtin proc) {
     obj *o = malloc(sizeof(obj));
     o->count = 0;
-    o->type = OBJ_FUN;
-    o->fun = mk_fun(name, proc);
+    o->type = OBJ_BUILTIN;
+    o->bltin = mk_builtin(name, proc);
+    return o;
+}
+
+obj *obj_lambda(obj *params, obj *body) {
+    obj *o = malloc(sizeof(obj));
+    o->count = 0;
+    o->type = OBJ_LAMBDA;
+    o->lambda = mk_lambda(params, body);
     return o;
 }
 
@@ -115,7 +131,7 @@ char *obj_typename(obj_t type) {
         return "cons";
     case OBJ_ERR:
         return "error";
-    case OBJ_FUN:
+    case OBJ_BUILTIN:
         return "function";
     case OBJ_KEYWORD:
         return "keyword";
@@ -160,8 +176,10 @@ obj *obj_cpy(obj *o) {
             return obj_sym(o->sym);
         case OBJ_CONS:
             return cpy_cons(o);
-        case OBJ_FUN:
-            return obj_fun(o->fun->name, o->fun->proc);
+        case OBJ_BUILTIN:
+            return obj_builtin(o->bltin->name, o->bltin->proc);
+        case OBJ_LAMBDA:
+            return obj_lambda(o->lambda->params, o->lambda->body);
         case OBJ_ERR:
             return obj_err(o->err);
         case OBJ_NIL:
@@ -199,35 +217,36 @@ void print_cons(obj *o) {
 }
 
 void obj_print(obj *o) {
-    if (o) {
-        switch (o->type) {
-        case OBJ_NUM:
-            printf("%li", o->num->val);
-            break;
-        case OBJ_SYM:
-            printf("%s", o->sym);
-            break;
-        case OBJ_CONS:
-            print_cons(o);
-            break;
-        case OBJ_BOOL:
-            printf("%s", o->bool == TRUE ? "true" : "false");
-            break;
-        case OBJ_FUN:
-            printf("<function '%s'>", o->fun->name);
-            break;
-        case OBJ_ERR:
-            printf("Error: %s", o->err);
-            break;
-        case OBJ_KEYWORD:
-            printf("%s", o->keyword);
-            break;
-        case OBJ_NIL:
-            printf("()");
-            break;
-        default:
-            printf("Cannot print unknown obj type\n");
-        }
+    switch (o->type) {
+    case OBJ_NUM:
+        printf("%li", o->num->val);
+        break;
+    case OBJ_SYM:
+        printf("%s", o->sym);
+        break;
+    case OBJ_CONS:
+        print_cons(o);
+        break;
+    case OBJ_BOOL:
+        printf("%s", o->bool == TRUE ? "true" : "false");
+        break;
+    case OBJ_BUILTIN:
+        printf("<function %s>", o->bltin->name);
+        break;
+    case OBJ_LAMBDA:
+        printf("<function>");
+        break;
+    case OBJ_ERR:
+        printf("Error: %s", o->err);
+        break;
+    case OBJ_KEYWORD:
+        printf("%s", o->keyword);
+        break;
+    case OBJ_NIL:
+        printf("()");
+        break;
+    default:
+        printf("Cannot print unknown obj type\n");
     }
 }
 
@@ -259,9 +278,15 @@ void obj_delete(obj *o) {
         case OBJ_ERR:
             free(o->err);
             break;
-        case OBJ_FUN:
-            free(o->fun->name);
-            free(o->fun);
+        case OBJ_BUILTIN:
+            free(o->bltin->name);
+            free(o->bltin);
+            break;
+        case OBJ_LAMBDA:
+            env_delete(o->lambda->e);
+            obj_delete(o->lambda->params);
+            obj_delete(o->lambda->body);
+            free(o->lambda);
             break;
         case OBJ_KEYWORD:
             free(o->keyword);

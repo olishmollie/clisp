@@ -26,6 +26,7 @@ typedef enum {
     COND,
     QUOTE,
     TICK,
+    LAMBDA,
     END
 } token_t;
 
@@ -114,6 +115,8 @@ token lexsymbol(char *input) {
         return token_new(QUOTE, sym);
     if (strcmp(sym, "cond") == 0)
         return token_new(COND, sym);
+    if (strcmp(sym, "lambda") == 0)
+        return token_new(LAMBDA, sym);
 
     return token_new(SYM, sym);
 }
@@ -230,6 +233,7 @@ obj *read(char *input) {
         return expand_quote(input);
     case DEF:
     case COND:
+    case LAMBDA:
     case QUOTE:
         tok = curtok;
         obj *k = obj_keyword(tok.val);
@@ -251,6 +255,7 @@ int nestlevel;
 void eval_init() { nestlevel = 0; }
 
 obj *eval_def(env *e, obj *args) {
+    CASSERT(args, nestlevel == 0, "improper context for define");
     NARGCHECK(args, "define", 2);
     CASSERT(args, obj_car(args)->type == OBJ_SYM,
             "first arg to define must be symbol");
@@ -267,10 +272,6 @@ obj *eval_def(env *e, obj *args) {
 
 obj *eval_cond(env *e, obj *args) {
 
-    // TODO: decide if empty cond should throw error and if
-    // cond can be evaluated after keywords are checked
-
-    // CASSERT(args, args->count > 0, "invalid syntax cond");
     TARGCHECK(args, OBJ_CONS);
 
     while (args->count > 0) {
@@ -302,20 +303,64 @@ obj *eval_quote(env *e, obj *args) {
     return quote;
 }
 
+obj *eval_lambda(env *e, obj *args) {
+    NARGCHECK(args, "lambda", 2);
+    CASSERT(args, obj_car(args)->type == OBJ_CONS,
+            "first argument to lambda should be a list of parameters");
+
+    /* check param list for non-symbols */
+    obj *params = obj_popcar(&args);
+    obj *cur = params;
+    for (int i = 0; i < params->count; i++) {
+        obj *sym = obj_car(cur);
+        CASSERT(args, sym->type == OBJ_SYM, "invalid param list for lambda");
+        cur = obj_cdr(cur);
+    }
+
+    obj *body = obj_popcar(&args);
+    obj_delete(args);
+
+    return obj_lambda(params, body);
+}
+
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_popcar(&o);
     ERRCHECK(o);
     if (strcmp(k->keyword, "quote") == 0)
         res = eval_quote(e, o);
+    if (strcmp(k->keyword, "lambda") == 0)
+        res = eval_lambda(e, o);
     else if (strcmp(k->keyword, "cond") == 0)
         res = eval_cond(e, o);
     else if (strcmp(k->keyword, "def") == 0) {
-        res = nestlevel == 0 ? eval_def(e, o)
-                             : obj_err("improper context for define");
+        res = eval_def(e, o);
     }
     obj_delete(k);
     return res;
+}
+
+obj *eval_call(env *e, obj *f, obj *args) {
+
+    if (f->type == OBJ_BUILTIN)
+        return f->bltin->proc(e, args);
+
+    CASSERT(args, f->lambda->params->count == args->count,
+            "lambda params = %d, args = %d", f->lambda->params->count,
+            args->count);
+
+    f->lambda->e->parent = e;
+    while (f->lambda->params->count > 0) {
+        obj *param = obj_popcar(&f->lambda->params);
+        obj *arg = obj_popcar(&args);
+        env_insert(f->lambda->e, param, arg);
+        obj_delete(param);
+        obj_delete(arg);
+    }
+    env_print(f->lambda->e);
+    obj_delete(args);
+
+    return eval(f->lambda->e, f->lambda->body);
 }
 
 obj *eval_sexpr(env *e, obj *o) {
@@ -334,13 +379,16 @@ obj *eval_sexpr(env *e, obj *o) {
     }
 
     ERRCHECK(o);
-    CASSERT(o, obj_car(o)->type == OBJ_FUN,
+    CASSERT(o,
+            obj_car(o)->type == OBJ_LAMBDA || obj_car(o)->type == OBJ_BUILTIN,
             "first obj in s-expr is not a function");
 
     obj *f = obj_popcar(&o);
-    obj *res = f->fun->proc(e, o);
+    obj *res = eval_call(e, f, o);
+    printf("res = ");
+    obj_println(res);
 
-    obj_delete(f);
+    // obj_delete(f);
 
     return res;
 }
@@ -356,6 +404,32 @@ obj *eval(env *e, obj *o) {
         return err;
     }
     return o;
+}
+
+void register_builtin(env *e, builtin fun, char *name) {
+    obj *k = obj_sym(name);
+    obj *v = obj_builtin(name, fun);
+    env_insert(e, k, v);
+    obj_delete(k);
+    obj_delete(v);
+}
+
+env *env_init(void) {
+    env *e = env_new();
+    register_builtin(e, builtin_plus, "+");
+    register_builtin(e, builtin_minus, "-");
+    register_builtin(e, builtin_times, "*");
+    register_builtin(e, builtin_divide, "/");
+    register_builtin(e, builtin_remainder, "%");
+
+    register_builtin(e, builtin_cons, "cons");
+    register_builtin(e, builtin_car, "car");
+    register_builtin(e, builtin_cdr, "cdr");
+    register_builtin(e, builtin_list, "list");
+    register_builtin(e, builtin_eq, "eq");
+    register_builtin(e, builtin_atom, "atom");
+    register_builtin(e, builtin_exit, "exit");
+    return e;
 }
 
 /* REPL --------------------------------------------------------------------- */

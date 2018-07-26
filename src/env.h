@@ -7,13 +7,13 @@ struct obj;
 typedef struct obj obj;
 
 typedef struct env {
+    struct env *parent;
     int count;
     char **syms;
     obj **vals;
 } env;
 
-env *env_init(void);
-
+env *env_new(void);
 obj *env_lookup(env *e, obj *k);
 void env_insert(env *e, obj *k, obj *v);
 

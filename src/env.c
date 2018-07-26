@@ -8,42 +8,24 @@
 env *env_new(void) {
     env *e = malloc(sizeof(env));
     e->count = 0;
+    e->parent = NULL;
     e->syms = NULL;
     e->vals = NULL;
     return e;
 }
 
-void register_builtin(env *e, builtin fun, char *name) {
-    obj *k = obj_sym(name);
-    obj *v = obj_fun(name, fun);
-    env_insert(e, k, v);
-    obj_delete(k);
-    obj_delete(v);
-}
-
-env *env_init(void) {
-    env *e = env_new();
-    register_builtin(e, builtin_plus, "+");
-    register_builtin(e, builtin_minus, "-");
-    register_builtin(e, builtin_times, "*");
-    register_builtin(e, builtin_divide, "/");
-    register_builtin(e, builtin_remainder, "%");
-
-    register_builtin(e, builtin_cons, "cons");
-    register_builtin(e, builtin_car, "car");
-    register_builtin(e, builtin_cdr, "cdr");
-    register_builtin(e, builtin_list, "list");
-    register_builtin(e, builtin_eq, "eq");
-    register_builtin(e, builtin_atom, "atom");
-    register_builtin(e, builtin_exit, "exit");
-    return e;
-}
-
 obj *env_lookup(env *e, obj *k) {
+
+    /* search local env */
     for (int i = 0; i < e->count; i++) {
         if (strcmp(e->syms[i], k->sym) == 0)
             return obj_cpy(e->vals[i]);
     }
+
+    /* search parent env */
+    if (e->parent)
+        return env_lookup(e->parent, k);
+
     return obj_err("unbound symbol '%s'", k->sym);
 }
 
@@ -69,13 +51,15 @@ void env_insert(env *e, obj *k, obj *v) {
 }
 
 void env_delete(env *e) {
-    for (int i = 0; i < e->count; i++) {
-        free(e->syms[i]);
-        obj_delete(e->vals[i]);
+    if (e) {
+        for (int i = 0; i < e->count; i++) {
+            free(e->syms[i]);
+            obj_delete(e->vals[i]);
+        }
+        free(e->syms);
+        free(e->vals);
+        free(e);
     }
-    free(e->syms);
-    free(e->vals);
-    free(e);
 }
 
 void env_print(env *e) {

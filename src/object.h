@@ -23,14 +23,21 @@ typedef obj *(*builtin)(env *, obj *);
 typedef struct {
     char *name;
     builtin proc;
-} fun_t;
+} builtin_t;
+
+typedef struct {
+    env *e;
+    obj *params;
+    obj *body;
+} lambda_t;
 
 typedef enum {
     OBJ_NUM,
     OBJ_SYM,
     OBJ_CONS,
     OBJ_BOOL,
-    OBJ_FUN,
+    OBJ_BUILTIN,
+    OBJ_LAMBDA,
     OBJ_KEYWORD,
     OBJ_NIL,
     OBJ_ERR
@@ -46,7 +53,8 @@ struct obj {
         char *sym;
         cons_t *cons;
         bool_t bool;
-        fun_t *fun;
+        builtin_t *bltin;
+        lambda_t *lambda;
         char *keyword;
         char *err;
     };
@@ -55,7 +63,8 @@ struct obj {
 /* interior types ---------------------------------------------------------- */
 num_t *mk_num(long);
 cons_t *mk_cons(obj *, obj *);
-fun_t *mk_fun(char *, builtin);
+builtin_t *mk_builtin(char *, builtin);
+lambda_t *mk_lambda(obj *, obj *);
 
 /* object types ------------------------------------------------------------ */
 obj *obj_num(long);
@@ -65,7 +74,8 @@ obj *obj_cons(obj *, obj *);
 obj *obj_keyword(char *);
 obj *obj_nil(void);
 obj *obj_err(char *, ...);
-obj *obj_fun(char *, builtin);
+obj *obj_builtin(char *, builtin);
+obj *obj_lambda(obj *, obj *);
 char *obj_typename(obj_t);
 
 /* list fns ---------------------------------------------------------------- */
