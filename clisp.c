@@ -23,6 +23,7 @@ typedef enum {
     LPAREN,
     RPAREN,
     DEF,
+    COND,
     QUOTE,
     TICK,
     END
@@ -111,6 +112,8 @@ token lexsymbol(char *input) {
         return token_new(DEF, sym);
     if (strcmp(sym, "quote") == 0)
         return token_new(QUOTE, sym);
+    if (strcmp(sym, "cond") == 0)
+        return token_new(COND, sym);
 
     return token_new(SYM, sym);
 }
@@ -226,6 +229,7 @@ obj *read(char *input) {
         token_delete(curtok);
         return expand_quote(input);
     case DEF:
+    case COND:
     case QUOTE:
         tok = curtok;
         obj *k = obj_keyword(tok.val);
@@ -246,13 +250,6 @@ int nestlevel;
 
 void eval_init() { nestlevel = 0; }
 
-obj *eval_quote(env *e, obj *args) {
-    NARGCHECK(args, "quote", 1);
-    obj *quote = obj_popcar(&args);
-    obj_delete(args);
-    return quote;
-}
-
 obj *eval_def(env *e, obj *args) {
     NARGCHECK(args, "define", 2);
     CASSERT(args, obj_car(args)->type == OBJ_SYM,
@@ -268,12 +265,48 @@ obj *eval_def(env *e, obj *args) {
     return obj_nil();
 }
 
+obj *eval_cond(env *e, obj *args) {
+
+    // CASSERT(args, args->count > 0, "invalid syntax cond");
+    TARGCHECK(args, OBJ_CONS);
+
+    while (args->count > 0) {
+        obj *arg = obj_popcar(&args);
+        CASSERT(args, arg->count == 2,
+                "arguments to cond must themselves have two arguments");
+        obj *pred = eval(e, obj_popcar(&arg));
+
+        if (pred->type != OBJ_BOOL ||
+            (pred->type == OBJ_BOOL && pred->bool != FALSE)) {
+            obj *res = obj_popcar(&arg);
+            obj_delete(pred);
+            obj_delete(args);
+            return eval(e, res);
+        }
+
+        obj_delete(pred);
+    }
+
+    obj_delete(args);
+
+    return obj_nil();
+}
+
+obj *eval_quote(env *e, obj *args) {
+    NARGCHECK(args, "quote", 1);
+    obj *quote = obj_popcar(&args);
+    obj_delete(args);
+    return quote;
+}
+
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_popcar(&o);
     ERRCHECK(o);
     if (strcmp(k->keyword, "quote") == 0)
         res = eval_quote(e, o);
+    else if (strcmp(k->keyword, "cond") == 0)
+        res = eval_cond(e, o);
     else if (strcmp(k->keyword, "def") == 0) {
         res = nestlevel == 0 ? eval_def(e, o)
                              : obj_err("improper context for define");
