@@ -11,10 +11,10 @@
 
 #define NARGCHECK(args, fun, num)                                              \
     {                                                                          \
-        if (args->count != num) {                                              \
+        if (args->list->count != num) {                                        \
             obj *err = obj_err(                                                \
                 "incorrect number of arguments to %s. expected %d, got %d",    \
-                fun, num, args->count);                                        \
+                fun, num, args->list->count);                                  \
             obj_delete(args);                                                  \
             return err;                                                        \
         }                                                                      \
@@ -22,8 +22,8 @@
 
 #define TARGCHECK(args, fun, typ)                                              \
     {                                                                          \
-        obj *cur = args;                                                       \
-        for (int i = 0; i < args->count; i++) {                                \
+        obj *cur = args->list->head;                                           \
+        for (int i = 0; i < args->list->count; i++) {                          \
             if (obj_car(cur)->type != typ) {                                   \
                 obj *err = obj_err("argument to %s is not of type %s, got %s", \
                                    fun, obj_typename(typ),                     \
@@ -38,8 +38,8 @@
 // TODO: visit every node in error check
 #define ERRCHECK(args)                                                         \
     {                                                                          \
-        obj *cur = args;                                                       \
-        for (int i = 0; i < args->count; i++) {                                \
+        obj *cur = args->list->head;                                           \
+        for (int i = 0; i < args->list->count; i++) {                          \
             if (obj_car(cur)->type == OBJ_ERR) {                               \
                 obj *err = obj_err(obj_car(cur)->err);                         \
                 obj_delete(args);                                              \

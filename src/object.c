@@ -49,7 +49,6 @@ lambda_t *mk_lambda(obj *params, obj *body) {
 
 obj *obj_num(long val) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_NUM;
     o->num = mk_num(val);
     return o;
@@ -57,7 +56,6 @@ obj *obj_num(long val) {
 
 obj *obj_sym(char *name) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_SYM;
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
@@ -66,7 +64,6 @@ obj *obj_sym(char *name) {
 
 obj *obj_cons(obj *car, obj *cdr) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_CONS;
     o->cons = mk_cons(car, cdr);
     return o;
@@ -81,7 +78,6 @@ obj *obj_list(void) {
 
 obj *obj_builtin(char *name, builtin proc) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_BUILTIN;
     o->bltin = mk_builtin(name, proc);
     return o;
@@ -89,7 +85,6 @@ obj *obj_builtin(char *name, builtin proc) {
 
 obj *obj_lambda(obj *params, obj *body) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_LAMBDA;
     o->lambda = mk_lambda(params, body);
     return o;
@@ -97,7 +92,6 @@ obj *obj_lambda(obj *params, obj *body) {
 
 obj *obj_bool(bool_t b) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_BOOL;
     o->bool = b;
     return o;
@@ -105,7 +99,6 @@ obj *obj_bool(bool_t b) {
 
 obj *obj_keyword(char *name) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_KEYWORD;
     o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->keyword, name);
@@ -115,13 +108,11 @@ obj *obj_keyword(char *name) {
 obj *obj_nil(void) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NIL;
-    o->count = 0;
     return o;
 }
 
 obj *obj_err(char *fmt, ...) {
     obj *o = malloc(sizeof(obj));
-    o->count = 0;
     o->type = OBJ_ERR;
 
     va_list args;
@@ -177,9 +168,29 @@ obj *obj_add(obj *l, obj *x) {
 }
 
 obj *obj_popcar(obj *o) {
-    obj *car = obj_car(o->list->head);
-    o->list->head = obj_cdr(o->list->head);
+    obj *car;
+    if (o->type == OBJ_CONS) {
+        car = obj_car(o);
+        o->cons = mk_cons(obj_cdr(o), obj_nil());
+    } else if (o->type == OBJ_LIST) {
+        car = obj_car(o->list->head);
+        o->list->head = obj_cdr(o->list->head);
+        o->list->count--;
+    }
     return car;
+}
+
+obj *obj_popcdr(obj *o) {
+    obj *cdr;
+    if (o->type == OBJ_CONS) {
+        cdr = obj_cdr(o);
+        o->cons = mk_cons(obj_car(o), obj_nil());
+    } else if (o->type == OBJ_LIST) {
+        cdr = obj_cdr(o->list->head);
+        o->list->head = obj_cons(obj_car(o->list->head), obj_nil());
+        o->list->count--;
+    }
+    return cdr;
 }
 
 obj *obj_car(obj *o) { return o->cons->car; }
@@ -230,7 +241,6 @@ obj *obj_cpy(obj *o) {
         res = obj_bool(o->bool);
     }
 
-    res->count = o->count;
     return res;
 }
 
@@ -244,7 +254,7 @@ void print_cons(obj *o) {
     while (1) {
         obj_print(obj_car(p));
         obj *cdr = obj_cdr(p);
-        if (cdr->type != OBJ_CONS) {
+        if (cdr->type != OBJ_CONS && cdr->type != OBJ_LIST) {
             if (cdr->type != OBJ_NIL) {
                 printf(" . ");
                 obj_print(cdr);
@@ -255,18 +265,6 @@ void print_cons(obj *o) {
         putchar(' ');
         p = obj_cdr(p);
     }
-}
-
-void print_list(obj *o) {
-    putchar('(');
-    obj *cur = o->list->head;
-    while (cur->type != OBJ_NIL) {
-        obj_print(cur->cons->car);
-        if (obj_cdr(cur)->type != OBJ_NIL)
-            printf(" ");
-        cur = obj_cdr(cur);
-    }
-    putchar(')');
 }
 
 void obj_print(obj *o) {
@@ -281,8 +279,8 @@ void obj_print(obj *o) {
         print_cons(o);
         break;
     case OBJ_LIST:
-        // print_cons(o->list->head);
-        print_list(o);
+        print_cons(o->list->head);
+        // print_list(o);
         break;
     case OBJ_BOOL:
         printf("%s", o->bool == TRUE ? "true" : "false");

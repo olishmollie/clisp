@@ -49,7 +49,6 @@ typedef enum { TRUE, FALSE } bool_t;
 
 struct obj {
     obj_t type;
-    int count;
     union {
         num_t *num;
         char *sym;
@@ -86,6 +85,7 @@ char *obj_typename(obj_t);
 /* list fns ---------------------------------------------------------------- */
 obj *obj_add(obj *, obj *);
 obj *obj_popcar(obj *);
+obj *obj_popcdr(obj *);
 obj *obj_car(obj *);
 obj *obj_cdr(obj *);
 

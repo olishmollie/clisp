@@ -13,22 +13,22 @@
 
 /* LEXING ------------------------------------------------------------------- */
 typedef enum {
-    INT,
-    FLOAT,
-    RAT,
-    SYM,
-    TRU,
-    FALS,
-    NIL,
-    LPAREN,
-    RPAREN,
-    DOT,
-    DEF,
-    COND,
-    QUOTE,
-    TICK,
-    LAMBDA,
-    END
+    TOK_INT,
+    TOK_FLOAT,
+    TOK_RAT,
+    TOK_SYM,
+    TOK_TRUE,
+    TOK_FALSE,
+    TOK_NIL,
+    TOK_LPAREN,
+    TOK_RPAREN,
+    TOK_DOT,
+    TOK_DEF,
+    TOK_COND,
+    TOK_QUOTE,
+    TOK_TICK,
+    TOK_LAMBDA,
+    TOK_END
 } token_t;
 
 typedef struct {
@@ -87,7 +87,7 @@ token lexdigit(char *input) {
         nextchar(input);
     }
     num[i] = EOS;
-    return token_new(INT, num);
+    return token_new(TOK_INT, num);
 }
 
 token lexsymbol(char *input) {
@@ -105,42 +105,42 @@ token lexsymbol(char *input) {
     sym[i] = EOS;
 
     if (strcmp(sym, "nil") == 0)
-        return token_new(NIL, sym);
+        return token_new(TOK_NIL, sym);
     if (strcmp(sym, "true") == 0)
-        return token_new(TRU, sym);
+        return token_new(TOK_TRUE, sym);
     if (strcmp(sym, "false") == 0)
-        return token_new(FALS, sym);
+        return token_new(TOK_FALSE, sym);
     if (strcmp(sym, "def") == 0)
-        return token_new(DEF, sym);
+        return token_new(TOK_DEF, sym);
     if (strcmp(sym, "quote") == 0)
-        return token_new(QUOTE, sym);
+        return token_new(TOK_QUOTE, sym);
     if (strcmp(sym, "cond") == 0)
-        return token_new(COND, sym);
+        return token_new(TOK_COND, sym);
     if (strcmp(sym, "lambda") == 0)
-        return token_new(LAMBDA, sym);
+        return token_new(TOK_LAMBDA, sym);
 
-    return token_new(SYM, sym);
+    return token_new(TOK_SYM, sym);
 }
 
 token lexan(char *input) {
     skipspaces(input);
     int cur = curchar(input);
     if (cur == EOS)
-        return token_new(END, "end");
+        return token_new(TOK_END, "end");
     else if (isdigit(cur))
         return lexdigit(input);
     else if (cur == '(') {
         nextchar(input);
-        return token_new(LPAREN, "(");
+        return token_new(TOK_LPAREN, "(");
     } else if (cur == ')') {
         nextchar(input);
-        return token_new(RPAREN, ")");
+        return token_new(TOK_RPAREN, ")");
     } else if (cur == '.') {
         nextchar(input);
-        return token_new(DOT, ".");
+        return token_new(TOK_DOT, ".");
     } else if (cur == '\'') {
         nextchar(input);
-        return token_new(TICK, "'");
+        return token_new(TOK_TICK, "'");
     } else
         return lexsymbol(input);
 }
@@ -176,69 +176,46 @@ obj *read_sym(token tok) {
 
 obj *read(char *input);
 
-void count_args(obj *o) {
-    obj *cur = o;
-    int nargs = 0;
-    while (cur->type != OBJ_NIL) {
-        nargs++;
-        cur = obj_cdr(cur);
-    }
-    o->count = nargs;
-}
-
-// obj *read_list(char *input) {
-//     if (peektok.type == END)
-//         return obj_cons(obj_err("unexpected eof, expected ')'"), obj_nil());
-//     if (peektok.type == RPAREN) {
-//         nexttok(input);
-//         return NULL;
-//     }
-
-//     obj *car = read(input);
-//     printf("car = ");
-//     obj_println(car);
-
-//     if (peektok.type == DOT) {
-//         nexttok(input);
-//         obj *cdr = read(input);
-//         return obj_cons(car, cdr);
-//     } else {
-//         obj *list = obj_list();
-//         obj *cdr = read_list(input);
-//         obj_add(list, cdr);
-//         printf("list = ");
-//         obj_println(list);
-//         return list;
-//     }
-// }
-
 obj *read_list(char *input) {
     obj *list = obj_list();
-    while (peektok.type != RPAREN) {
-        if (peektok.type == END)
-            return obj_err("read error: expected ')'");
+
+    while (peektok.type != TOK_RPAREN) {
+
+        if (peektok.type == TOK_END)
+            return obj_err("expected ')'");
 
         obj *car = read(input);
-        if (peektok.type == DOT) {
+
+        if (peektok.type == TOK_DOT) {
             nexttok(input);
             obj *cdr = read(input);
-            if (peektok.type != RPAREN) {
+            if (peektok.type != TOK_RPAREN) {
                 obj_delete(cdr);
-                return obj_err("read error: expected ')'");
+                return obj_err("expected ')'");
             }
+            nexttok(input); /* eat ')' */
             return obj_cons(car, cdr);
         }
 
         obj_add(list, car);
     }
+
+    nexttok(input); /* eat ')' */
+
+    /* empty list */
+    if (list->list->count == 0) {
+        obj_delete(list);
+        return obj_nil();
+    }
+
     return list;
 }
 
 obj *expand_quote(char *input) {
     obj *quote = obj_keyword("quote");
-    obj *data = obj_cons(read(input), obj_nil());
-    count_args(data);
-    obj *res = obj_cons(quote, data);
+    obj *res = obj_list();
+    obj_add(res, quote);
+    obj_add(res, read(input));
     return res;
 }
 
@@ -246,39 +223,39 @@ obj *read(char *input) {
     curtok = nexttok(input);
     token tok;
     switch (curtok.type) {
-    case INT:
+    case TOK_INT:
         return read_long(curtok);
-    case SYM:
+    case TOK_SYM:
         return read_sym(curtok);
-    case NIL:
+    case TOK_NIL:
         token_delete(curtok);
         return obj_nil();
-    case LPAREN:
+    case TOK_LPAREN:
         token_delete(curtok);
         return read_list(input);
-    case TRU:
-    case FALS:
+    case TOK_TRUE:
+    case TOK_FALSE:
         tok = curtok;
         obj *b = obj_bool(strcmp(tok.val, "true") == 0 ? TRUE : FALSE);
         token_delete(tok);
         return b;
-    case TICK:
+    case TOK_TICK:
         token_delete(curtok);
         return expand_quote(input);
-    case DEF:
-    case COND:
-    case LAMBDA:
-    case QUOTE:
+    case TOK_DEF:
+    case TOK_COND:
+    case TOK_LAMBDA:
+    case TOK_QUOTE:
         tok = curtok;
         obj *k = obj_keyword(tok.val);
         token_delete(tok);
         return k;
-    case RPAREN:
-        return obj_err("read error: unexpected ')'");
-    case DOT:
-        return obj_err("read error: unexpected '.'");
+    case TOK_RPAREN:
+        return obj_err("unexpected ')'");
+    case TOK_DOT:
+        return obj_err("unexpected '.'");
     default:
-        return obj_err("read error: unknown token '%s'", curtok.val);
+        return obj_err("unknown token '%s'", curtok.val);
     }
 }
 
@@ -308,11 +285,11 @@ obj *eval_def(env *e, obj *args) {
 
 obj *eval_cond(env *e, obj *args) {
 
-    TARGCHECK(args, "cond", OBJ_CONS);
+    TARGCHECK(args, "cond", OBJ_LIST);
 
-    while (args->count > 0) {
+    while (args->list->count > 0) {
         obj *arg = obj_popcar(args);
-        CASSERT(args, arg->count == 2,
+        CASSERT(args, arg->list->count == 2,
                 "arguments to cond must themselves have two arguments");
         obj *pred = eval(e, obj_popcar(arg));
 
@@ -347,7 +324,7 @@ obj *eval_lambda(env *e, obj *args) {
     /* check param list for non-symbols */
     obj *params = obj_popcar(args);
     obj *cur = params;
-    for (int i = 0; i < params->count; i++) {
+    for (int i = 0; i < params->list->count; i++) {
         obj *sym = obj_car(cur);
         CASSERT(args, sym->type == OBJ_SYM, "invalid param list for lambda");
         cur = obj_cdr(cur);
@@ -378,12 +355,12 @@ obj *eval_keyword(env *e, obj *o) {
 
 obj *eval_call(env *e, obj *f, obj *args) {
 
-    CASSERT(args, f->lambda->params->count == args->count,
+    CASSERT(args, f->lambda->params->list->count == args->list->count,
             "number of params (%d) does not match number of args (%d)",
-            f->lambda->params->count, args->count);
+            f->lambda->params->list->count, args->list->count);
 
     f->lambda->e->parent = e;
-    while (f->lambda->params->count > 0) {
+    while (f->lambda->params->list->count > 0) {
         obj *param = obj_popcar(f->lambda->params);
         obj *arg = obj_popcar(args);
         env_insert(f->lambda->e, param, arg);
@@ -395,25 +372,26 @@ obj *eval_call(env *e, obj *f, obj *args) {
     return eval(f->lambda->e, obj_cpy(f->lambda->body));
 }
 
-obj *eval_sexpr(env *e, obj *o) {
+obj *eval_list(env *e, obj *o) {
     /* check for keyword */
-    if (obj_car(o)->type == OBJ_KEYWORD) {
+    if (obj_car(o->list->head)->type == OBJ_KEYWORD) {
         return eval_keyword(e, o);
     }
 
     nestlevel++; /* define should be top level */
 
     /* evaluate all children */
-    obj *cur = o;
-    for (int i = 0; i < o->count; i++) {
+    obj *cur = o->list->head;
+    for (int i = 0; i < o->list->count; i++) {
         cur->cons->car = eval(e, cur->cons->car);
         cur = obj_cdr(cur);
     }
 
     ERRCHECK(o);
     CASSERT(o,
-            obj_car(o)->type == OBJ_LAMBDA || obj_car(o)->type == OBJ_BUILTIN,
-            "first obj in s-expr is not a function");
+            obj_car(o->list->head)->type == OBJ_LAMBDA ||
+                obj_car(o->list->head)->type == OBJ_BUILTIN,
+            "first obj in list is not a function");
 
     obj *f = obj_popcar(o);
     obj *res =
@@ -427,8 +405,8 @@ obj *eval_sexpr(env *e, obj *o) {
 obj *eval(env *e, obj *o) {
     if (o->type == OBJ_SYM)
         return env_lookup(e, o);
-    if (o->type == OBJ_CONS)
-        return eval_sexpr(e, o);
+    if (o->type == OBJ_LIST)
+        return eval_list(e, o);
     if (o->type == OBJ_KEYWORD) {
         obj *err = obj_err("invalid syntax %s", o->keyword);
         obj_delete(o);
@@ -480,10 +458,10 @@ int main(void) {
         lex_init(input);
         eval_init();
 
-        // obj *o = eval(global, read(input));
-        obj *o = read(input);
+        obj *o = eval(global, read(input));
+        // obj *o = read(input);
         obj_println(o);
-        // printf("o->count = %d\n", o->count);
+        // printf("o->list->count = %d\n", o->list->count);
 
         lex_cleanup();
         obj_delete(o);

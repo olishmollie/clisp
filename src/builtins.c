@@ -6,10 +6,10 @@
 
 /* builtins ---------------------------------------------------------------- */
 obj *builtin_plus(env *e, obj *args) {
-    CASSERT(args, args->count > 0, "plus passed no arguments");
+    CASSERT(args, args->list->count > 0, "plus passed no arguments");
     TARGCHECK(args, "plus", OBJ_NUM);
     obj *x = obj_popcar(args);
-    while (args->count > 0) {
+    while (args->list->count > 0) {
         obj *y = obj_popcar(args);
         x->num->val += y->num->val;
         obj_delete(y);
@@ -19,10 +19,10 @@ obj *builtin_plus(env *e, obj *args) {
 }
 
 obj *builtin_minus(env *e, obj *args) {
-    CASSERT(args, args->count > 0, "minus passed no arguments");
+    CASSERT(args, args->list->count > 0, "minus passed no arguments");
     TARGCHECK(args, "minus", OBJ_NUM);
     obj *x = obj_popcar(args);
-    while (args->count > 0) {
+    while (args->list->count > 0) {
         obj *y = obj_popcar(args);
         x->num->val -= y->num->val;
         obj_delete(y);
@@ -32,10 +32,10 @@ obj *builtin_minus(env *e, obj *args) {
 }
 
 obj *builtin_times(env *e, obj *args) {
-    CASSERT(args, args->count > 0, "times passed no arguments");
+    CASSERT(args, args->list->count > 0, "times passed no arguments");
     TARGCHECK(args, "times", OBJ_NUM);
     obj *x = obj_popcar(args);
-    while (args->count > 0) {
+    while (args->list->count > 0) {
         obj *y = obj_popcar(args);
         x->num->val *= y->num->val;
         obj_delete(y);
@@ -45,10 +45,10 @@ obj *builtin_times(env *e, obj *args) {
 }
 
 obj *builtin_divide(env *e, obj *args) {
-    CASSERT(args, args->count > 0, "times passed no arguments");
+    CASSERT(args, args->list->count > 0, "times passed no arguments");
     TARGCHECK(args, "divide", OBJ_NUM);
     obj *x = obj_popcar(args);
-    while (args->count > 0) {
+    while (args->list->count > 0) {
         obj *y = obj_popcar(args);
         if (y->num->val == 0) {
             x = obj_err("division by zero");
@@ -63,10 +63,10 @@ obj *builtin_divide(env *e, obj *args) {
 }
 
 obj *builtin_remainder(env *e, obj *args) {
-    CASSERT(args, args->count > 0, "times passed no arguments");
+    CASSERT(args, args->list->count > 0, "times passed no arguments");
     TARGCHECK(args, "remainder", OBJ_NUM);
     obj *x = obj_popcar(args);
-    while (args->count > 0) {
+    while (args->list->count > 0) {
         obj *y = obj_popcar(args);
         if (y->num->val == 0) {
             x = obj_err("division by zero");
@@ -82,15 +82,29 @@ obj *builtin_remainder(env *e, obj *args) {
 
 obj *builtin_cons(env *e, obj *args) {
     NARGCHECK(args, "cons", 2);
+
     obj *car = obj_popcar(args);
     obj *cdr = obj_popcar(args);
+
+    obj *res;
+    if (cdr->type == OBJ_LIST) {
+        res = obj_list();
+        obj_add(res, car);
+        while (cdr->list->count > 0)
+            obj_add(res, obj_popcar(cdr));
+    } else {
+        res = obj_cons(car, cdr);
+    }
+
     obj_delete(args);
-    return obj_cons(car, cdr);
+    return res;
 }
 
 obj *builtin_car(env *e, obj *args) {
     NARGCHECK(args, "car", 1);
-    TARGCHECK(args, "car", OBJ_CONS);
+    CASSERT(args, args->type == OBJ_LIST || args->type == OBJ_CONS,
+            "argument to car must be a cons or a list, got %s",
+            obj_typename(args->type));
     obj *car = obj_popcar(args);
     obj *res = obj_popcar(car);
     obj_delete(args);
@@ -100,9 +114,11 @@ obj *builtin_car(env *e, obj *args) {
 
 obj *builtin_cdr(env *e, obj *args) {
     NARGCHECK(args, "cdr", 1);
-    TARGCHECK(args, "cdr", OBJ_CONS);
+    CASSERT(args, args->type == OBJ_LIST || args->type == OBJ_CONS,
+            "argument to cdr must be a cons or a list, got %s",
+            obj_typename(args->type));
     obj *car = obj_popcar(args);
-    obj *res = obj_popcar(car);
+    obj *res = obj_popcdr(car);
     obj_delete(args);
     obj_delete(car);
     return res;
@@ -114,7 +130,7 @@ obj *builtin_eq(env *e, obj *args) {
     NARGCHECK(args, "eq", 2);
     obj *x = obj_popcar(args);
     obj *y = obj_popcar(args);
-    CASSERT(args, x->type != OBJ_CONS && y->type != OBJ_CONS,
+    CASSERT(args, x->type != OBJ_CONS && y->type != OBJ_LIST,
             "parameters passed to eq must be atomic");
 
     if (x->type != y->type) {
@@ -142,11 +158,13 @@ obj *builtin_eq(env *e, obj *args) {
     case OBJ_NIL:
         res = obj_bool(TRUE);
         break;
-    case OBJ_ERR:
-        res = obj_err("fuuuuck");
+    case OBJ_KEYWORD:
+        res = strcmp(x->keyword, y->keyword) == 0 ? obj_bool(TRUE)
+                                                  : obj_bool(FALSE);
         break;
     default:
-        res = obj_err("parameter passed to eq must be atomic");
+        res = obj_err("parameter passed to eq must be atomic, got %s",
+                      obj_typename(x->type));
     }
 
     obj_delete(x);
@@ -160,7 +178,8 @@ obj *builtin_atom(env *e, obj *args) {
     NARGCHECK(args, "atom", 1);
     obj *x = obj_popcar(args);
 
-    obj *res = x->type != OBJ_CONS ? obj_bool(TRUE) : obj_bool(FALSE);
+    obj *res = x->type != OBJ_CONS && x->type != OBJ_LIST ? obj_bool(TRUE)
+                                                          : obj_bool(FALSE);
 
     obj_delete(x);
     obj_delete(args);
