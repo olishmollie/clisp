@@ -8,9 +8,9 @@
 obj *builtin_plus(env *e, obj *args) {
     CASSERT(args, args->count > 0, "plus passed no arguments");
     TARGCHECK(args, "plus", OBJ_NUM);
-    obj *x = obj_popcar(&args);
+    obj *x = obj_popcar(args);
     while (args->count > 0) {
-        obj *y = obj_popcar(&args);
+        obj *y = obj_popcar(args);
         x->num->val += y->num->val;
         obj_delete(y);
     }
@@ -21,9 +21,9 @@ obj *builtin_plus(env *e, obj *args) {
 obj *builtin_minus(env *e, obj *args) {
     CASSERT(args, args->count > 0, "minus passed no arguments");
     TARGCHECK(args, "minus", OBJ_NUM);
-    obj *x = obj_popcar(&args);
+    obj *x = obj_popcar(args);
     while (args->count > 0) {
-        obj *y = obj_popcar(&args);
+        obj *y = obj_popcar(args);
         x->num->val -= y->num->val;
         obj_delete(y);
     }
@@ -34,9 +34,9 @@ obj *builtin_minus(env *e, obj *args) {
 obj *builtin_times(env *e, obj *args) {
     CASSERT(args, args->count > 0, "times passed no arguments");
     TARGCHECK(args, "times", OBJ_NUM);
-    obj *x = obj_popcar(&args);
+    obj *x = obj_popcar(args);
     while (args->count > 0) {
-        obj *y = obj_popcar(&args);
+        obj *y = obj_popcar(args);
         x->num->val *= y->num->val;
         obj_delete(y);
     }
@@ -47,9 +47,9 @@ obj *builtin_times(env *e, obj *args) {
 obj *builtin_divide(env *e, obj *args) {
     CASSERT(args, args->count > 0, "times passed no arguments");
     TARGCHECK(args, "divide", OBJ_NUM);
-    obj *x = obj_popcar(&args);
+    obj *x = obj_popcar(args);
     while (args->count > 0) {
-        obj *y = obj_popcar(&args);
+        obj *y = obj_popcar(args);
         if (y->num->val == 0) {
             x = obj_err("division by zero");
             obj_delete(y);
@@ -65,9 +65,9 @@ obj *builtin_divide(env *e, obj *args) {
 obj *builtin_remainder(env *e, obj *args) {
     CASSERT(args, args->count > 0, "times passed no arguments");
     TARGCHECK(args, "remainder", OBJ_NUM);
-    obj *x = obj_popcar(&args);
+    obj *x = obj_popcar(args);
     while (args->count > 0) {
-        obj *y = obj_popcar(&args);
+        obj *y = obj_popcar(args);
         if (y->num->val == 0) {
             x = obj_err("division by zero");
             obj_delete(y);
@@ -82,8 +82,8 @@ obj *builtin_remainder(env *e, obj *args) {
 
 obj *builtin_cons(env *e, obj *args) {
     NARGCHECK(args, "cons", 2);
-    obj *car = obj_popcar(&args);
-    obj *cdr = obj_popcar(&args);
+    obj *car = obj_popcar(args);
+    obj *cdr = obj_popcar(args);
     obj_delete(args);
     return obj_cons(car, cdr);
 }
@@ -91,8 +91,8 @@ obj *builtin_cons(env *e, obj *args) {
 obj *builtin_car(env *e, obj *args) {
     NARGCHECK(args, "car", 1);
     TARGCHECK(args, "car", OBJ_CONS);
-    obj *car = obj_popcar(&args);
-    obj *res = obj_popcar(&car);
+    obj *car = obj_popcar(args);
+    obj *res = obj_popcar(car);
     obj_delete(args);
     obj_delete(car);
     return res;
@@ -101,8 +101,8 @@ obj *builtin_car(env *e, obj *args) {
 obj *builtin_cdr(env *e, obj *args) {
     NARGCHECK(args, "cdr", 1);
     TARGCHECK(args, "cdr", OBJ_CONS);
-    obj *car = obj_popcar(&args);
-    obj *res = obj_popcdr(&car);
+    obj *car = obj_popcar(args);
+    obj *res = obj_popcar(car);
     obj_delete(args);
     obj_delete(car);
     return res;
@@ -112,8 +112,8 @@ obj *builtin_list(env *e, obj *args) { return args; }
 
 obj *builtin_eq(env *e, obj *args) {
     NARGCHECK(args, "eq", 2);
-    obj *x = obj_popcar(&args);
-    obj *y = obj_popcar(&args);
+    obj *x = obj_popcar(args);
+    obj *y = obj_popcar(args);
     CASSERT(args, x->type != OBJ_CONS && y->type != OBJ_CONS,
             "parameters passed to eq must be atomic");
 
@@ -158,7 +158,7 @@ obj *builtin_eq(env *e, obj *args) {
 
 obj *builtin_atom(env *e, obj *args) {
     NARGCHECK(args, "atom", 1);
-    obj *x = obj_popcar(&args);
+    obj *x = obj_popcar(args);
 
     obj *res = x->type != OBJ_CONS ? obj_bool(TRUE) : obj_bool(FALSE);
 

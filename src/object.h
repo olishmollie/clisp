@@ -15,8 +15,9 @@ typedef struct {
 } cons_t;
 
 typedef struct {
-    obj *child;
-} qexpr_t;
+    obj *head;
+    int count;
+} list_t;
 
 typedef struct env env;
 typedef obj *(*builtin)(env *, obj *);
@@ -35,6 +36,7 @@ typedef enum {
     OBJ_NUM,
     OBJ_SYM,
     OBJ_CONS,
+    OBJ_LIST,
     OBJ_BOOL,
     OBJ_BUILTIN,
     OBJ_LAMBDA,
@@ -52,6 +54,7 @@ struct obj {
         num_t *num;
         char *sym;
         cons_t *cons;
+        list_t *list;
         bool_t bool;
         builtin_t *bltin;
         lambda_t *lambda;
@@ -63,6 +66,7 @@ struct obj {
 /* interior types ---------------------------------------------------------- */
 num_t *mk_num(long);
 cons_t *mk_cons(obj *, obj *);
+list_t *mk_list(void);
 builtin_t *mk_builtin(char *, builtin);
 lambda_t *mk_lambda(obj *, obj *);
 
@@ -71,6 +75,7 @@ obj *obj_num(long);
 obj *obj_sym(char *);
 obj *obj_bool(bool_t);
 obj *obj_cons(obj *, obj *);
+obj *obj_list(void);
 obj *obj_keyword(char *);
 obj *obj_nil(void);
 obj *obj_err(char *, ...);
@@ -79,10 +84,10 @@ obj *obj_lambda(obj *, obj *);
 char *obj_typename(obj_t);
 
 /* list fns ---------------------------------------------------------------- */
+obj *obj_add(obj *, obj *);
+obj *obj_popcar(obj *);
 obj *obj_car(obj *);
 obj *obj_cdr(obj *);
-obj *obj_popcar(obj **);
-obj *obj_popcdr(obj **);
 
 /* copying ----------------------------------------------------------------- */
 obj *obj_cpy(obj *o);

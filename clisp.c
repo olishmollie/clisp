@@ -22,6 +22,7 @@ typedef enum {
     NIL,
     LPAREN,
     RPAREN,
+    DOT,
     DEF,
     COND,
     QUOTE,
@@ -134,6 +135,9 @@ token lexan(char *input) {
     } else if (cur == ')') {
         nextchar(input);
         return token_new(RPAREN, ")");
+    } else if (cur == '.') {
+        nextchar(input);
+        return token_new(DOT, ".");
     } else if (cur == '\'') {
         nextchar(input);
         return token_new(TICK, "'");
@@ -182,22 +186,52 @@ void count_args(obj *o) {
     o->count = nargs;
 }
 
+// obj *read_list(char *input) {
+//     if (peektok.type == END)
+//         return obj_cons(obj_err("unexpected eof, expected ')'"), obj_nil());
+//     if (peektok.type == RPAREN) {
+//         nexttok(input);
+//         return NULL;
+//     }
+
+//     obj *car = read(input);
+//     printf("car = ");
+//     obj_println(car);
+
+//     if (peektok.type == DOT) {
+//         nexttok(input);
+//         obj *cdr = read(input);
+//         return obj_cons(car, cdr);
+//     } else {
+//         obj *list = obj_list();
+//         obj *cdr = read_list(input);
+//         obj_add(list, cdr);
+//         printf("list = ");
+//         obj_println(list);
+//         return list;
+//     }
+// }
+
 obj *read_list(char *input) {
-    if (peektok.type == END)
-        return obj_cons(obj_err("unexpected eof, expected ')'"), obj_nil());
-    if (peektok.type == RPAREN) {
-        nexttok(input);
-        return obj_nil();
+    obj *list = obj_list();
+    while (peektok.type != RPAREN) {
+        if (peektok.type == END)
+            return obj_err("read error: expected ')'");
+
+        obj *car = read(input);
+        if (peektok.type == DOT) {
+            nexttok(input);
+            obj *cdr = read(input);
+            if (peektok.type != RPAREN) {
+                obj_delete(cdr);
+                return obj_err("read error: expected ')'");
+            }
+            return obj_cons(car, cdr);
+        }
+
+        obj_add(list, car);
     }
-
-    obj *car = read(input);
-    obj *cdr = read_list(input);
-
-    obj *cons = obj_cons(car, cdr);
-
-    count_args(cons);
-
-    return cons;
+    return list;
 }
 
 obj *expand_quote(char *input) {
@@ -240,9 +274,11 @@ obj *read(char *input) {
         token_delete(tok);
         return k;
     case RPAREN:
-        return obj_err("unexpected ')'");
+        return obj_err("read error: unexpected ')'");
+    case DOT:
+        return obj_err("read error: unexpected '.'");
     default:
-        return obj_err("unknown token '%s'", curtok.val);
+        return obj_err("read error: unknown token '%s'", curtok.val);
     }
 }
 
@@ -260,8 +296,8 @@ obj *eval_def(env *e, obj *args) {
     CASSERT(args, obj_car(args)->type == OBJ_SYM,
             "first arg to define must be symbol");
 
-    obj *k = obj_popcar(&args);
-    obj *v = eval(e, obj_popcar(&args));
+    obj *k = obj_popcar(args);
+    obj *v = eval(e, obj_popcar(args));
     env_insert(e, k, v);
 
     obj_delete(k);
@@ -275,14 +311,14 @@ obj *eval_cond(env *e, obj *args) {
     TARGCHECK(args, "cond", OBJ_CONS);
 
     while (args->count > 0) {
-        obj *arg = obj_popcar(&args);
+        obj *arg = obj_popcar(args);
         CASSERT(args, arg->count == 2,
                 "arguments to cond must themselves have two arguments");
-        obj *pred = eval(e, obj_popcar(&arg));
+        obj *pred = eval(e, obj_popcar(arg));
 
         if (pred->type != OBJ_BOOL ||
             (pred->type == OBJ_BOOL && pred->bool != FALSE)) {
-            obj *res = obj_popcar(&arg);
+            obj *res = obj_popcar(arg);
             obj_delete(pred);
             obj_delete(args);
             return eval(e, res);
@@ -298,7 +334,7 @@ obj *eval_cond(env *e, obj *args) {
 
 obj *eval_quote(env *e, obj *args) {
     NARGCHECK(args, "quote", 1);
-    obj *quote = obj_popcar(&args);
+    obj *quote = obj_popcar(args);
     obj_delete(args);
     return quote;
 }
@@ -309,7 +345,7 @@ obj *eval_lambda(env *e, obj *args) {
             "first argument to lambda should be a list of parameters");
 
     /* check param list for non-symbols */
-    obj *params = obj_popcar(&args);
+    obj *params = obj_popcar(args);
     obj *cur = params;
     for (int i = 0; i < params->count; i++) {
         obj *sym = obj_car(cur);
@@ -317,7 +353,7 @@ obj *eval_lambda(env *e, obj *args) {
         cur = obj_cdr(cur);
     }
 
-    obj *body = obj_popcar(&args);
+    obj *body = obj_popcar(args);
     obj_delete(args);
 
     return obj_lambda(params, body);
@@ -325,7 +361,7 @@ obj *eval_lambda(env *e, obj *args) {
 
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
-    obj *k = obj_popcar(&o);
+    obj *k = obj_popcar(o);
     ERRCHECK(o);
     if (strcmp(k->keyword, "quote") == 0)
         res = eval_quote(e, o);
@@ -348,8 +384,8 @@ obj *eval_call(env *e, obj *f, obj *args) {
 
     f->lambda->e->parent = e;
     while (f->lambda->params->count > 0) {
-        obj *param = obj_popcar(&f->lambda->params);
-        obj *arg = obj_popcar(&args);
+        obj *param = obj_popcar(f->lambda->params);
+        obj *arg = obj_popcar(args);
         env_insert(f->lambda->e, param, arg);
         obj_delete(param);
         obj_delete(arg);
@@ -379,7 +415,7 @@ obj *eval_sexpr(env *e, obj *o) {
             obj_car(o)->type == OBJ_LAMBDA || obj_car(o)->type == OBJ_BUILTIN,
             "first obj in s-expr is not a function");
 
-    obj *f = obj_popcar(&o);
+    obj *f = obj_popcar(o);
     obj *res =
         f->type == OBJ_BUILTIN ? f->bltin->proc(e, o) : eval_call(e, f, o);
 
@@ -444,8 +480,8 @@ int main(void) {
         lex_init(input);
         eval_init();
 
-        obj *o = eval(global, read(input));
-        // obj *o = read(input);
+        // obj *o = eval(global, read(input));
+        obj *o = read(input);
         obj_println(o);
         // printf("o->count = %d\n", o->count);
 
