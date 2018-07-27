@@ -125,16 +125,20 @@ char *obj_typename(obj_t type) {
         return "number";
     case OBJ_SYM:
         return "symbol";
-    case OBJ_BOOL:
-        return "bool";
     case OBJ_CONS:
         return "cons";
-    case OBJ_ERR:
-        return "error";
+    case OBJ_BOOL:
+        return "bool";
     case OBJ_BUILTIN:
         return "function";
+    case OBJ_LAMBDA:
+        return "lambda";
     case OBJ_KEYWORD:
         return "keyword";
+    case OBJ_NIL:
+        return "nil";
+    case OBJ_ERR:
+        return "error";
     default:
         return "unknown";
     }
@@ -168,29 +172,38 @@ obj *cpy_cons(obj *o) {
 }
 
 obj *obj_cpy(obj *o) {
-    if (o) {
-        switch (o->type) {
-        case OBJ_NUM:
-            return obj_num(o->num->val);
-        case OBJ_SYM:
-            return obj_sym(o->sym);
-        case OBJ_CONS:
-            return cpy_cons(o);
-        case OBJ_BUILTIN:
-            return obj_builtin(o->bltin->name, o->bltin->proc);
-        case OBJ_LAMBDA:
-            return obj_lambda(o->lambda->params, o->lambda->body);
-        case OBJ_ERR:
-            return obj_err(o->err);
-        case OBJ_NIL:
-            return obj_nil();
-        case OBJ_KEYWORD:
-            return obj_keyword(o->keyword);
-        case OBJ_BOOL:
-            return obj_bool(o->bool);
-        }
+    obj *res;
+    switch (o->type) {
+    case OBJ_NUM:
+        res = obj_num(o->num->val);
+        break;
+    case OBJ_SYM:
+        res = obj_sym(o->sym);
+        break;
+    case OBJ_CONS:
+        res = obj_cons(obj_cpy(o->cons->car), obj_cpy(o->cons->cdr));
+        break;
+    case OBJ_BUILTIN:
+        res = obj_builtin(o->bltin->name, o->bltin->proc);
+        break;
+    case OBJ_LAMBDA:
+        res = obj_lambda(obj_cpy(o->lambda->params), obj_cpy(o->lambda->body));
+        break;
+    case OBJ_ERR:
+        res = obj_err(o->err);
+        break;
+    case OBJ_NIL:
+        res = obj_nil();
+        break;
+    case OBJ_KEYWORD:
+        res = obj_keyword(o->keyword);
+        break;
+    case OBJ_BOOL:
+        res = obj_bool(o->bool);
     }
-    return NULL;
+
+    res->count = o->count;
+    return res;
 }
 
 /* printing ---------------------------------------------------------------- */
@@ -234,7 +247,11 @@ void obj_print(obj *o) {
         printf("<function %s>", o->bltin->name);
         break;
     case OBJ_LAMBDA:
-        printf("<function>");
+        printf("<lambda ");
+        obj_print(o->lambda->params);
+        printf(" ");
+        obj_print(o->lambda->body);
+        printf(">");
         break;
     case OBJ_ERR:
         printf("Error: %s", o->err);
@@ -260,40 +277,38 @@ void obj_println(obj *o) {
 void obj_delete(obj *o);
 
 void obj_delete(obj *o) {
-    if (o) {
-        switch (o->type) {
-        case OBJ_NUM:
-            free(o->num);
-            break;
-        case OBJ_SYM:
-            free(o->sym);
-            break;
-        case OBJ_CONS:
-            obj_delete(obj_car(o));
-            obj_delete(obj_cdr(o));
-            free(o->cons);
-            break;
-        case OBJ_BOOL:
-            break;
-        case OBJ_ERR:
-            free(o->err);
-            break;
-        case OBJ_BUILTIN:
-            free(o->bltin->name);
-            free(o->bltin);
-            break;
-        case OBJ_LAMBDA:
-            env_delete(o->lambda->e);
-            obj_delete(o->lambda->params);
-            obj_delete(o->lambda->body);
-            free(o->lambda);
-            break;
-        case OBJ_KEYWORD:
-            free(o->keyword);
-            break;
-        case OBJ_NIL:
-            break;
-        }
+    switch (o->type) {
+    case OBJ_NUM:
+        free(o->num);
+        break;
+    case OBJ_SYM:
+        free(o->sym);
+        break;
+    case OBJ_CONS:
+        obj_delete(obj_car(o));
+        obj_delete(obj_cdr(o));
+        free(o->cons);
+        break;
+    case OBJ_BOOL:
+        break;
+    case OBJ_ERR:
+        free(o->err);
+        break;
+    case OBJ_BUILTIN:
+        free(o->bltin->name);
+        free(o->bltin);
+        break;
+    case OBJ_LAMBDA:
+        env_delete(o->lambda->e);
+        obj_delete(o->lambda->body);
+        obj_delete(o->lambda->params);
+        free(o->lambda);
+        break;
+    case OBJ_KEYWORD:
+        free(o->keyword);
+        break;
+    case OBJ_NIL:
+        break;
     }
     free(o);
 }

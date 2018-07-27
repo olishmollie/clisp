@@ -15,7 +15,6 @@ env *env_new(void) {
 }
 
 obj *env_lookup(env *e, obj *k) {
-
     /* search local env */
     for (int i = 0; i < e->count; i++) {
         if (strcmp(e->syms[i], k->sym) == 0)

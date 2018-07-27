@@ -342,12 +342,9 @@ obj *eval_keyword(env *e, obj *o) {
 
 obj *eval_call(env *e, obj *f, obj *args) {
 
-    if (f->type == OBJ_BUILTIN)
-        return f->bltin->proc(e, args);
-
     CASSERT(args, f->lambda->params->count == args->count,
-            "lambda params = %d, args = %d", f->lambda->params->count,
-            args->count);
+            "number of params (%d) does not match number of args (%d)",
+            f->lambda->params->count, args->count);
 
     f->lambda->e->parent = e;
     while (f->lambda->params->count > 0) {
@@ -357,10 +354,9 @@ obj *eval_call(env *e, obj *f, obj *args) {
         obj_delete(param);
         obj_delete(arg);
     }
-    env_print(f->lambda->e);
     obj_delete(args);
 
-    return eval(f->lambda->e, f->lambda->body);
+    return eval(f->lambda->e, obj_cpy(f->lambda->body));
 }
 
 obj *eval_sexpr(env *e, obj *o) {
@@ -384,11 +380,10 @@ obj *eval_sexpr(env *e, obj *o) {
             "first obj in s-expr is not a function");
 
     obj *f = obj_popcar(&o);
-    obj *res = eval_call(e, f, o);
-    printf("res = ");
-    obj_println(res);
+    obj *res =
+        f->type == OBJ_BUILTIN ? f->bltin->proc(e, o) : eval_call(e, f, o);
 
-    // obj_delete(f);
+    obj_delete(f);
 
     return res;
 }
