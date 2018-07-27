@@ -20,13 +20,13 @@
         }                                                                      \
     }
 
-#define TARGCHECK(args, typ)                                                   \
+#define TARGCHECK(args, fun, typ)                                              \
     {                                                                          \
         obj *cur = args;                                                       \
         for (int i = 0; i < args->count; i++) {                                \
             if (obj_car(cur)->type != typ) {                                   \
-                obj *err = obj_err("argument is not of type %s, got %s",       \
-                                   obj_typename(typ),                          \
+                obj *err = obj_err("argument to %s is not of type %s, got %s", \
+                                   fun, obj_typename(typ),                     \
                                    obj_typename(obj_car(cur)->type));          \
                 obj_delete(args);                                              \
                 return err;                                                    \

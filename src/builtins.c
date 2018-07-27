@@ -7,7 +7,7 @@
 /* builtins ---------------------------------------------------------------- */
 obj *builtin_plus(env *e, obj *args) {
     CASSERT(args, args->count > 0, "plus passed no arguments");
-    TARGCHECK(args, OBJ_NUM);
+    TARGCHECK(args, "plus", OBJ_NUM);
     obj *x = obj_popcar(&args);
     while (args->count > 0) {
         obj *y = obj_popcar(&args);
@@ -20,7 +20,7 @@ obj *builtin_plus(env *e, obj *args) {
 
 obj *builtin_minus(env *e, obj *args) {
     CASSERT(args, args->count > 0, "minus passed no arguments");
-    TARGCHECK(args, OBJ_NUM);
+    TARGCHECK(args, "minus", OBJ_NUM);
     obj *x = obj_popcar(&args);
     while (args->count > 0) {
         obj *y = obj_popcar(&args);
@@ -33,7 +33,7 @@ obj *builtin_minus(env *e, obj *args) {
 
 obj *builtin_times(env *e, obj *args) {
     CASSERT(args, args->count > 0, "times passed no arguments");
-    TARGCHECK(args, OBJ_NUM);
+    TARGCHECK(args, "times", OBJ_NUM);
     obj *x = obj_popcar(&args);
     while (args->count > 0) {
         obj *y = obj_popcar(&args);
@@ -46,7 +46,7 @@ obj *builtin_times(env *e, obj *args) {
 
 obj *builtin_divide(env *e, obj *args) {
     CASSERT(args, args->count > 0, "times passed no arguments");
-    TARGCHECK(args, OBJ_NUM);
+    TARGCHECK(args, "divide", OBJ_NUM);
     obj *x = obj_popcar(&args);
     while (args->count > 0) {
         obj *y = obj_popcar(&args);
@@ -64,6 +64,7 @@ obj *builtin_divide(env *e, obj *args) {
 
 obj *builtin_remainder(env *e, obj *args) {
     CASSERT(args, args->count > 0, "times passed no arguments");
+    TARGCHECK(args, "remainder", OBJ_NUM);
     obj *x = obj_popcar(&args);
     while (args->count > 0) {
         obj *y = obj_popcar(&args);
@@ -89,7 +90,7 @@ obj *builtin_cons(env *e, obj *args) {
 
 obj *builtin_car(env *e, obj *args) {
     NARGCHECK(args, "car", 1);
-    TARGCHECK(args, OBJ_CONS);
+    TARGCHECK(args, "car", OBJ_CONS);
     obj *car = obj_popcar(&args);
     obj *res = obj_popcar(&car);
     obj_delete(args);
@@ -99,7 +100,7 @@ obj *builtin_car(env *e, obj *args) {
 
 obj *builtin_cdr(env *e, obj *args) {
     NARGCHECK(args, "cdr", 1);
-    TARGCHECK(args, OBJ_CONS);
+    TARGCHECK(args, "cdr", OBJ_CONS);
     obj *car = obj_popcar(&args);
     obj *res = obj_popcdr(&car);
     obj_delete(args);

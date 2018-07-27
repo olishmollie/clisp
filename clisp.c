@@ -272,7 +272,7 @@ obj *eval_def(env *e, obj *args) {
 
 obj *eval_cond(env *e, obj *args) {
 
-    TARGCHECK(args, OBJ_CONS);
+    TARGCHECK(args, "cond", OBJ_CONS);
 
     while (args->count > 0) {
         obj *arg = obj_popcar(&args);
