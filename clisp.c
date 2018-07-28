@@ -8,6 +8,8 @@
 #define BUFSIZE 99
 #define EOS '\0'
 
+// #define _DEBUG_READ
+
 /* errors ------------------------------------------------------------------ */
 
 #define CASSERT(args, cond, msg)                                               \
@@ -20,10 +22,10 @@
 
 #define NARGCHECK(args, fun, num)                                              \
     {                                                                          \
-        if (args->list->count != num) {                                        \
+        if (args->nargs != num) {                                              \
             obj *err = obj_err(                                                \
                 "incorrect number of arguments to %s. expected %d, got %d",    \
-                fun, num, args->list->count);                                  \
+                fun, num, args->nargs);                                        \
             obj_delete(args);                                                  \
             return err;                                                        \
         }                                                                      \
@@ -31,8 +33,8 @@
 
 #define TARGCHECK(args, fun, typ)                                              \
     {                                                                          \
-        obj *cur = args->list->head;                                           \
-        for (int i = 0; i < args->list->count; i++) {                          \
+        obj *cur = args;                                                       \
+        for (int i = 0; i < args->nargs; i++) {                                \
             if (obj_car(cur)->type != typ) {                                   \
                 obj *err = obj_err("argument to %s is not of type %s, got %s", \
                                    fun, obj_typename(typ),                     \
@@ -47,8 +49,8 @@
 // TODO: visit every node in error check
 #define ERRCHECK(args)                                                         \
     {                                                                          \
-        obj *cur = args->list->head;                                           \
-        for (int i = 0; i < args->list->count; i++) {                          \
+        obj *cur = args;                                                       \
+        for (int i = 0; i < args->nargs; i++) {                                \
             if (obj_car(cur)->type == OBJ_ERR) {                               \
                 obj *err = obj_err(obj_car(cur)->err);                         \
                 obj_delete(args);                                              \
@@ -218,11 +220,6 @@ typedef struct {
     obj *cdr;
 } cons_t;
 
-typedef struct {
-    obj *head;
-    int count;
-} list_t;
-
 typedef struct env env;
 typedef obj *(*builtin)(env *, obj *);
 typedef struct {
@@ -240,7 +237,6 @@ typedef enum {
     OBJ_NUM,
     OBJ_SYM,
     OBJ_CONS,
-    OBJ_LIST,
     OBJ_BOOL,
     OBJ_BUILTIN,
     OBJ_LAMBDA,
@@ -253,11 +249,11 @@ typedef enum { TRUE, FALSE } bool_t;
 
 struct obj {
     obj_t type;
+    int nargs;
     union {
         num_t *num;
         char *sym;
         cons_t *cons;
-        list_t *list;
         bool_t bool;
         builtin_t *bltin;
         lambda_t *lambda;
@@ -361,13 +357,6 @@ cons_t *mk_cons(obj *car, obj *cdr) {
 
 obj *obj_nil(void);
 
-list_t *mk_list(void) {
-    list_t *l = malloc(sizeof(list_t));
-    l->head = obj_nil();
-    l->count = 0;
-    return l;
-}
-
 builtin_t *mk_builtin(char *name, builtin bltin) {
     builtin_t *b = malloc(sizeof(builtin_t));
     b->proc = bltin;
@@ -390,6 +379,7 @@ obj *obj_num(long val) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NUM;
     o->num = mk_num(val);
+    o->nargs = 0;
     return o;
 }
 
@@ -398,6 +388,7 @@ obj *obj_sym(char *name) {
     o->type = OBJ_SYM;
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
+    o->nargs = 0;
     return o;
 }
 
@@ -405,13 +396,7 @@ obj *obj_cons(obj *car, obj *cdr) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_CONS;
     o->cons = mk_cons(car, cdr);
-    return o;
-}
-
-obj *obj_list(void) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_LIST;
-    o->list = mk_list();
+    o->nargs = 0;
     return o;
 }
 
@@ -419,6 +404,7 @@ obj *obj_builtin(char *name, builtin proc) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_BUILTIN;
     o->bltin = mk_builtin(name, proc);
+    o->nargs = 0;
     return o;
 }
 
@@ -426,6 +412,7 @@ obj *obj_lambda(obj *params, obj *body) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_LAMBDA;
     o->lambda = mk_lambda(params, body);
+    o->nargs = 0;
     return o;
 }
 
@@ -433,6 +420,7 @@ obj *obj_bool(bool_t b) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_BOOL;
     o->bool = b;
+    o->nargs = 0;
     return o;
 }
 
@@ -441,12 +429,14 @@ obj *obj_keyword(char *name) {
     o->type = OBJ_KEYWORD;
     o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->keyword, name);
+    o->nargs = 0;
     return o;
 }
 
 obj *obj_nil(void) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NIL;
+    o->nargs = 0;
     return o;
 }
 
@@ -459,11 +449,12 @@ obj *obj_err(char *fmt, ...) {
     o->err = malloc(sizeof(char) * 512);
     vsnprintf(o->err, 511, fmt, args);
     va_end(args);
+    o->nargs = 0;
 
     return o;
 }
 
-int obj_isatom(obj *o) { return o->type != OBJ_CONS && o->type != OBJ_LIST; }
+int obj_isatom(obj *o) { return o->type != OBJ_CONS; }
 
 char *obj_typename(obj_t type) {
     switch (type) {
@@ -473,8 +464,6 @@ char *obj_typename(obj_t type) {
         return "symbol";
     case OBJ_CONS:
         return "cons";
-    case OBJ_LIST:
-        return "list";
     case OBJ_BOOL:
         return "bool";
     case OBJ_BUILTIN:
@@ -494,73 +483,22 @@ char *obj_typename(obj_t type) {
 
 /* list fns ---------------------------------------------------------------- */
 
-obj *obj_car(obj *o) {
-    if (o->type == OBJ_LIST) {
-        return o->list->head->cons->car;
-    }
-    return o->cons->car;
-}
+obj *obj_car(obj *o) { return o->cons->car; }
 
-obj *obj_cdr(obj *o) {
-    if (o->type == OBJ_LIST) {
-        return o->list->head->cons->cdr;
-    }
-    return o->cons->cdr;
-}
+obj *obj_cdr(obj *o) { return o->cons->cdr; }
 
 obj *obj_cadr(obj *o) { return obj_car(obj_cdr(o)); }
 
-obj *obj_add(obj *l, obj *x) {
-    if (l->list->count) {
-        obj *cur = l->list->head;
-        while (obj_cdr(cur)->type != OBJ_NIL) {
-            cur = obj_cdr(cur);
-        }
-        cur->cons->cdr = obj_cons(x, cur->cons->cdr);
-    } else {
-        l->list->head = obj_cons(x, l->list->head);
-    }
-    l->list->count++;
-    return x;
-}
-
-obj *obj_popcar(obj *o) {
-    obj *car;
-    if (o->type == OBJ_CONS) {
-        car = obj_car(o);
-        o->cons = mk_cons(obj_cdr(o), obj_nil());
-    } else if (o->type == OBJ_LIST) {
-        car = obj_car(o->list->head);
-        o->list->head = obj_cdr(o->list->head);
-        o->list->count--;
-    }
+obj *obj_popcar(obj **o) {
+    obj *car = obj_car(*o);
+    obj *cdr = obj_cdr(*o);
+    int count = (*o)->nargs;
+    *o = cdr;
+    (*o)->nargs = count - 1;
     return car;
 }
 
-obj *obj_popcdr(obj *o) {
-    obj *cdr;
-    if (o->type == OBJ_CONS) {
-        cdr = obj_cdr(o);
-        o->cons = mk_cons(obj_car(o), obj_nil());
-    } else if (o->type == OBJ_LIST) {
-        cdr = obj_cdr(o->list->head);
-        o->list->head = obj_cons(obj_car(o->list->head), obj_nil());
-        o->list->count--;
-    }
-    return cdr;
-}
-
 /* copying ----------------------------------------------------------------- */
-
-obj *cpy_list(obj *l) {
-    obj *res = obj_list();
-    obj *cur = l->list->head;
-    while (cur->type != OBJ_NIL) {
-        obj_add(res, obj_cpy(obj_car(cur)));
-        cur = obj_cdr(cur);
-    }
-    return res;
-}
 
 obj *obj_cpy(obj *o) {
     obj *res;
@@ -574,8 +512,6 @@ obj *obj_cpy(obj *o) {
     case OBJ_CONS:
         res = obj_cons(obj_cpy(o->cons->car), obj_cpy(o->cons->cdr));
         break;
-    case OBJ_LIST:
-        return cpy_list(o);
     case OBJ_BUILTIN:
         res = obj_builtin(o->bltin->name, o->bltin->proc);
         break;
@@ -594,7 +530,7 @@ obj *obj_cpy(obj *o) {
     case OBJ_BOOL:
         res = obj_bool(o->bool);
     }
-
+    res->nargs = o->nargs;
     return res;
 }
 
@@ -608,7 +544,7 @@ void print_cons(obj *o) {
     while (1) {
         obj_print(obj_car(p));
         obj *cdr = obj_cdr(p);
-        if (cdr->type != OBJ_CONS && cdr->type != OBJ_LIST) {
+        if (cdr->type != OBJ_CONS) {
             if (cdr->type != OBJ_NIL) {
                 printf(" . ");
                 obj_print(cdr);
@@ -631,10 +567,6 @@ void obj_print(obj *o) {
         break;
     case OBJ_CONS:
         print_cons(o);
-        break;
-    case OBJ_LIST:
-        print_cons(o->list->head);
-        // print_list(o);
         break;
     case OBJ_BOOL:
         printf("%s", o->bool == TRUE ? "true" : "false");
@@ -672,14 +604,6 @@ void obj_println(obj *o) {
 
 void obj_delete(obj *o);
 
-void delete_list(obj *o) {
-    while (o->list->count > 0) {
-        obj_delete(obj_popcar(o));
-    }
-    obj_delete(o->list->head);
-    free(o->list);
-}
-
 void obj_delete(obj *o) {
     switch (o->type) {
     case OBJ_NUM:
@@ -692,9 +616,6 @@ void obj_delete(obj *o) {
         obj_delete(obj_car(o));
         obj_delete(obj_cdr(o));
         free(o->cons);
-        break;
-    case OBJ_LIST:
-        delete_list(o);
         break;
     case OBJ_ERR:
         free(o->err);
@@ -743,12 +664,14 @@ obj *read_sym(token tok) {
 obj *read(char *input);
 
 obj *read_list(char *input) {
-    obj *list = obj_list();
 
+    obj *list = obj_nil();
     while (peektok.type != TOK_RPAREN) {
 
-        if (peektok.type == TOK_END)
+        if (peektok.type == TOK_END) {
+            obj_delete(list);
             return obj_err("expected ')'");
+        }
 
         obj *car = read(input);
 
@@ -760,28 +683,32 @@ obj *read_list(char *input) {
                 return obj_err("expected ')'");
             }
             nexttok(input); /* eat ')' */
+            obj_delete(list);
             return obj_cons(car, cdr);
         }
 
-        obj_add(list, car);
+        if (list->nargs) {
+            obj *cur = list;
+            for (int i = 0; i < list->nargs - 1; i++) {
+                cur = obj_cdr(cur);
+            }
+            cur->cons->cdr = obj_cons(car, cur->cons->cdr);
+        } else {
+            list = obj_cons(car, list);
+        }
+
+        list->nargs++;
     }
 
     nexttok(input); /* eat ')' */
-
-    /* empty list */
-    if (list->list->count == 0) {
-        obj_delete(list);
-        return obj_nil();
-    }
 
     return list;
 }
 
 obj *expand_quote(char *input) {
     obj *quote = obj_keyword("quote");
-    obj *res = obj_list();
-    obj_add(res, quote);
-    obj_add(res, read(input));
+    obj *res = obj_cons(quote, obj_cons(read(input), obj_nil()));
+    res->nargs = 2;
     return res;
 }
 
@@ -828,11 +755,11 @@ obj *read(char *input) {
 /* builtins ---------------------------------------------------------------- */
 
 obj *builtin_plus(env *e, obj *args) {
-    CASSERT(args, args->list->count > 0, "plus passed no arguments");
+    CASSERT(args, args->nargs > 0, "plus passed no arguments");
     TARGCHECK(args, "plus", OBJ_NUM);
-    obj *x = obj_popcar(args);
-    while (args->list->count > 0) {
-        obj *y = obj_popcar(args);
+    obj *x = obj_popcar(&args);
+    while (args->nargs > 0) {
+        obj *y = obj_popcar(&args);
         x->num->val += y->num->val;
         obj_delete(y);
     }
@@ -841,11 +768,11 @@ obj *builtin_plus(env *e, obj *args) {
 }
 
 obj *builtin_minus(env *e, obj *args) {
-    CASSERT(args, args->list->count > 0, "minus passed no arguments");
+    CASSERT(args, args->nargs > 0, "minus passed no arguments");
     TARGCHECK(args, "minus", OBJ_NUM);
-    obj *x = obj_popcar(args);
-    while (args->list->count > 0) {
-        obj *y = obj_popcar(args);
+    obj *x = obj_popcar(&args);
+    while (args->nargs > 0) {
+        obj *y = obj_popcar(&args);
         x->num->val -= y->num->val;
         obj_delete(y);
     }
@@ -854,11 +781,11 @@ obj *builtin_minus(env *e, obj *args) {
 }
 
 obj *builtin_times(env *e, obj *args) {
-    CASSERT(args, args->list->count > 0, "times passed no arguments");
+    CASSERT(args, args->nargs > 0, "times passed no arguments");
     TARGCHECK(args, "times", OBJ_NUM);
-    obj *x = obj_popcar(args);
-    while (args->list->count > 0) {
-        obj *y = obj_popcar(args);
+    obj *x = obj_popcar(&args);
+    while (args->nargs > 0) {
+        obj *y = obj_popcar(&args);
         x->num->val *= y->num->val;
         obj_delete(y);
     }
@@ -867,11 +794,11 @@ obj *builtin_times(env *e, obj *args) {
 }
 
 obj *builtin_divide(env *e, obj *args) {
-    CASSERT(args, args->list->count > 0, "times passed no arguments");
+    CASSERT(args, args->nargs > 0, "times passed no arguments");
     TARGCHECK(args, "divide", OBJ_NUM);
-    obj *x = obj_popcar(args);
-    while (args->list->count > 0) {
-        obj *y = obj_popcar(args);
+    obj *x = obj_popcar(&args);
+    while (args->nargs > 0) {
+        obj *y = obj_popcar(&args);
         if (y->num->val == 0) {
             x = obj_err("division by zero");
             obj_delete(y);
@@ -885,11 +812,11 @@ obj *builtin_divide(env *e, obj *args) {
 }
 
 obj *builtin_remainder(env *e, obj *args) {
-    CASSERT(args, args->list->count > 0, "times passed no arguments");
+    CASSERT(args, args->nargs > 0, "times passed no arguments");
     TARGCHECK(args, "remainder", OBJ_NUM);
-    obj *x = obj_popcar(args);
-    while (args->list->count > 0) {
-        obj *y = obj_popcar(args);
+    obj *x = obj_popcar(&args);
+    while (args->nargs > 0) {
+        obj *y = obj_popcar(&args);
         if (y->num->val == 0) {
             x = obj_err("division by zero");
             obj_delete(y);
@@ -905,34 +832,25 @@ obj *builtin_remainder(env *e, obj *args) {
 obj *builtin_cons(env *e, obj *args) {
     NARGCHECK(args, "cons", 2);
 
-    obj *car = obj_popcar(args);
-    obj *cdr = obj_popcar(args);
+    obj *car = obj_popcar(&args);
+    obj *cdr = obj_popcar(&args);
 
-    obj *res;
-    if (cdr->type == OBJ_LIST) {
-        res = obj_list();
-        obj_add(res, car);
-        while (cdr->list->count > 0)
-            obj_add(res, obj_popcar(cdr));
-    } else {
-        res = obj_cons(car, cdr);
-    }
-
+    obj *res = obj_cons(car, cdr);
     obj_delete(args);
     return res;
 }
 
 obj *builtin_car(env *e, obj *args) {
     NARGCHECK(args, "car", 1);
-    if (obj_car(args)->type != OBJ_LIST && obj_car(args)->type != OBJ_CONS) {
-        obj *err = obj_err("argument to car must be a cons or a list, got %s",
+    if (obj_car(args)->type != OBJ_CONS) {
+        obj *err = obj_err("argument to car must be cons, got %s",
                            obj_typename(obj_car(args)->type));
         obj_delete(args);
         return err;
     }
 
-    obj *car = obj_popcar(args);
-    obj *res = obj_popcar(car);
+    obj *car = obj_popcar(&args);
+    obj *res = obj_popcar(&car);
     obj_delete(args);
     obj_delete(car);
     return res;
@@ -940,28 +858,28 @@ obj *builtin_car(env *e, obj *args) {
 
 obj *builtin_cdr(env *e, obj *args) {
     NARGCHECK(args, "cdr", 1);
-    if (obj_car(args)->type != OBJ_LIST && obj_car(args)->type != OBJ_CONS) {
-        obj *err = obj_err("argument to cdr must be a cons or a list, got %s",
+    if (obj_car(args)->type != OBJ_CONS) {
+        obj *err = obj_err("argument to cdr must be a cons, got %s",
                            obj_typename(obj_car(args)->type));
         obj_delete(args);
         return err;
     }
 
-    obj *car = obj_popcar(args);
-    obj *res = obj_popcdr(car);
+    obj *list = obj_popcar(&args);
+    obj *car = obj_popcar(&list);
+
     obj_delete(args);
     obj_delete(car);
-    return res;
+    return list;
 }
 
 obj *builtin_list(env *e, obj *args) { return args; }
 
 obj *builtin_eq(env *e, obj *args) {
     NARGCHECK(args, "eq", 2);
-    obj *x = obj_popcar(args);
-    obj *y = obj_popcar(args);
-    CASSERT(args, x->type != OBJ_CONS && y->type != OBJ_LIST,
-            "parameters passed to eq must be atomic");
+    obj *x = obj_popcar(&args);
+    obj *y = obj_popcar(&args);
+    CASSERT(args, obj_isatom(args), "parameters passed to eq must be atomic");
 
     if (x->type != y->type) {
         obj_delete(x);
@@ -1006,10 +924,9 @@ obj *builtin_eq(env *e, obj *args) {
 
 obj *builtin_atom(env *e, obj *args) {
     NARGCHECK(args, "atom", 1);
-    obj *x = obj_popcar(args);
+    obj *x = obj_popcar(&args);
 
-    obj *res = x->type != OBJ_CONS && x->type != OBJ_LIST ? obj_bool(TRUE)
-                                                          : obj_bool(FALSE);
+    obj *res = obj_isatom(x) ? obj_bool(TRUE) : obj_bool(FALSE);
 
     obj_delete(x);
     obj_delete(args);
@@ -1038,8 +955,8 @@ obj *eval_def(env *e, obj *args) {
     obj *car = obj_car(args);
     CASSERT(args, car->type == OBJ_SYM, "first arg to define must be symbol");
 
-    obj *k = obj_popcar(args);
-    obj *v = eval(e, obj_popcar(args));
+    obj *k = obj_popcar(&args);
+    obj *v = eval(e, obj_popcar(&args));
     env_insert(e, k, v);
 
     obj_delete(k);
@@ -1050,17 +967,17 @@ obj *eval_def(env *e, obj *args) {
 
 obj *eval_cond(env *e, obj *args) {
 
-    TARGCHECK(args, "cond", OBJ_LIST);
+    TARGCHECK(args, "cond", OBJ_CONS);
 
-    while (args->list->count > 0) {
-        obj *arg = obj_popcar(args);
-        CASSERT(args, arg->list->count == 2,
+    while (args->nargs > 0) {
+        obj *arg = obj_popcar(&args);
+        CASSERT(args, arg->nargs == 2,
                 "arguments to cond must themselves have two arguments");
-        obj *pred = eval(e, obj_popcar(arg));
+        obj *pred = eval(e, obj_popcar(&arg));
 
         if (pred->type != OBJ_BOOL ||
             (pred->type == OBJ_BOOL && pred->bool != FALSE)) {
-            obj *res = obj_popcar(arg);
+            obj *res = obj_popcar(&arg);
             obj_delete(pred);
             obj_delete(args);
             return eval(e, res);
@@ -1076,29 +993,29 @@ obj *eval_cond(env *e, obj *args) {
 
 obj *eval_quote(env *e, obj *args) {
     NARGCHECK(args, "quote", 1);
-    obj *quote = obj_popcar(args);
+    obj *quote = obj_popcar(&args);
     obj_delete(args);
     return quote;
 }
 
 obj *eval_lambda(env *e, obj *args) {
     NARGCHECK(args, "lambda", 2);
-    CASSERT(args, obj_car(args)->type == OBJ_LIST,
+    CASSERT(args, obj_car(args)->type == OBJ_CONS,
             "first argument to lambda should be a list of parameters");
     CASSERT(args,
-            obj_cadr(args)->type == OBJ_LIST || obj_isatom(obj_cadr(args)),
+            obj_cadr(args)->type == OBJ_CONS || obj_isatom(obj_cadr(args)),
             "second argument to lambda must be a list or an atom");
 
     /* check param list for non-symbols */
-    obj *params = obj_popcar(args);
+    obj *params = obj_popcar(&args);
     obj *cur = params;
-    for (int i = 0; i < params->list->count; i++) {
+    for (int i = 0; i < params->nargs; i++) {
         obj *sym = obj_car(cur);
         CASSERT(args, sym->type == OBJ_SYM, "invalid param list for lambda");
         cur = obj_cdr(cur);
     }
 
-    obj *body = obj_popcar(args);
+    obj *body = obj_popcar(&args);
     obj_delete(args);
 
     return obj_lambda(params, body);
@@ -1106,7 +1023,7 @@ obj *eval_lambda(env *e, obj *args) {
 
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
-    obj *k = obj_popcar(o);
+    obj *k = obj_popcar(&o);
     ERRCHECK(o);
     if (strcmp(k->keyword, "quote") == 0)
         res = eval_quote(e, o);
@@ -1122,13 +1039,13 @@ obj *eval_keyword(env *e, obj *o) {
 }
 
 obj *eval_call(env *e, obj *f, obj *args) {
-    CASSERT(args, f->lambda->params->list->count == args->list->count,
+    CASSERT(args, f->lambda->params->nargs == args->nargs,
             "number of params does not match number of args");
 
     f->lambda->e->parent = e;
-    while (f->lambda->params->list->count > 0) {
-        obj *param = obj_popcar(f->lambda->params);
-        obj *arg = obj_popcar(args);
+    while (f->lambda->params->nargs > 0) {
+        obj *param = obj_popcar(&f->lambda->params);
+        obj *arg = obj_popcar(&args);
         env_insert(f->lambda->e, param, arg);
         obj_delete(param);
         obj_delete(arg);
@@ -1140,26 +1057,25 @@ obj *eval_call(env *e, obj *f, obj *args) {
 
 obj *eval_list(env *e, obj *o) {
     /* check for keyword */
-    if (obj_car(o->list->head)->type == OBJ_KEYWORD) {
+    if (obj_car(o)->type == OBJ_KEYWORD) {
         return eval_keyword(e, o);
     }
 
     nestlevel++; /* define should be top level */
 
     /* evaluate all children */
-    obj *cur = o->list->head;
-    for (int i = 0; i < o->list->count; i++) {
+    obj *cur = o;
+    for (int i = 0; i < o->nargs; i++) {
         cur->cons->car = eval(e, cur->cons->car);
         cur = obj_cdr(cur);
     }
 
     ERRCHECK(o);
     CASSERT(o,
-            obj_car(o->list->head)->type == OBJ_LAMBDA ||
-                obj_car(o->list->head)->type == OBJ_BUILTIN,
+            obj_car(o)->type == OBJ_LAMBDA || obj_car(o)->type == OBJ_BUILTIN,
             "first obj in list is not a function");
 
-    obj *f = obj_popcar(o);
+    obj *f = obj_popcar(&o);
     obj *res =
         f->type == OBJ_BUILTIN ? f->bltin->proc(e, o) : eval_call(e, f, o);
 
@@ -1171,13 +1087,8 @@ obj *eval_list(env *e, obj *o) {
 obj *eval(env *e, obj *o) {
     if (o->type == OBJ_SYM)
         return env_lookup(e, o);
-    if (o->type == OBJ_LIST)
+    if (o->type == OBJ_CONS)
         return eval_list(e, o);
-    if (o->type == OBJ_CONS) {
-        obj *err = obj_err("invalid syntax");
-        obj_delete(o);
-        return err;
-    }
     if (o->type == OBJ_KEYWORD) {
         obj *err = obj_err("invalid syntax %s", o->keyword);
         obj_delete(o);
@@ -1229,10 +1140,14 @@ int main(void) {
         lex_init(input);
         eval_init();
 
-        obj *o = eval(global, read(input));
-        // obj *o = read(input);
+#ifdef _DEBUG_READ
+        obj *o = read(input);
         obj_println(o);
-        // printf("o->list->count = %d\n", o->list->count);
+        printf("o->nargs = %d\n", o->nargs);
+#else
+        obj *o = eval(global, read(input));
+        obj_println(o);
+#endif
 
         lex_cleanup();
         obj_delete(o);
