@@ -9,6 +9,7 @@
 #define EOS '\0'
 
 // #define _DEBUG_READ
+// #define _DEBUG_LEX
 
 /* errors ------------------------------------------------------------------ */
 
@@ -90,7 +91,7 @@ typedef struct {
     char *val;
 } token;
 
-int pos, numtok;
+int curchar, numtok;
 token curtok, peektok;
 
 token token_new(token_t type, char *val) {
@@ -111,52 +112,57 @@ void token_println(token t) {
     printf("<type: %d, val: '%s'>\n", t.type, t.val);
 }
 
-int nextchar(char *input) { return input[++pos]; }
-
-int curchar(char *input) { return input[pos]; }
-
-int backup(char *input) { return input[pos--]; }
-
-int peekchar(char *input) {
-    int c = nextchar(input);
-    backup(input);
-    return c;
+int nextchar(FILE *f) {
+    curchar = fgetc(f);
+    return curchar;
 }
 
-void skipspaces(char *input) {
-    while (isspace(curchar(input))) {
-        nextchar(input);
+void skipspaces(FILE *f) {
+    while (isspace(curchar)) {
+        nextchar(f);
     }
 }
 
-token lexdigit(char *input) {
+token lexdigit(FILE *f) {
     char num[BUFSIZE];
+
     int i = 0;
-    if (curchar(input) == '+' || curchar(input) == '-') {
-        num[i++] = curchar(input);
-        nextchar(input);
+    if (curchar == '+' || curchar == '-') {
+        num[i++] = curchar;
+        nextchar(f);
     }
-    while (curchar(input) && isdigit(curchar(input))) {
-        num[i++] = curchar(input);
-        nextchar(input);
+
+    while (!feof(f) && isdigit(curchar)) {
+        num[i++] = curchar;
+        nextchar(f);
     }
     num[i] = EOS;
+
+    ungetc(curchar, f);
+
     return token_new(TOK_INT, num);
 }
 
-token lexsymbol(char *input) {
-    if (curchar(input) == '+' || curchar(input) == '-') {
-        if (isdigit(peekchar(input)))
-            return lexdigit(input);
+token lexsymbol(FILE *f) {
+    if (curchar == '+' || curchar == '-') {
+        int c = fgetc(f);
+        if (isdigit(c)) {
+            ungetc(c, f);
+            return lexdigit(f);
+        }
+        ungetc(c, f);
     }
+
     char sym[BUFSIZE];
+
     int i = 0;
-    while (curchar(input) && !isspace(curchar(input)) &&
-           curchar(input) != ')') {
-        sym[i++] = curchar(input);
-        nextchar(input);
+    while (!feof(f) && !isspace(curchar) && curchar != ')') {
+        sym[i++] = curchar;
+        nextchar(f);
     }
     sym[i] = EOS;
+
+    ungetc(curchar, f);
 
     if (strcmp(sym, "nil") == 0)
         return token_new(TOK_NIL, sym);
@@ -176,33 +182,35 @@ token lexsymbol(char *input) {
     return token_new(TOK_SYM, sym);
 }
 
-token lexan(char *input) {
-    skipspaces(input);
-    int cur = curchar(input);
-    if (cur == EOS)
+token lex(FILE *f) {
+
+    curchar = fgetc(f);
+
+    skipspaces(f);
+
+    if (feof(f))
         return token_new(TOK_END, "end");
-    else if (isdigit(cur))
-        return lexdigit(input);
-    else if (cur == '(') {
-        nextchar(input);
+    else if (isdigit(curchar))
+        return lexdigit(f);
+    else if (curchar == '(') {
+        // nextchar(f);
         return token_new(TOK_LPAREN, "(");
-    } else if (cur == ')') {
-        nextchar(input);
+    } else if (curchar == ')') {
+        // nextchar(f);
         return token_new(TOK_RPAREN, ")");
-    } else if (cur == '.') {
-        nextchar(input);
+    } else if (curchar == '.') {
+        // nextchar(f);
         return token_new(TOK_DOT, ".");
-    } else if (cur == '\'') {
-        nextchar(input);
+    } else if (curchar == '\'') {
+        // nextchar(f);
         return token_new(TOK_TICK, "'");
-    } else
-        return lexsymbol(input);
+    }
+    return lexsymbol(f);
 }
 
-void lex_init(char *input) {
+void lex_init(FILE *f) {
     numtok = 0;
-    pos = 0;
-    peektok = lexan(input);
+    peektok = lex(f);
 }
 
 void lex_cleanup(void) { token_delete(peektok); }
@@ -642,9 +650,9 @@ void obj_delete(obj *o) {
 
 /* PARSING ------------------------------------------------------------------ */
 
-token nexttok(char *input) {
+token nexttok(FILE *f) {
     curtok = peektok;
-    peektok = lexan(input);
+    peektok = lex(f);
     return curtok;
 }
 
@@ -661,9 +669,9 @@ obj *read_sym(token tok) {
     return o;
 }
 
-obj *read(char *input);
+obj *read(FILE *f);
 
-obj *read_list(char *input) {
+obj *read_list(FILE *f) {
 
     obj *list = obj_nil();
     while (peektok.type != TOK_RPAREN) {
@@ -673,17 +681,25 @@ obj *read_list(char *input) {
             return obj_err("expected ')'");
         }
 
-        obj *car = read(input);
+        obj *car = read(f);
 
         if (peektok.type == TOK_DOT) {
-            nexttok(input);
-            obj *cdr = read(input);
+            /* eat '.' */
+            nexttok(f);
+            token_delete(curtok);
+
+            obj *cdr = read(f);
             if (peektok.type != TOK_RPAREN) {
                 obj_delete(cdr);
                 return obj_err("expected ')'");
             }
-            nexttok(input); /* eat ')' */
+
+            /* eat ')' */
+            nexttok(f);
+            token_delete(curtok);
+
             obj_delete(list);
+
             return obj_cons(car, cdr);
         }
 
@@ -700,20 +716,22 @@ obj *read_list(char *input) {
         list->nargs++;
     }
 
-    nexttok(input); /* eat ')' */
+    /* eat ')' */
+    nexttok(f);
+    token_delete(curtok);
 
     return list;
 }
 
-obj *expand_quote(char *input) {
+obj *expand_quote(FILE *f) {
     obj *quote = obj_keyword("quote");
-    obj *res = obj_cons(quote, obj_cons(read(input), obj_nil()));
+    obj *res = obj_cons(quote, obj_cons(read(f), obj_nil()));
     res->nargs = 2;
     return res;
 }
 
-obj *read(char *input) {
-    curtok = nexttok(input);
+obj *read(FILE *f) {
+    curtok = nexttok(f);
     token tok;
     switch (curtok.type) {
     case TOK_INT:
@@ -725,7 +743,7 @@ obj *read(char *input) {
         return obj_nil();
     case TOK_LPAREN:
         token_delete(curtok);
-        return read_list(input);
+        return read_list(f);
     case TOK_TRUE:
     case TOK_FALSE:
         tok = curtok;
@@ -734,7 +752,7 @@ obj *read(char *input) {
         return b;
     case TOK_TICK:
         token_delete(curtok);
-        return expand_quote(input);
+        return expand_quote(f);
     case TOK_DEF:
     case TOK_COND:
     case TOK_LAMBDA:
@@ -934,10 +952,10 @@ obj *builtin_atom(env *e, obj *args) {
     return res;
 }
 
+int _repl_exit = 0;
 obj *builtin_exit(env *e, obj *args) {
     NARGCHECK(args, "exit", 0);
-    env_delete(e);
-    exit(0);
+    _repl_exit = 1;
     return NULL;
 }
 
@@ -1126,34 +1144,54 @@ env *env_init(void) {
 /* REPL --------------------------------------------------------------------- */
 #include <editline/readline.h>
 
-env *global;
-void cleanup() { env_delete(global); }
+env *global_env;
+FILE *input;
 
-int main(void) {
+void cleanup() {
+    lex_cleanup();
+    env_delete(global_env);
+    fclose(input);
+}
+
+int main(int argc, char **argv) {
     printf("clisp version 0.1\n\n");
-    global = env_init();
 
-    while (1) {
-        char *input = readline("> ");
-        add_history(input);
+    global_env = env_init();
+    FILE *input;
 
-        lex_init(input);
-        eval_init();
-
-#ifdef _DEBUG_READ
-        obj *o = read(input);
-        obj_println(o);
-        printf("o->nargs = %d\n", o->nargs);
-#else
-        obj *o = eval(global, read(input));
-        obj_println(o);
-#endif
-
-        lex_cleanup();
-        obj_delete(o);
-        free(input);
-        // env_print(global);
+    char *filename = argv[1];
+    if (filename) {
+        FILE *input = fopen(filename, "r");
+        if (!input) {
+            fprintf(stderr, "can't find file %s\n", filename);
+            exit(1);
+        }
+    } else {
+        input = stdin;
     }
+
+    lex_init(input);
+
+#ifdef _DEBUG_LEX
+    while (peektok.type != TOK_END) {
+        nexttok(input);
+        token_println(curtok);
+        token_delete(curtok);
+    }
+    printf("numtok = %d\n", numtok);
+#elif defined _DEBUG_READ
+    obj *o = read(input);
+    obj_println(o);
+    printf("o->nargs = %d\n", o->nargs);
+    obj_delete(o);
+#else
+    eval_init();
+    while (!feof(input)) {
+        obj *o = eval(global_env, read(input));
+        obj_println(o);
+        obj_delete(o);
+    }
+#endif
 
     cleanup();
 

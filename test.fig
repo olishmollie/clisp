@@ -1,0 +1,3 @@
+(def null? (lambda (x) ((eq x ()))))
+
+(null? 3)
