@@ -1,0 +1,44 @@
+(def null? (lambda (x) (eq? x '())))
+
+(def cadr
+    (lambda (l) (car (cdr x))))
+(def caddr
+    (lambda (l) (car (cdr (cdr x)))))
+(def cdar
+    (lambda (l) (cdr (car x))))
+
+(def and
+    (lambda (x y)
+        (cond (x (cond (y true)
+                       (true false)))
+              (true false))))
+(def or
+    (lambda (x y)
+        (cond (x true)
+              (true (cond (y true)
+                          (true false))))))
+
+(def not
+    (lambda (x) (cond (x false) (true true))))
+
+(def append
+    (lambda (x y)
+        (cond ((null? x) y)
+              (true (cons (car x) (append (cdr x) y))))))
+(print (append '(a b) '(c d)))
+
+(def pair
+    (lambda (x y)
+        (cond ((and (null? x) (null? y)) '())
+              ((and (not (atom x)) (not (atom y)))
+               (cons (list (car x) (car y))
+                     (pair (cdr x) (cdr y)))))))
+(print (pair '(x y z) '(a b c)))
+
+
+
+(def fact
+    (lambda (x)
+        (cond ((eq? x 0) 1) (true (* x (fact (- x 1)))))))
+
+(print (fact 5))

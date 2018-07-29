@@ -952,10 +952,18 @@ obj *builtin_atom(env *e, obj *args) {
     return res;
 }
 
-int _repl_exit = 0;
+obj *builtin_print(env *e, obj *args) {
+    NARGCHECK(args, "print", 1);
+    obj *item = obj_popcar(&args);
+    obj_println(item);
+    obj_delete(item);
+    obj_delete(args);
+    return obj_nil();
+}
+
 obj *builtin_exit(env *e, obj *args) {
     NARGCHECK(args, "exit", 0);
-    _repl_exit = 1;
+    exit(0);
     return NULL;
 }
 
@@ -963,12 +971,7 @@ obj *builtin_exit(env *e, obj *args) {
 
 obj *eval(env *, obj *);
 
-int nestlevel;
-
-void eval_init() { nestlevel = 0; }
-
 obj *eval_def(env *e, obj *args) {
-    CASSERT(args, nestlevel == 0, "improper context for define");
     NARGCHECK(args, "define", 2);
     obj *car = obj_car(args);
     CASSERT(args, car->type == OBJ_SYM, "first arg to define must be symbol");
@@ -1079,8 +1082,6 @@ obj *eval_list(env *e, obj *o) {
         return eval_keyword(e, o);
     }
 
-    nestlevel++; /* define should be top level */
-
     /* evaluate all children */
     obj *cur = o;
     for (int i = 0; i < o->nargs; i++) {
@@ -1135,8 +1136,9 @@ env *env_init(void) {
     register_builtin(e, builtin_car, "car");
     register_builtin(e, builtin_cdr, "cdr");
     register_builtin(e, builtin_list, "list");
-    register_builtin(e, builtin_eq, "eq");
-    register_builtin(e, builtin_atom, "atom");
+    register_builtin(e, builtin_eq, "eq?");
+    register_builtin(e, builtin_atom, "atom?");
+    register_builtin(e, builtin_print, "print");
     register_builtin(e, builtin_exit, "exit");
     return e;
 }
@@ -1154,14 +1156,13 @@ void cleanup() {
 }
 
 int main(int argc, char **argv) {
-    printf("clisp version 0.1\n\n");
+    // printf("clisp version 0.1\n\n");
 
     global_env = env_init();
-    FILE *input;
 
     char *filename = argv[1];
     if (filename) {
-        FILE *input = fopen(filename, "r");
+        input = fopen(filename, "r");
         if (!input) {
             fprintf(stderr, "can't find file %s\n", filename);
             exit(1);
@@ -1185,10 +1186,13 @@ int main(int argc, char **argv) {
     printf("o->nargs = %d\n", o->nargs);
     obj_delete(o);
 #else
-    eval_init();
     while (!feof(input)) {
         obj *o = eval(global_env, read(input));
-        obj_println(o);
+        if (o->type == OBJ_ERR) {
+            fprintf(stderr, "%s\n", o->err);
+            obj_delete(o);
+            break;
+        }
         obj_delete(o);
     }
 #endif
