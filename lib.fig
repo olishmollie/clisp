@@ -1,3 +1,4 @@
+(def newline "\n")
 (def null? (lambda (x)
     (eq? x '())))
 (def cadr (lambda (l)
@@ -6,43 +7,53 @@
     (car (cdr (cdr l)))))
 (def cdar (lambda (l)
     (cdr (car l))))
+(def cddr (lambda (l)
+    (cdr (cdr l))))
 
 (def len (lambda (l)
     (cond ((null? l) 0)
           (true (+ 1 (len (cdr l)))))))
 
-(def if
-    (lambda (x y z)
-        (cond (x y)
-              (true z))))
-(def and
-    (lambda (x y)
-        (cond (x (cond (y true)
-                       (true false)))
-              (true false))))
-(def or
-    (lambda (x y)
-        (cond (x true)
-              (true (cond (y true)
-                          (true false))))))
-(def not
-    (lambda (x) (cond (x false) (true true))))
+(def pop (lambda (l)
+    (cond ((atom? l) (err "invalid argument for pop"))
+          ((null? (cdr l)) ())
+          (true (cons (car l) (pop (cdr l)))))))
+
+(def if (lambda (x y z)
+    (cond (x y)
+          (true z))))
+
+(def and (lambda (x y)
+    (cond (x (cond (y true)
+                   (true false)))
+          (true false))))
+
+(def or (lambda (x y)
+    (cond (x true)
+          (true (cond (y true)
+                      (true false))))))
+
+(def not (lambda (x) (cond (x false) (true true))))
 
 (def append
     (lambda (x y)
         (cond ((null? x) y)
               (true (cons (car x) (append (cdr x) y))))))
-(def pair
-    (lambda (x y)
-        (cond ((and (null? x) (null? y)) '())
-              ((and (not (atom x)) (not (atom y)))
-               (cons (list (car x) (car y))
-                     (pair (cdr x) (cdr y)))))))
 
-(def fact
-    (lambda (n) (fact-iter 1 1 n)))
+(def pair (lambda (x y)
+    (cond ((and (null? x) (null? y)) '())
+          ((and (not (atom x)) (not (atom y)))
+                (cons (list (car x) (car y))
+                      (pair (cdr x) (cdr y)))))))
+
+(def fact (lambda (n) (fact-iter 1 1 n)))
+
 (def fact-iter (lambda (product counter max-count)
-                (cond ((> counter max-count) product)
-                      (true (fact-iter (* counter product)
-                                       (+ counter 1)
-                                        max-count)))))
+    (cond ((> counter max-count) product)
+          (true (fact-iter (* counter product)
+                           (+ counter 1)
+                           max-count)))))
+
+(def pow (lambda (base exp)
+    (def add (lambda (x y) (+ x y)))
+    (add base exp)))
