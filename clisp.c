@@ -1297,6 +1297,11 @@ obj *builtin_exit(env *e, obj *args) {
     return NULL;
 }
 
+void repl_println(obj *o) {
+    printf("=> ");
+    obj_println(o);
+}
+
 int main(void) {
 
     printf("clisp version 0.1\n\n");
@@ -1328,7 +1333,7 @@ int main(void) {
 
 #else
         obj *o = eval(global_env, read(stream));
-        obj_println(o);
+        repl_println(o);
         obj_delete(o);
 #endif
         cleanup(input, stream);
