@@ -71,6 +71,7 @@ typedef enum {
     TOK_INT,
     TOK_FLOAT,
     TOK_RAT,
+    TOK_STR,
     TOK_SYM,
     TOK_TRUE,
     TOK_FALSE,
@@ -123,7 +124,7 @@ void skipspaces(FILE *f) {
     }
 }
 
-token lexdigit(FILE *f) {
+token lexnum(FILE *f) {
     char num[BUFSIZE];
 
     int i = 0;
@@ -148,7 +149,7 @@ token lexsymbol(FILE *f) {
         int c = fgetc(f);
         if (isdigit(c)) {
             ungetc(c, f);
-            return lexdigit(f);
+            return lexnum(f);
         }
         ungetc(c, f);
     }
@@ -182,6 +183,48 @@ token lexsymbol(FILE *f) {
     return token_new(TOK_SYM, sym);
 }
 
+token lexstring(FILE *f) {
+    nextchar(f);
+
+    char sym[BUFSIZE];
+
+    int i = 0;
+    while (curchar != '"') {
+
+        if (feof(f)) {
+            fprintf(stderr, "expected '\"'");
+            break;
+        }
+
+        if (curchar == '\\') {
+
+            nextchar(f);
+
+            switch (curchar) {
+            case 'n':
+                sym[i++] = '\n';
+                break;
+            case 't':
+                sym[i++] = '\t';
+                break;
+            case 'f':
+                sym[i++] = '\f';
+                break;
+            default:
+                sym[i++] = curchar;
+            }
+
+        } else {
+            sym[i++] = curchar;
+        }
+
+        nextchar(f);
+    }
+    sym[i] = EOS;
+
+    return token_new(TOK_STR, sym);
+}
+
 token lex(FILE *f) {
 
     curchar = fgetc(f);
@@ -191,20 +234,18 @@ token lex(FILE *f) {
     if (feof(f))
         return token_new(TOK_END, "end");
     else if (isdigit(curchar))
-        return lexdigit(f);
+        return lexnum(f);
     else if (curchar == '(') {
-        // nextchar(f);
         return token_new(TOK_LPAREN, "(");
     } else if (curchar == ')') {
-        // nextchar(f);
         return token_new(TOK_RPAREN, ")");
     } else if (curchar == '.') {
-        // nextchar(f);
         return token_new(TOK_DOT, ".");
     } else if (curchar == '\'') {
-        // nextchar(f);
         return token_new(TOK_TICK, "'");
-    }
+    } else if (curchar == '"')
+        return lexstring(f);
+
     return lexsymbol(f);
 }
 
@@ -244,6 +285,7 @@ typedef struct {
 typedef enum {
     OBJ_NUM,
     OBJ_SYM,
+    OBJ_STR,
     OBJ_CONS,
     OBJ_BOOL,
     OBJ_BUILTIN,
@@ -261,6 +303,7 @@ struct obj {
     union {
         num_t *num;
         char *sym;
+        char *str;
         cons_t *cons;
         bool_t bool;
         builtin_t *bltin;
@@ -400,6 +443,15 @@ obj *obj_sym(char *name) {
     return o;
 }
 
+obj *obj_str(char *str) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_STR;
+    o->str = malloc(sizeof(char) * (strlen(str) + 1));
+    strcpy(o->str, str);
+    o->nargs = 0;
+    return o;
+}
+
 obj *obj_cons(obj *car, obj *cdr) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_CONS;
@@ -470,6 +522,8 @@ char *obj_typename(obj_t type) {
         return "number";
     case OBJ_SYM:
         return "symbol";
+    case OBJ_STR:
+        return "string";
     case OBJ_CONS:
         return "cons";
     case OBJ_BOOL:
@@ -516,6 +570,9 @@ obj *obj_cpy(obj *o) {
         break;
     case OBJ_SYM:
         res = obj_sym(o->sym);
+        break;
+    case OBJ_STR:
+        res = obj_str(o->str);
         break;
     case OBJ_CONS:
         res = obj_cons(obj_cpy(o->cons->car), obj_cpy(o->cons->cdr));
@@ -565,6 +622,30 @@ void print_cons(obj *o) {
     }
 }
 
+void print_rawstr(char *str) {
+    printf("\"");
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        switch (str[i]) {
+        case '\n':
+            printf("\\n");
+            break;
+        case '\t':
+            printf("\\t");
+            break;
+        case '\f':
+            printf("\\f");
+            break;
+        case '\"':
+            printf("\\\"");
+            break;
+        default:
+            printf("%c", str[i]);
+        }
+    }
+    printf("\"");
+}
+
 void obj_print(obj *o) {
     switch (o->type) {
     case OBJ_NUM:
@@ -572,6 +653,9 @@ void obj_print(obj *o) {
         break;
     case OBJ_SYM:
         printf("%s", o->sym);
+        break;
+    case OBJ_STR:
+        print_rawstr(o->str);
         break;
     case OBJ_CONS:
         print_cons(o);
@@ -619,6 +703,9 @@ void obj_delete(obj *o) {
         break;
     case OBJ_SYM:
         free(o->sym);
+        break;
+    case OBJ_STR:
+        free(o->str);
         break;
     case OBJ_CONS:
         obj_delete(obj_car(o));
@@ -738,6 +825,11 @@ obj *read(FILE *f) {
         return read_long(curtok);
     case TOK_SYM:
         return read_sym(curtok);
+    case TOK_STR:
+        tok = curtok;
+        obj *s = obj_str(tok.val);
+        token_delete(tok);
+        return s;
     case TOK_NIL:
         token_delete(curtok);
         return obj_nil();
@@ -914,6 +1006,9 @@ obj *builtin_eq(env *e, obj *args) {
     case OBJ_SYM:
         res = strcmp(x->sym, y->sym) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
         break;
+    case OBJ_STR:
+        res = strcmp(x->str, y->str) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
     case OBJ_BOOL:
         res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
         break;
@@ -955,7 +1050,13 @@ obj *builtin_atom(env *e, obj *args) {
 obj *builtin_print(env *e, obj *args) {
     NARGCHECK(args, "print", 1);
     obj *item = obj_popcar(&args);
-    obj_println(item);
+    switch (item->type) {
+    case OBJ_STR:
+        printf("%s\n", item->str);
+        break;
+    default:
+        obj_println(item);
+    }
     obj_delete(item);
     obj_delete(args);
     return obj_nil();
