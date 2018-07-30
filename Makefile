@@ -1,2 +1,2 @@
 clisp: clisp.c
-	cc clisp.c -ledit -o bin/clisp
+	cc clisp.c -ledit -lgmp -o bin/clisp

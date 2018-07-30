@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <errno.h>
+#include <gmp.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -263,7 +264,7 @@ void lex_cleanup(void) { token_delete(peektok); }
 /* objects ----------------------------------------------------------------- */
 
 typedef struct {
-    long val;
+    mpz_t val;
 } num_t;
 
 typedef struct obj obj;
@@ -397,9 +398,9 @@ void env_print(env *e) {
 
 /* interior types ---------------------------------------------------------- */
 
-num_t *mk_num(long val) {
+num_t *mk_num(char *num) {
     num_t *n = malloc(sizeof(num_t));
-    n->val = val;
+    mpz_init_set_str(n->val, num, 10);
     return n;
 }
 
@@ -430,7 +431,7 @@ lambda_t *mk_lambda(obj *params, obj *body) {
 
 /* obj types --------------------------------------------------------------- */
 
-obj *obj_num(long val) {
+obj *obj_num(char *val) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NUM;
     o->num = mk_num(val);
@@ -568,10 +569,13 @@ obj *obj_popcar(obj **o) {
 
 obj *obj_cpy(obj *o) {
     obj *res;
+    char *num;
     switch (o->type) {
     case OBJ_NUM:
-        res = obj_num(o->num->val);
-        break;
+        num = mpz_get_str(NULL, 10, o->num->val);
+        res = obj_num(num);
+        free(num);
+        return res;
     case OBJ_SYM:
         res = obj_sym(o->sym);
         break;
@@ -651,9 +655,12 @@ void print_rawstr(char *str) {
 }
 
 void obj_print(obj *o) {
+    char *repr;
     switch (o->type) {
     case OBJ_NUM:
-        printf("%li", o->num->val);
+        repr = mpz_get_str(NULL, 10, o->num->val);
+        printf("%s", repr);
+        free(repr);
         break;
     case OBJ_SYM:
         printf("%s", o->sym);
@@ -703,6 +710,7 @@ void obj_delete(obj *o);
 void obj_delete(obj *o) {
     switch (o->type) {
     case OBJ_NUM:
+        mpz_clear(o->num->val);
         free(o->num);
         break;
     case OBJ_SYM:
@@ -745,13 +753,6 @@ token nexttok(FILE *f) {
     curtok = peektok;
     peektok = lex(f);
     return curtok;
-}
-
-obj *read_long(token tok) {
-    errno = 0;
-    long x = strtol(tok.val, NULL, 10);
-    token_delete(tok);
-    return errno != ERANGE ? obj_num(x) : obj_err("bad number syntax");
 }
 
 obj *read_sym(token tok) {
@@ -826,7 +827,10 @@ obj *read(FILE *f) {
     token tok;
     switch (curtok.type) {
     case TOK_INT:
-        return read_long(curtok);
+        tok = curtok;
+        obj *n = obj_num(curtok.val);
+        token_delete(tok);
+        return n;
     case TOK_SYM:
         return read_sym(curtok);
     case TOK_STR:
@@ -874,7 +878,7 @@ obj *builtin_plus(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        x->num->val += y->num->val;
+        mpz_add(x->num->val, x->num->val, y->num->val);
         obj_delete(y);
     }
     obj_delete(args);
@@ -887,7 +891,7 @@ obj *builtin_minus(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        x->num->val -= y->num->val;
+        mpz_sub(x->num->val, x->num->val, y->num->val);
         obj_delete(y);
     }
     obj_delete(args);
@@ -900,7 +904,7 @@ obj *builtin_times(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        x->num->val *= y->num->val;
+        mpz_mul(x->num->val, x->num->val, y->num->val);
         obj_delete(y);
     }
     obj_delete(args);
@@ -913,12 +917,13 @@ obj *builtin_divide(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        if (y->num->val == 0) {
+        if (mpz_sgn(y->num->val) == 0) {
+            obj_delete(x);
             x = obj_err("division by zero");
             obj_delete(y);
             break;
         }
-        x->num->val /= y->num->val;
+        mpz_div(x->num->val, x->num->val, y->num->val);
         obj_delete(y);
     }
     return x;
@@ -931,12 +936,13 @@ obj *builtin_remainder(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        if (y->num->val == 0) {
+        if (mpz_sgn(y->num->val) == 0) {
+            obj_delete(x);
             x = obj_err("division by zero");
             obj_delete(y);
             break;
         }
-        x->num->val %= y->num->val;
+        mpz_mod(x->num->val, x->num->val, y->num->val);
         obj_delete(y);
     }
     obj_delete(args);
