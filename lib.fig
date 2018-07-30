@@ -1,10 +1,20 @@
-(def null? (lambda (x) (eq? x '())))
-(def cadr
-    (lambda (l) (car (cdr l))))
-(def caddr
-    (lambda (l) (car (cdr (cdr l)))))
-(def cdar
-    (lambda (l) (cdr (car l))))
+(def null? (lambda (x)
+    (eq? x '())))
+(def cadr (lambda (l)
+    (car (cdr l))))
+(def caddr (lambda (l)
+    (car (cdr (cdr l)))))
+(def cdar (lambda (l)
+    (cdr (car l))))
+
+(def len (lambda (l)
+    (cond ((null? l) 0)
+          (true (+ 1 (len (cdr l)))))))
+
+(def if
+    (lambda (x y z)
+        (cond (x y)
+              (true z))))
 (def and
     (lambda (x y)
         (cond (x (cond (y true)
@@ -28,6 +38,11 @@
               ((and (not (atom x)) (not (atom y)))
                (cons (list (car x) (car y))
                      (pair (cdr x) (cdr y)))))))
+
 (def fact
-    (lambda (x)
-        (cond ((eq? x 0) 1) (true (* x (fact (- x 1)))))))
+    (lambda (n) (fact-iter 1 1 n)))
+(def fact-iter (lambda (product counter max-count)
+                (cond ((> counter max-count) product)
+                      (true (fact-iter (* counter product)
+                                       (+ counter 1)
+                                        max-count)))))

@@ -18,6 +18,7 @@
 
 /* errors ------------------------------------------------------------------ */
 
+// TODO: why does adding __va_args__ to this segfault?
 #define CASSERT(args, cond, msg)                                               \
     {                                                                          \
         if (!(cond)) {                                                         \
@@ -678,11 +679,11 @@ void obj_print(obj *o) {
         printf("<function %s>", o->bltin->name);
         break;
     case OBJ_LAMBDA:
-        printf("<lambda ");
+        printf("(lambda ");
         obj_print(o->lambda->params);
         printf(" ");
         obj_print(o->lambda->body);
-        printf(">");
+        printf(")");
         break;
     case OBJ_ERR:
         printf("Error: %s", o->err);
@@ -949,6 +950,74 @@ obj *builtin_remainder(env *e, obj *args) {
     return x;
 }
 
+obj *builtin_gt(env *e, obj *args) {
+    CASSERT(args, args->nargs > 0, "gt passed no arguments");
+    NARGCHECK(args, "gt", 2);
+    TARGCHECK(args, "gt", OBJ_NUM);
+
+    obj *x = obj_popcar(&args);
+    obj *y = obj_popcar(&args);
+
+    int res = mpz_cmp(x->num->val, y->num->val);
+
+    obj_delete(x);
+    obj_delete(y);
+    obj_delete(args);
+
+    return res > 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+}
+
+obj *builtin_gte(env *e, obj *args) {
+    CASSERT(args, args->nargs > 0, "gte passed no arguments");
+    NARGCHECK(args, "gte", 2);
+    TARGCHECK(args, "gte", OBJ_NUM);
+
+    obj *x = obj_popcar(&args);
+    obj *y = obj_popcar(&args);
+
+    int res = mpz_cmp(x->num->val, y->num->val);
+
+    obj_delete(x);
+    obj_delete(y);
+    obj_delete(args);
+
+    return res >= 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+}
+
+obj *builtin_lt(env *e, obj *args) {
+    CASSERT(args, args->nargs > 0, "lt passed no arguments");
+    NARGCHECK(args, "lt", 2);
+    TARGCHECK(args, "lt", OBJ_NUM);
+
+    obj *x = obj_popcar(&args);
+    obj *y = obj_popcar(&args);
+
+    int res = mpz_cmp(x->num->val, y->num->val);
+
+    obj_delete(x);
+    obj_delete(y);
+    obj_delete(args);
+
+    return res < 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+}
+
+obj *builtin_lte(env *e, obj *args) {
+    CASSERT(args, args->nargs > 0, "lte passed no arguments");
+    NARGCHECK(args, "lte", 2);
+    TARGCHECK(args, "lte", OBJ_NUM);
+
+    obj *x = obj_popcar(&args);
+    obj *y = obj_popcar(&args);
+
+    int res = mpz_cmp(x->num->val, y->num->val);
+
+    obj_delete(x);
+    obj_delete(y);
+    obj_delete(args);
+
+    return res <= 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+}
+
 obj *builtin_cons(env *e, obj *args) {
     NARGCHECK(args, "cons", 2);
 
@@ -1103,6 +1172,12 @@ obj *eval_cond(env *e, obj *args) {
                 "arguments to cond must themselves have two arguments");
         obj *pred = eval(e, obj_popcar(&arg));
 
+        if (pred->type == OBJ_ERR) {
+            obj_delete(arg);
+            obj_delete(args);
+            return pred;
+        }
+
         if (pred->type != OBJ_BOOL ||
             (pred->type == OBJ_BOOL && pred->bool != FALSE)) {
             obj *res = obj_popcar(&arg);
@@ -1197,11 +1272,16 @@ obj *eval_list(env *e, obj *o) {
     }
 
     ERRCHECK(o);
-    CASSERT(o,
-            obj_car(o)->type == OBJ_LAMBDA || obj_car(o)->type == OBJ_BUILTIN,
-            "first obj in list is not a function");
 
-    obj *f = obj_popcar(&o);
+    obj *f = obj_car(o);
+    if (f->type != OBJ_BUILTIN && f->type != OBJ_LAMBDA) {
+        obj *err = obj_err("first object in list is not a function, got %s",
+                           obj_typename(f->type));
+        obj_delete(o);
+        return err;
+    }
+
+    f = obj_popcar(&o);
     obj *res =
         f->type == OBJ_BUILTIN ? f->bltin->proc(e, o) : eval_call(e, f, o);
 
@@ -1238,6 +1318,11 @@ env *env_init(void) {
     register_builtin(e, builtin_times, "*");
     register_builtin(e, builtin_divide, "/");
     register_builtin(e, builtin_remainder, "%");
+
+    register_builtin(e, builtin_gt, ">");
+    register_builtin(e, builtin_gte, ">=");
+    register_builtin(e, builtin_lt, "<");
+    register_builtin(e, builtin_lte, "<=");
 
     register_builtin(e, builtin_cons, "cons");
     register_builtin(e, builtin_car, "car");
