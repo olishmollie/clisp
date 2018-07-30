@@ -5,13 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <editline/readline.h>
+
 #define BUFSIZE 99
 #define EOS '\0'
 
 #define STDLIB "lib.fig"
 
-// #define _DEBUG_READ
 // #define _DEBUG_LEX
+// #define _DEBUG_READ
 
 /* errors ------------------------------------------------------------------ */
 
@@ -1064,13 +1066,7 @@ obj *builtin_print(env *e, obj *args) {
     return obj_nil();
 }
 
-obj *builtin_exit(env *e, obj *args) {
-    NARGCHECK(args, "exit", 0);
-    env_delete(e);
-    obj_delete(args);
-    exit(0);
-    return NULL;
-}
+obj *builtin_exit(env *, obj *);
 
 /* EVAL --------------------------------------------------------------------- */
 
@@ -1249,7 +1245,6 @@ env *env_init(void) {
 }
 
 /* REPL --------------------------------------------------------------------- */
-#include <editline/readline.h>
 
 env *global_env;
 
@@ -1263,20 +1258,22 @@ void init(char *fname, FILE **f, env **e) {
     lex_init(*f);
 }
 
-void cleanup(FILE *f) {
+void cleanup(char *input, FILE *stream) {
+    if (input)
+        free(input);
     lex_cleanup();
-    fclose(f);
+    fclose(stream);
 }
 
 /* read in std lib */
 void boot(void) {
 
-    FILE *f;
+    FILE *lib;
 
-    init(STDLIB, &f, &global_env);
+    init(STDLIB, &lib, &global_env);
 
-    while (!feof(f)) {
-        obj *o = eval(global_env, read(f));
+    while (!feof(lib)) {
+        obj *o = eval(global_env, read(lib));
         if (o->type == OBJ_ERR) {
             fprintf(stderr, "%s\n", o->err);
             obj_delete(o);
@@ -1285,44 +1282,59 @@ void boot(void) {
         obj_delete(o);
     }
 
-    cleanup(f);
+    cleanup(NULL, lib);
+}
+
+FILE *stream;
+char *input;
+
+obj *builtin_exit(env *e, obj *args) {
+    NARGCHECK(args, "exit", 0);
+    env_delete(e);
+    obj_delete(args);
+    cleanup(input, stream);
+    exit(0);
+    return NULL;
 }
 
 int main(void) {
 
+    printf("clisp version 0.1\n\n");
+
     boot();
 
+    while (1) {
+        input = readline("> ");
+        stream = fmemopen(input, strlen(input), "r");
+        lex_init(stream);
+
 #ifdef _DEBUG_LEX
-    while (peektok.type != TOK_END) {
-        nexttok(f);
-        token_println(curtok);
-        token_delete(curtok);
-    }
-    printf("numtok = %d\n", numtok);
+
+        while (peektok.type != TOK_END) {
+            nexttok(stream);
+            token_println(curtok);
+            token_delete(curtok);
+        }
+        lex_cleanup();
+        printf("numtok = %d\n", numtok);
+
 #elif defined _DEBUG_READ
-    obj *o = read(f);
-    obj_println(o);
-    printf("o->nargs = %d\n", o->nargs);
-    obj_delete(o);
+
+        obj *o = read(stream);
+        obj_println(o);
+        printf("o->nargs = %d\n", o->nargs);
+        obj_delete(o);
+
 #else
-
-    int st = setvbuf(stdin, NULL, _IOLBF, 0);
-
-    if (st) {
-        fprintf(stderr, "could not call setvbuf\n");
-        exit(1);
-    }
-
-    while (!feof(stdin)) {
-        obj *o = eval(global_env, read(stdin));
+        obj *o = eval(global_env, read(stream));
         obj_println(o);
         obj_delete(o);
+#endif
+        cleanup(input, stream);
     }
 
-    lex_cleanup();
+    cleanup(NULL, stream);
     env_delete(global_env);
-
-#endif
 
     return 0;
 }
