@@ -1305,6 +1305,7 @@ int main(void) {
 
     while (1) {
         input = readline("> ");
+        add_history(input);
         stream = fmemopen(input, strlen(input), "r");
         lex_init(stream);
 
