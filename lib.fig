@@ -1,10 +1,10 @@
 (def null? (lambda (x) (eq? x '())))
 (def cadr
-    (lambda (l) (car (cdr x))))
+    (lambda (l) (car (cdr l))))
 (def caddr
-    (lambda (l) (car (cdr (cdr x)))))
+    (lambda (l) (car (cdr (cdr l)))))
 (def cdar
-    (lambda (l) (cdr (car x))))
+    (lambda (l) (cdr (car l))))
 (def and
     (lambda (x y)
         (cond (x (cond (y true)
