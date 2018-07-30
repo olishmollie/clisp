@@ -1141,6 +1141,15 @@ obj *builtin_print(env *e, obj *args) {
     return obj_nil();
 }
 
+obj *builtin_err(env *e, obj *args) {
+    NARGCHECK(args, "err", 1);
+    TARGCHECK(args, "err", OBJ_STR);
+
+    obj *msg = obj_popcar(&args);
+    obj_delete(args);
+    return obj_err(msg->str);
+}
+
 obj *builtin_exit(env *, obj *);
 
 /* EVAL --------------------------------------------------------------------- */
@@ -1331,6 +1340,7 @@ env *env_init(void) {
     register_builtin(e, builtin_eq, "eq?");
     register_builtin(e, builtin_atom, "atom?");
     register_builtin(e, builtin_print, "print");
+    register_builtin(e, builtin_err, "err");
     register_builtin(e, builtin_exit, "exit");
     return e;
 }
