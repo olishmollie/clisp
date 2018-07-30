@@ -1127,18 +1127,25 @@ obj *builtin_atom(env *e, obj *args) {
 }
 
 obj *builtin_print(env *e, obj *args) {
-    NARGCHECK(args, "print", 1);
-    obj *item = obj_popcar(&args);
-    switch (item->type) {
-    case OBJ_STR:
-        printf("%s\n", item->str);
-        break;
-    default:
-        obj_println(item);
+    while (args->nargs > 0) {
+        obj *item = obj_popcar(&args);
+        switch (item->type) {
+        case OBJ_STR:
+            printf("%s", item->str);
+            break;
+        default:
+            obj_print(item);
+        }
+        obj_delete(item);
     }
-    obj_delete(item);
-    obj_delete(args);
-    return obj_nil();
+
+    return args;
+}
+
+obj *builtin_println(env *e, obj *args) {
+    obj *res = builtin_print(e, args);
+    printf("\n");
+    return res;
 }
 
 obj *builtin_err(env *e, obj *args) {
@@ -1212,7 +1219,8 @@ obj *eval_quote(env *e, obj *args) {
 
 obj *eval_lambda(env *e, obj *args) {
     NARGCHECK(args, "lambda", 2);
-    CASSERT(args, obj_car(args)->type == OBJ_CONS,
+    CASSERT(args,
+            obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
             "first argument to lambda should be a list of parameters");
     CASSERT(args,
             obj_cadr(args)->type == OBJ_CONS || obj_isatom(obj_cadr(args)),
@@ -1340,6 +1348,7 @@ env *env_init(void) {
     register_builtin(e, builtin_eq, "eq?");
     register_builtin(e, builtin_atom, "atom?");
     register_builtin(e, builtin_print, "print");
+    register_builtin(e, builtin_println, "println");
     register_builtin(e, builtin_err, "err");
     register_builtin(e, builtin_exit, "exit");
     return e;
