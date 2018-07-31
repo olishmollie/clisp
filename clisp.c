@@ -19,11 +19,11 @@
 /* errors ------------------------------------------------------------------ */
 
 // TODO: why does adding __va_args__ to this segfault?
-#define CASSERT(args, cond, msg)                                               \
+#define CASSERT(args, cond, fmt, ...)                                          \
     {                                                                          \
         if (!(cond)) {                                                         \
             obj_delete(args);                                                  \
-            return obj_err(msg);                                               \
+            return obj_err(fmt, ##__VA_ARGS__);                                \
         }                                                                      \
     }
 
@@ -676,7 +676,7 @@ void obj_print(obj *o) {
         printf("%s", o->bool == TRUE ? "true" : "false");
         break;
     case OBJ_BUILTIN:
-        printf("<function %s>", o->bltin->name);
+        printf("<function '%s'>", o->bltin->name);
         break;
     case OBJ_LAMBDA:
         printf("(lambda ");
@@ -1163,10 +1163,22 @@ obj *builtin_exit(env *, obj *);
 
 obj *eval(env *, obj *);
 
+obj *builtin_eval(env *e, obj *args) {
+    NARGCHECK(args, "eval", 1);
+    obj *expr = eval(e, obj_popcar(&args));
+    obj_delete(args);
+    return expr;
+}
+
 obj *eval_def(env *e, obj *args) {
     NARGCHECK(args, "define", 2);
     obj *car = obj_car(args);
-    CASSERT(args, car->type == OBJ_SYM, "first arg to define must be symbol");
+    if (car->type != OBJ_SYM) {
+        obj *err = obj_err("first arg to def must be sym, got %s",
+                           obj_typename(car->type));
+        obj_delete(args);
+        return err;
+    }
 
     obj *k = obj_popcar(&args);
     obj *v = eval(e, obj_popcar(&args));
@@ -1221,17 +1233,17 @@ obj *eval_lambda(env *e, obj *args) {
     NARGCHECK(args, "lambda", 2);
     CASSERT(args,
             obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
-            "first argument to lambda should be a list of parameters");
-    CASSERT(args,
-            obj_cadr(args)->type == OBJ_CONS || obj_isatom(obj_cadr(args)),
-            "second argument to lambda must be a list or an atom");
+            "first argument should be a list, got %s",
+            obj_typename(obj_car(args)->type));
 
     /* check param list for non-symbols */
     obj *params = obj_popcar(&args);
     obj *cur = params;
     for (int i = 0; i < params->nargs; i++) {
         obj *sym = obj_car(cur);
-        CASSERT(args, sym->type == OBJ_SYM, "invalid param list for lambda");
+        CASSERT(args, sym->type == OBJ_SYM,
+                "lambda param list must contain only symbols, got %s",
+                obj_typename(sym->type));
         cur = obj_cdr(cur);
     }
 
@@ -1260,7 +1272,8 @@ obj *eval_keyword(env *e, obj *o) {
 
 obj *eval_call(env *e, obj *f, obj *args) {
     CASSERT(args, f->lambda->params->nargs == args->nargs,
-            "number of params does not match number of args");
+            "incorrect number of arguments. got %d, expected %d", args->nargs,
+            f->lambda->params->nargs);
 
     f->lambda->e->parent = e;
     while (f->lambda->params->nargs > 0) {
@@ -1292,8 +1305,8 @@ obj *eval_list(env *e, obj *o) {
 
     obj *f = obj_car(o);
     if (f->type != OBJ_BUILTIN && f->type != OBJ_LAMBDA) {
-        obj *err = obj_err("first object in list is not a function, got %s",
-                           obj_typename(f->type));
+        obj *err =
+            obj_err("object of type %s is not callable", obj_typename(f->type));
         obj_delete(o);
         return err;
     }
@@ -1347,6 +1360,7 @@ env *env_init(void) {
     register_builtin(e, builtin_list, "list");
     register_builtin(e, builtin_eq, "eq?");
     register_builtin(e, builtin_atom, "atom?");
+    register_builtin(e, builtin_eval, "eval");
     register_builtin(e, builtin_print, "print");
     register_builtin(e, builtin_println, "println");
     register_builtin(e, builtin_err, "err");
@@ -1420,10 +1434,11 @@ int main(void) {
 
     while (1) {
         input = readline("> ");
+        if (strlen(input) == 0)
+            continue;
         add_history(input);
         stream = fmemopen(input, strlen(input), "r");
         lex_init(stream);
-
 #ifdef _DEBUG_LEX
 
         while (peektok.type != TOK_END) {
