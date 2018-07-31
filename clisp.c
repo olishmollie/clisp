@@ -12,6 +12,7 @@
 #define EOS '\0'
 
 #define STDLIB "lib.fig"
+#define UNITTESTS "tests.fig"
 
 // #define _DEBUG_LEX
 // #define _DEBUG_READ
@@ -861,16 +862,28 @@ obj *read_list(FILE *f) {
             obj *cdr = read(f);
             if (peektok.type != TOK_RPAREN) {
                 obj_delete(cdr);
+                obj_delete(list);
                 return obj_err("expected ')'");
             }
 
-            /* eat ')' */
+            if (list->nargs) {
+                obj *cur = list;
+                for (int i = 0; i < list->nargs - 1; i++) {
+                    cur = obj_cdr(cur);
+                }
+                obj_delete(cur->cons->cdr); /* delete obj_nil() */
+                cur->cons->cdr = obj_cons(car, cdr);
+                list->nargs++;
+            } else {
+                obj_delete(list);
+                list = obj_cons(car, cdr);
+                list->nargs = 2;
+            }
+
             nexttok(f);
             token_delete(curtok);
 
-            obj_delete(list);
-
-            return obj_cons(car, cdr);
+            return list;
         }
 
         if (list->nargs) {
@@ -1036,6 +1049,15 @@ obj *builtin_remainder(env *e, obj *args) {
     return x;
 }
 
+int cmp_nums(obj *x, obj *y) {
+    switch (x->num->type) {
+    case TOK_INT:
+        return mpz_cmp(x->num->val, y->num->val);
+    default:
+        return 0;
+    }
+}
+
 obj *builtin_gt(env *e, obj *args) {
     CASSERT(args, args->nargs > 0, "gt passed no arguments");
     NARGCHECK(args, "gt", 2);
@@ -1044,7 +1066,7 @@ obj *builtin_gt(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = mpz_cmp(x->num->val, y->num->val);
+    int res = cmp_nums(x, y);
 
     obj_delete(x);
     obj_delete(y);
@@ -1061,7 +1083,7 @@ obj *builtin_gte(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = mpz_cmp(x->num->val, y->num->val);
+    int res = cmp_nums(x, y);
 
     obj_delete(x);
     obj_delete(y);
@@ -1078,7 +1100,7 @@ obj *builtin_lt(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = mpz_cmp(x->num->val, y->num->val);
+    int res = cmp_nums(x, y);
 
     obj_delete(x);
     obj_delete(y);
@@ -1095,13 +1117,63 @@ obj *builtin_lte(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = mpz_cmp(x->num->val, y->num->val);
+    int res = cmp_nums(x, y);
 
     obj_delete(x);
     obj_delete(y);
     obj_delete(args);
 
     return res <= 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+}
+
+obj *builtin_eq(env *e, obj *args) {
+    NARGCHECK(args, "eq", 2);
+    obj *x = obj_popcar(&args);
+    obj *y = obj_popcar(&args);
+    CASSERT(args, obj_isatom(args), "parameters passed to eq must be atomic");
+
+    if (x->type != y->type) {
+        obj_delete(x);
+        obj_delete(y);
+        obj_delete(args);
+        return obj_bool(FALSE);
+    }
+
+    obj *res;
+    switch (x->type) {
+    case OBJ_NUM:
+        res = cmp_nums(x, y) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
+    case OBJ_SYM:
+        res = strcmp(x->sym, y->sym) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
+    case OBJ_STR:
+        res = strcmp(x->str, y->str) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
+    case OBJ_BOOL:
+        res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
+        break;
+    case OBJ_BUILTIN:
+        res = strcmp(x->bltin->name, y->bltin->name) == 0 ? obj_bool(TRUE)
+                                                          : obj_bool(FALSE);
+        break;
+    case OBJ_NIL:
+        res = obj_bool(TRUE);
+        break;
+    case OBJ_KEYWORD:
+        res = strcmp(x->keyword, y->keyword) == 0 ? obj_bool(TRUE)
+                                                  : obj_bool(FALSE);
+        break;
+    default:
+        res = obj_err("parameter passed to eq must be atomic, got %s",
+                      obj_typename(x->type));
+    }
+
+    obj_delete(x);
+    obj_delete(y);
+    obj_delete(args);
+
+    return res;
 }
 
 obj *builtin_cons(env *e, obj *args) {
@@ -1150,56 +1222,6 @@ obj *builtin_cdr(env *e, obj *args) {
 
 obj *builtin_list(env *e, obj *args) { return args; }
 
-obj *builtin_eq(env *e, obj *args) {
-    NARGCHECK(args, "eq", 2);
-    obj *x = obj_popcar(&args);
-    obj *y = obj_popcar(&args);
-    CASSERT(args, obj_isatom(args), "parameters passed to eq must be atomic");
-
-    if (x->type != y->type) {
-        obj_delete(x);
-        obj_delete(y);
-        obj_delete(args);
-        return obj_bool(FALSE);
-    }
-
-    obj *res;
-    switch (x->type) {
-    case OBJ_NUM:
-        res = x->num->val == y->num->val ? obj_bool(TRUE) : obj_bool(FALSE);
-        break;
-    case OBJ_SYM:
-        res = strcmp(x->sym, y->sym) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
-        break;
-    case OBJ_STR:
-        res = strcmp(x->str, y->str) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
-        break;
-    case OBJ_BOOL:
-        res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
-        break;
-    case OBJ_BUILTIN:
-        res = strcmp(x->bltin->name, y->bltin->name) == 0 ? obj_bool(TRUE)
-                                                          : obj_bool(FALSE);
-        break;
-    case OBJ_NIL:
-        res = obj_bool(TRUE);
-        break;
-    case OBJ_KEYWORD:
-        res = strcmp(x->keyword, y->keyword) == 0 ? obj_bool(TRUE)
-                                                  : obj_bool(FALSE);
-        break;
-    default:
-        res = obj_err("parameter passed to eq must be atomic, got %s",
-                      obj_typename(x->type));
-    }
-
-    obj_delete(x);
-    obj_delete(y);
-    obj_delete(args);
-
-    return res;
-}
-
 obj *builtin_atom(env *e, obj *args) {
     NARGCHECK(args, "atom", 1);
     obj *x = obj_popcar(&args);
@@ -1209,6 +1231,15 @@ obj *builtin_atom(env *e, obj *args) {
     obj_delete(x);
     obj_delete(args);
 
+    return res;
+}
+
+obj *builtin_type(env *e, obj *args) {
+    NARGCHECK(args, "type", 1);
+    obj *item = obj_popcar(&args);
+    obj *res = obj_str(obj_typename(item->type));
+    obj_delete(item);
+    obj_delete(args);
     return res;
 }
 
@@ -1313,7 +1344,7 @@ obj *eval_quote(env *e, obj *args) {
 }
 
 obj *eval_lambda(env *e, obj *args) {
-    NARGCHECK(args, "lambda", 2);
+    // NARGCHECK(args, "lambda", 2);
     CASSERT(args,
             obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
             "first argument should be a list, got %s",
@@ -1330,10 +1361,7 @@ obj *eval_lambda(env *e, obj *args) {
         cur = obj_cdr(cur);
     }
 
-    obj *body = obj_popcar(&args);
-    obj_delete(args);
-
-    return obj_lambda(params, body);
+    return obj_lambda(params, args);
 }
 
 obj *eval_keyword(env *e, obj *o) {
@@ -1368,7 +1396,18 @@ obj *eval_call(env *e, obj *f, obj *args) {
     }
     obj_delete(args);
 
-    return eval(f->lambda->e, obj_cpy(f->lambda->body));
+    /* evaluate each expression in lambda body but one */
+    while (f->lambda->body->nargs > 1) {
+        obj *expr = obj_popcar(&f->lambda->body);
+        obj *res = eval(f->lambda->e, expr);
+        obj_delete(res);
+    }
+
+    /* last expression is return value */
+    obj *expr = obj_popcar(&f->lambda->body);
+    obj *res = eval(f->lambda->e, expr);
+
+    return res;
 }
 
 obj *eval_list(env *e, obj *o) {
@@ -1422,7 +1461,7 @@ void register_builtin(env *e, builtin fun, char *name) {
     obj_delete(v);
 }
 
-env *env_init(void) {
+env *global_env(void) {
     env *e = env_new();
     register_builtin(e, builtin_plus, "+");
     register_builtin(e, builtin_minus, "-");
@@ -1442,6 +1481,8 @@ env *env_init(void) {
     register_builtin(e, builtin_eq, "eq?");
     register_builtin(e, builtin_atom, "atom?");
     register_builtin(e, builtin_eval, "eval");
+
+    register_builtin(e, builtin_type, "type");
     register_builtin(e, builtin_print, "print");
     register_builtin(e, builtin_println, "println");
     register_builtin(e, builtin_err, "err");
@@ -1451,15 +1492,14 @@ env *env_init(void) {
 
 /* REPL --------------------------------------------------------------------- */
 
-env *global_env;
+env *universe;
 
-void init(char *fname, FILE **f, env **e) {
+void finit(char *fname, FILE **f) {
     *f = fopen(fname, "r");
     if (!(*f)) {
         fprintf(stderr, "unable to locate file %s\n", fname);
         exit(1);
     }
-    *e = env_init();
     lex_init(*f);
 }
 
@@ -1470,15 +1510,14 @@ void cleanup(char *input, FILE *stream) {
     fclose(stream);
 }
 
-/* read in std lib */
-void boot(void) {
+void readfile(char *fname) {
 
-    FILE *lib;
+    FILE *infile;
 
-    init(STDLIB, &lib, &global_env);
+    finit(fname, &infile);
 
-    while (!feof(lib)) {
-        obj *o = eval(global_env, read(lib));
+    while (!feof(infile)) {
+        obj *o = eval(universe, read(infile));
         if (o->type == OBJ_ERR) {
             fprintf(stderr, "%s\n", o->err);
             obj_delete(o);
@@ -1487,7 +1526,7 @@ void boot(void) {
         obj_delete(o);
     }
 
-    cleanup(NULL, lib);
+    cleanup(NULL, infile);
 }
 
 FILE *stream;
@@ -1507,11 +1546,9 @@ void repl_println(obj *o) {
     obj_println(o);
 }
 
-int main(void) {
+void repl() {
 
     printf("clisp version 0.1\n\n");
-
-    boot();
 
     while (1) {
         input = readline("> ");
@@ -1537,14 +1574,27 @@ int main(void) {
         obj_delete(o);
 
 #else
-        obj *o = eval(global_env, read(stream));
+        obj *o = eval(universe, read(stream));
         repl_println(o);
         obj_delete(o);
 #endif
         cleanup(input, stream);
     }
+}
 
-    env_delete(global_env);
+int main(int argc, char **argv) {
+
+    universe = global_env();
+
+    readfile(STDLIB);
+
+    if (argc > 1)
+        readfile(argv[1]);
+    else {
+        repl();
+    }
+
+    env_delete(universe);
 
     return 0;
 }

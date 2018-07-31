@@ -5,17 +5,29 @@
     (eq? x '())))
 
 
+(def not (lambda (x)
+    (cond (x false)
+          (true true))))
+
 (def and (lambda (x y)
     (cond (x
            (cond (y true)
                  (true false)))
           (true false))))
-
 (def or (lambda (x y)
     (cond (x true)
           (true (cond (y true)
                       (true false))))))
 
+
 (def append (lambda (x y)
     (cond ((null? x) y)
            (true (cons (car x) (append (cdr x) y))))))
+
+(def fact (lambda (n)
+    (def fact-iter (lambda (prod count max)
+        (cond ((> count max) prod)
+              (true (fact-iter (* count prod)
+                               (+ count 1)
+                               max)))))
+    (fact-iter 1 1 n)))

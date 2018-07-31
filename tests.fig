@@ -1,0 +1,43 @@
+(def test (lambda (name pred)
+    (cond (pred (println "Test " name " --- PASS"))
+          (true (println "Test " name " --- FAIL")))))
+
+(def equal? (lambda (a b)
+    (cond ((null? a) (null? b))
+          ((atom? a) (and (atom? b) (eq? a b)))
+          (true (equal? (cdr a) (cdr b))))))
+
+(print newline)
+
+(test "atom?" (and (atom? "hello") (atom? 42)))
+(test "eq?" (and (eq? "test" "test") (eq? 42 42)))
+(test "null" (null? '()))
+
+(test "not" (and
+                (eq? (not true) false)
+                (eq? (not false) true)))
+
+(test "and" (and
+                (eq?      (and true true) true)
+                (and (eq? (and true false) false)
+                     (eq? (and false false) false))))
+
+(test "or" (and
+               (eq?      (or true true) true)
+               (and (eq? (or true false) true)
+                    (eq? (or false false) false))))
+
+(test "cons" (and
+             (equal? (cons 'a 'b) '(a . b))
+             (equal? (cons 'a (cons 'b 'c)) '(a b . c))))
+
+(test "list" (equal? (cons 'a (cons 'b (cons 'c nil))) '(a b c)))
+
+(test "lambda1" (equal? ((lambda (x) (cons x '(b))) 'a) '(a b)))
+(test "lambda2" (equal? ((lambda (x y) (cons x (cdr y))) 'z '(a b c)) '(z b c)))
+(test "lambda3" (equal? ((lambda (f) (f '(b c))) (lambda (x) (cons 'a x))) '(a b c)))
+
+(test "def1" (equal? ((lambda () (def x 42) x)) 42))
+
+
+(print newline)
