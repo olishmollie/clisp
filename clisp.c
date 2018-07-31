@@ -22,8 +22,9 @@
 #define CASSERT(args, cond, fmt, ...)                                          \
     {                                                                          \
         if (!(cond)) {                                                         \
+            obj *err = obj_err(fmt, ##__VA_ARGS__);                            \
             obj_delete(args);                                                  \
-            return obj_err(fmt, ##__VA_ARGS__);                                \
+            return err;                                                        \
         }                                                                      \
     }
 
@@ -1172,13 +1173,10 @@ obj *builtin_eval(env *e, obj *args) {
 
 obj *eval_def(env *e, obj *args) {
     NARGCHECK(args, "define", 2);
+
     obj *car = obj_car(args);
-    if (car->type != OBJ_SYM) {
-        obj *err = obj_err("first arg to def must be sym, got %s",
-                           obj_typename(car->type));
-        obj_delete(args);
-        return err;
-    }
+    CASSERT(args, car->type == OBJ_SYM,
+            "first arg to def must be symbol, got %s", obj_typename(car->type));
 
     obj *k = obj_popcar(&args);
     obj *v = eval(e, obj_popcar(&args));
@@ -1198,8 +1196,8 @@ obj *eval_cond(env *e, obj *args) {
         obj *arg = obj_popcar(&args);
         CASSERT(args, arg->nargs == 2,
                 "arguments to cond must themselves have two arguments");
-        obj *pred = eval(e, obj_popcar(&arg));
 
+        obj *pred = eval(e, obj_popcar(&arg));
         if (pred->type == OBJ_ERR) {
             obj_delete(arg);
             obj_delete(args);
@@ -1303,14 +1301,12 @@ obj *eval_list(env *e, obj *o) {
 
     ERRCHECK(o);
 
+    /* pop make sure first object is callable */
     obj *f = obj_car(o);
-    if (f->type != OBJ_BUILTIN && f->type != OBJ_LAMBDA) {
-        obj *err =
-            obj_err("object of type %s is not callable", obj_typename(f->type));
-        obj_delete(o);
-        return err;
-    }
+    CASSERT(o, f->type == OBJ_BUILTIN || f->type == OBJ_LAMBDA,
+            "object of type %s is not callable", obj_typename(f->type));
 
+    /* pop first object and evalutate */
     f = obj_popcar(&o);
     obj *res =
         f->type == OBJ_BUILTIN ? f->bltin->proc(e, o) : eval_call(e, f, o);
