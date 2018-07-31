@@ -1,8 +1,8 @@
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <gmp.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -132,6 +132,7 @@ void skipspaces(FILE *f) {
 }
 
 token lexnum(FILE *f) {
+    int rat = 0;
     char num[BUFSIZE];
 
     int i = 0;
@@ -144,9 +145,26 @@ token lexnum(FILE *f) {
         num[i++] = curchar;
         nextchar(f);
     }
+
+    if (curchar == '/') {
+        rat = 1;
+        num[i++] = curchar;
+        nextchar(f);
+        if (curchar == '+' || curchar == '-') {
+            num[i++] = curchar;
+            nextchar(f);
+        }
+        while (!feof(f) && isdigit(curchar)) {
+            num[i++] = curchar;
+            nextchar(f);
+        }
+    }
     num[i] = EOS;
 
     ungetc(curchar, f);
+
+    if (rat)
+        return token_new(TOK_RAT, num);
 
     return token_new(TOK_INT, num);
 }
@@ -266,7 +284,11 @@ void lex_cleanup(void) { token_delete(peektok); }
 /* objects ----------------------------------------------------------------- */
 
 typedef struct {
-    mpz_t val;
+    token_t type;
+    union {
+        mpz_t val;
+        mpq_t rat;
+    };
 } num_t;
 
 typedef struct obj obj;
@@ -400,9 +422,33 @@ void env_print(env *e) {
 
 /* interior types ---------------------------------------------------------- */
 
-num_t *mk_num(char *num) {
+void init_rat(num_t *n, char *ratstr) {
+    mpz_t numer, denom;
+    char *nstr, *dstr;
+
+    nstr = strtok(ratstr, "/");
+    dstr = strtok(NULL, "/");
+
+    mpq_init(n->rat);
+    mpz_init_set_str(mpq_numref(n->rat), nstr, 10);
+    mpz_init_set_str(mpq_denref(n->rat), dstr, 10);
+
+    mpq_canonicalize(n->rat);
+}
+
+num_t *mk_num(char *numstr, token_t ttype) {
     num_t *n = malloc(sizeof(num_t));
-    mpz_init_set_str(n->val, num, 10);
+    n->type = ttype;
+    switch (n->type) {
+    case TOK_INT:
+        mpz_init_set_str(n->val, numstr, 10);
+        break;
+    case TOK_RAT:
+        init_rat(n, numstr);
+        break;
+    default:
+        break;
+    }
     return n;
 }
 
@@ -433,10 +479,10 @@ lambda_t *mk_lambda(obj *params, obj *body) {
 
 /* obj types --------------------------------------------------------------- */
 
-obj *obj_num(char *val) {
+obj *obj_num(char *numstr, token_t ttype) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NUM;
-    o->num = mk_num(val);
+    o->num = mk_num(numstr, ttype);
     o->nargs = 0;
     return o;
 }
@@ -575,7 +621,7 @@ obj *obj_cpy(obj *o) {
     switch (o->type) {
     case OBJ_NUM:
         num = mpz_get_str(NULL, 10, o->num->val);
-        res = obj_num(num);
+        res = obj_num(num, TOK_INT);
         free(num);
         return res;
     case OBJ_SYM:
@@ -656,13 +702,29 @@ void print_rawstr(char *str) {
     printf("\"");
 }
 
+void print_num(obj *o) {
+    char *repr;
+    switch (o->num->type) {
+    case TOK_INT:
+        repr = mpz_get_str(NULL, 10, o->num->val);
+        printf("%s", repr);
+        free(repr);
+        break;
+    case TOK_RAT:
+        mpq_out_str(stdout, 10, o->num->rat);
+        break;
+    case TOK_FLOAT:
+        break;
+    default:
+        break;
+    }
+}
+
 void obj_print(obj *o) {
     char *repr;
     switch (o->type) {
     case OBJ_NUM:
-        repr = mpz_get_str(NULL, 10, o->num->val);
-        printf("%s", repr);
-        free(repr);
+        print_num(o);
         break;
     case OBJ_SYM:
         printf("%s", o->sym);
@@ -709,11 +771,25 @@ void obj_println(obj *o) {
 
 void obj_delete(obj *o);
 
+void clear_num(obj *o) {
+    switch (o->num->type) {
+    case TOK_INT:
+        mpz_clear(o->num->val);
+        break;
+    case TOK_RAT:
+        mpq_clear(o->num->rat);
+        break;
+    case TOK_FLOAT:
+    default:
+        break;
+    }
+    free(o->num);
+}
+
 void obj_delete(obj *o) {
     switch (o->type) {
     case OBJ_NUM:
-        mpz_clear(o->num->val);
-        free(o->num);
+        clear_num(o);
         break;
     case OBJ_SYM:
         free(o->sym);
@@ -829,8 +905,9 @@ obj *read(FILE *f) {
     token tok;
     switch (curtok.type) {
     case TOK_INT:
+    case TOK_RAT:
         tok = curtok;
-        obj *n = obj_num(curtok.val);
+        obj *n = obj_num(curtok.val, curtok.type);
         token_delete(tok);
         return n;
     case TOK_SYM:
@@ -873,6 +950,14 @@ obj *read(FILE *f) {
 }
 
 /* builtins ---------------------------------------------------------------- */
+
+void int_int_add(obj *x, obj *y) {
+    mpz_add(x->num->val, x->num->val, y->num->val);
+}
+
+void rat_rat_add(obj *x, obj *y) {
+    mpq_add(x->num->rat, x->num->rat, y->num->rat);
+}
 
 obj *builtin_plus(env *e, obj *args) {
     CASSERT(args, args->nargs > 0, "plus passed no arguments");
@@ -1442,7 +1527,6 @@ int main(void) {
             token_println(curtok);
             token_delete(curtok);
         }
-        lex_cleanup();
         printf("numtok = %d\n", numtok);
 
 #elif defined _DEBUG_READ
@@ -1460,7 +1544,6 @@ int main(void) {
         cleanup(input, stream);
     }
 
-    cleanup(NULL, stream);
     env_delete(global_env);
 
     return 0;
