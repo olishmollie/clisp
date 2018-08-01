@@ -22,8 +22,7 @@
 
 (def equal? (lambda (a b)
     (cond ((and (atom? a) (atom? b)) (eq? a b))
-          ((or (and (atom? a) (not (atom? b)))
-               (and (not (atom? a)) (atom? b))) false)
+          ((or (atom? a) (atom? b)) false)
           (true (equal? (cdr a) (cdr b))))))
 
 (def append (lambda (x y
