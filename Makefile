@@ -1,2 +1,2 @@
-clisp: clisp.c
-	cc clisp.c -ledit -lgmp -o bin/clisp
+fig: src/fig.c
+	cc src/fig.c -ledit -lgmp -o bin/fig
