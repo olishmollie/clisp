@@ -1427,13 +1427,12 @@ obj *eval_list(env *e, obj *o) {
         return eval_keyword(e, o);
     }
 
-    /* evaluate all children */
+    /* evaluate all children and check for errors*/
     obj *cur = o;
     for (int i = 0; i < o->nargs; i++) {
         cur->cons->car = eval(e, cur->cons->car);
         cur = obj_cdr(cur);
     }
-
     ERRCHECK(o);
 
     /* make sure first object is callable */
