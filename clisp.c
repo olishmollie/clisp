@@ -17,6 +17,12 @@
 // #define _DEBUG_LEX
 // #define _DEBUG_READ
 
+/* TODO -----------------------------------------------------------------------
+ * - lexer errors
+ * - multiline repl input
+ * - floating point/rational arithmetic
+ */
+
 /* errors ------------------------------------------------------------------ */
 
 #define CASSERT(args, cond, fmt, ...)                                          \
@@ -54,7 +60,6 @@
         }                                                                      \
     }
 
-// TODO: visit every node in error check
 #define ERRCHECK(args)                                                         \
     {                                                                          \
         obj *cur = args;                                                       \
