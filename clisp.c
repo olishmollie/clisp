@@ -668,22 +668,18 @@ obj *obj_cpy(obj *o) {
 
 void obj_print(obj *o);
 
-void print_cons(obj *o) {
-    putchar('(');
-    obj *p = o;
-    while (1) {
-        obj_print(obj_car(p));
-        obj *cdr = obj_cdr(p);
-        if (cdr->type != OBJ_CONS) {
-            if (cdr->type != OBJ_NIL) {
-                printf(" . ");
-                obj_print(cdr);
-            }
-            putchar(')');
-            break;
-        }
-        putchar(' ');
-        p = obj_cdr(p);
+void print_num(obj *o) {
+    switch (o->num->type) {
+    case TOK_INT:
+        mpz_out_str(stdout, 10, o->num->val);
+        break;
+    case TOK_RAT:
+        mpq_out_str(stdout, 10, o->num->rat);
+        break;
+    case TOK_FLOAT:
+        break;
+    default:
+        break;
     }
 }
 
@@ -711,26 +707,26 @@ void print_rawstr(char *str) {
     printf("\"");
 }
 
-void print_num(obj *o) {
-    char *repr;
-    switch (o->num->type) {
-    case TOK_INT:
-        repr = mpz_get_str(NULL, 10, o->num->val);
-        printf("%s", repr);
-        free(repr);
-        break;
-    case TOK_RAT:
-        mpq_out_str(stdout, 10, o->num->rat);
-        break;
-    case TOK_FLOAT:
-        break;
-    default:
-        break;
+void print_cons(obj *o) {
+    putchar('(');
+    obj *p = o;
+    while (1) {
+        obj_print(obj_car(p));
+        obj *cdr = obj_cdr(p);
+        if (cdr->type != OBJ_CONS) {
+            if (cdr->type != OBJ_NIL) {
+                printf(" . ");
+                obj_print(cdr);
+            }
+            putchar(')');
+            break;
+        }
+        putchar(' ');
+        p = obj_cdr(p);
     }
 }
 
 void obj_print(obj *o) {
-    char *repr;
     switch (o->type) {
     case OBJ_NUM:
         print_num(o);
