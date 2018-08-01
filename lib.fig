@@ -31,8 +31,6 @@
 
 (def fact (lambda (n)
     (def fact-iter (lambda (prod count max)
-        (println "prod = " prod)
-        (println "count = " count)
         (cond ((> count max) prod)
               (true (fact-iter (* count prod)
                                (+ count 1)
