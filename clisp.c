@@ -19,7 +19,6 @@
 
 /* errors ------------------------------------------------------------------ */
 
-// TODO: why does adding __va_args__ to this segfault?
 #define CASSERT(args, cond, fmt, ...)                                          \
     {                                                                          \
         if (!(cond)) {                                                         \
@@ -1159,11 +1158,6 @@ obj *builtin_eq(env *e, obj *args) {
         break;
     case OBJ_BOOL:
         res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
-        break;
-    case OBJ_FUN:
-        // TODO: test eq with null name
-        res = strcmp(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
-                                                      : obj_bool(FALSE);
         break;
     case OBJ_NIL:
         res = obj_bool(TRUE);
