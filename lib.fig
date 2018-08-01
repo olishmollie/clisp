@@ -2,8 +2,8 @@
 
 
 (def null? (lambda (x)
-    (eq? x '())))
-
+    (cond ((atom? x) (eq? x '()))
+          (true false))))
 
 (def not (lambda (x)
     (cond (x false)
@@ -14,18 +14,26 @@
            (cond (y true)
                  (true false)))
           (true false))))
+
 (def or (lambda (x y)
     (cond (x true)
           (true (cond (y true)
                       (true false))))))
 
+(def equal? (lambda (a b)
+    (cond ((and (atom? a) (atom? b)) (eq? a b))
+          ((or (and (atom? a) (not (atom? b)))
+               (and (not (atom? a)) (atom? b))) false)
+          (true (equal? (cdr a) (cdr b))))))
 
-(def append (lambda (x y)
+(def append (lambda (x y
     (cond ((null? x) y)
-           (true (cons (car x) (append (cdr x) y))))))
+           (true (cons (car x) (append (cdr x) y)))))))
 
 (def fact (lambda (n)
     (def fact-iter (lambda (prod count max)
+        (println "prod = " prod)
+        (println "count = " count)
         (cond ((> count max) prod)
               (true (fact-iter (* count prod)
                                (+ count 1)

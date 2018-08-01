@@ -304,13 +304,10 @@ typedef obj *(*builtin)(env *, obj *);
 typedef struct {
     char *name;
     builtin proc;
-} builtin_t;
-
-typedef struct {
     env *e;
     obj *params;
     obj *body;
-} lambda_t;
+} fun_t;
 
 typedef enum {
     OBJ_NUM,
@@ -318,8 +315,7 @@ typedef enum {
     OBJ_STR,
     OBJ_CONS,
     OBJ_BOOL,
-    OBJ_BUILTIN,
-    OBJ_LAMBDA,
+    OBJ_FUN,
     OBJ_KEYWORD,
     OBJ_NIL,
     OBJ_ERR
@@ -336,8 +332,7 @@ struct obj {
         char *str;
         cons_t *cons;
         bool_t bool;
-        builtin_t *bltin;
-        lambda_t *lambda;
+        fun_t *fun;
         char *keyword;
         char *err;
     };
@@ -396,6 +391,13 @@ void env_insert(env *e, obj *k, obj *v) {
     e->vals[e->count - 1] = obj_cpy(v);
     e->syms[e->count - 1] = malloc(sizeof(char) * (strlen(k->sym) + 1));
     strcpy(e->syms[e->count - 1], k->sym);
+
+    /* copy name into lambda */
+    if (v->type == OBJ_FUN && !v->fun->proc && !v->fun->name) {
+        e->vals[e->count - 1]->fun->name =
+            malloc(sizeof(char) * (strlen(k->sym) + 1));
+        strcpy(e->vals[e->count - 1]->fun->name, k->sym);
+    }
 }
 
 void env_delete(env *e) {
@@ -462,20 +464,22 @@ cons_t *mk_cons(obj *car, obj *cdr) {
 
 obj *obj_nil(void);
 
-builtin_t *mk_builtin(char *name, builtin bltin) {
-    builtin_t *b = malloc(sizeof(builtin_t));
-    b->proc = bltin;
-    b->name = malloc(sizeof(char) * (strlen(name) + 1));
-    strcpy(b->name, name);
-    return b;
-}
+fun_t *mk_fun(char *name, builtin bltin, obj *params, obj *body) {
+    fun_t *fun = malloc(sizeof(fun_t));
+    fun->proc = bltin;
+    fun->params = params;
+    fun->body = body;
 
-lambda_t *mk_lambda(obj *params, obj *body) {
-    lambda_t *l = malloc(sizeof(lambda_t));
-    l->e = env_new();
-    l->params = params;
-    l->body = body;
-    return l;
+    if (!fun->proc)
+        fun->e = env_new();
+
+    if (name) {
+        fun->name = malloc(sizeof(char) * (strlen(name) + 1));
+        strcpy(fun->name, name);
+    } else {
+        fun->name = NULL;
+    }
+    return fun;
 }
 
 /* obj types --------------------------------------------------------------- */
@@ -516,16 +520,16 @@ obj *obj_cons(obj *car, obj *cdr) {
 
 obj *obj_builtin(char *name, builtin proc) {
     obj *o = malloc(sizeof(obj));
-    o->type = OBJ_BUILTIN;
-    o->bltin = mk_builtin(name, proc);
+    o->type = OBJ_FUN;
+    o->fun = mk_fun(name, proc, NULL, NULL);
     o->nargs = 0;
     return o;
 }
 
 obj *obj_lambda(obj *params, obj *body) {
     obj *o = malloc(sizeof(obj));
-    o->type = OBJ_LAMBDA;
-    o->lambda = mk_lambda(params, body);
+    o->type = OBJ_FUN;
+    o->fun = mk_fun(NULL, NULL, params, body);
     o->nargs = 0;
     return o;
 }
@@ -568,7 +572,7 @@ obj *obj_err(char *fmt, ...) {
     return o;
 }
 
-int obj_isatom(obj *o) { return o->type != OBJ_CONS; }
+int obj_isatom(obj *o) { return o->type != OBJ_CONS && o->type != OBJ_FUN; }
 
 char *obj_typename(obj_t type) {
     switch (type) {
@@ -582,10 +586,8 @@ char *obj_typename(obj_t type) {
         return "cons";
     case OBJ_BOOL:
         return "bool";
-    case OBJ_BUILTIN:
+    case OBJ_FUN:
         return "function";
-    case OBJ_LAMBDA:
-        return "lambda";
     case OBJ_KEYWORD:
         return "keyword";
     case OBJ_NIL:
@@ -634,11 +636,17 @@ obj *obj_cpy(obj *o) {
     case OBJ_CONS:
         res = obj_cons(obj_cpy(o->cons->car), obj_cpy(o->cons->cdr));
         break;
-    case OBJ_BUILTIN:
-        res = obj_builtin(o->bltin->name, o->bltin->proc);
-        break;
-    case OBJ_LAMBDA:
-        res = obj_lambda(obj_cpy(o->lambda->params), obj_cpy(o->lambda->body));
+    case OBJ_FUN:
+        if (o->fun->proc)
+            res = obj_builtin(o->fun->name, o->fun->proc);
+        else {
+            res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
+            if (o->fun->name) {
+                res->fun->name =
+                    malloc(sizeof(char) * (strlen(o->fun->name) + 1));
+                strcpy(res->fun->name, o->fun->name);
+            }
+        }
         break;
     case OBJ_ERR:
         res = obj_err(o->err);
@@ -739,15 +747,12 @@ void obj_print(obj *o) {
     case OBJ_BOOL:
         printf("%s", o->bool == TRUE ? "true" : "false");
         break;
-    case OBJ_BUILTIN:
-        printf("<function '%s'>", o->bltin->name);
-        break;
-    case OBJ_LAMBDA:
-        printf("(lambda ");
-        obj_print(o->lambda->params);
-        printf(" ");
-        obj_print(o->lambda->body);
-        printf(")");
+    case OBJ_FUN:
+        if (o->fun->name)
+            printf("<function '%s'>", o->fun->name);
+        else {
+            printf("<function>");
+        }
         break;
     case OBJ_ERR:
         printf("Error: %s", o->err);
@@ -806,15 +811,13 @@ void obj_delete(obj *o) {
     case OBJ_ERR:
         free(o->err);
         break;
-    case OBJ_BUILTIN:
-        free(o->bltin->name);
-        free(o->bltin);
-        break;
-    case OBJ_LAMBDA:
-        env_delete(o->lambda->e);
-        obj_delete(o->lambda->body);
-        obj_delete(o->lambda->params);
-        free(o->lambda);
+    case OBJ_FUN:
+        free(o->fun->name);
+        if (o->fun->params)
+            obj_delete(o->fun->params);
+        if (o->fun->body)
+            obj_delete(o->fun->body);
+        free(o->fun);
         break;
     case OBJ_KEYWORD:
         free(o->keyword);
@@ -1128,9 +1131,17 @@ obj *builtin_lte(env *e, obj *args) {
 
 obj *builtin_eq(env *e, obj *args) {
     NARGCHECK(args, "eq", 2);
+
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
-    CASSERT(args, obj_isatom(args), "parameters passed to eq must be atomic");
+
+    if (!obj_isatom(x) || !obj_isatom(y)) {
+        obj *err = obj_err("arguments passed to eq? must be atomic");
+        obj_delete(x);
+        obj_delete(y);
+        obj_delete(args);
+        return err;
+    }
 
     if (x->type != y->type) {
         obj_delete(x);
@@ -1153,9 +1164,10 @@ obj *builtin_eq(env *e, obj *args) {
     case OBJ_BOOL:
         res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
         break;
-    case OBJ_BUILTIN:
-        res = strcmp(x->bltin->name, y->bltin->name) == 0 ? obj_bool(TRUE)
-                                                          : obj_bool(FALSE);
+    case OBJ_FUN:
+        // TODO: test eq with null name
+        res = strcmp(x->fun->name, y->fun->name) == 0 ? obj_bool(TRUE)
+                                                      : obj_bool(FALSE);
         break;
     case OBJ_NIL:
         res = obj_bool(TRUE);
@@ -1310,10 +1322,12 @@ obj *eval_cond(env *e, obj *args) {
 
     while (args->nargs > 0) {
         obj *arg = obj_popcar(&args);
+
         CASSERT(args, arg->nargs == 2,
                 "arguments to cond must themselves have two arguments");
 
         obj *pred = eval(e, obj_popcar(&arg));
+
         if (pred->type == OBJ_ERR) {
             obj_delete(arg);
             obj_delete(args);
@@ -1361,7 +1375,9 @@ obj *eval_lambda(env *e, obj *args) {
         cur = obj_cdr(cur);
     }
 
-    return obj_lambda(params, args);
+    obj *res = obj_lambda(params, args);
+
+    return res;
 }
 
 obj *eval_keyword(env *e, obj *o) {
@@ -1382,30 +1398,36 @@ obj *eval_keyword(env *e, obj *o) {
 }
 
 obj *eval_call(env *e, obj *f, obj *args) {
-    CASSERT(args, f->lambda->params->nargs == args->nargs,
-            "incorrect number of arguments. got %d, expected %d", args->nargs,
-            f->lambda->params->nargs);
 
-    f->lambda->e->parent = e;
-    while (f->lambda->params->nargs > 0) {
-        obj *param = obj_popcar(&f->lambda->params);
+    /* check builtin */
+    if (f->fun->proc)
+        return f->fun->proc(e, args);
+
+    CASSERT(args, f->fun->params->nargs == args->nargs,
+            "incorrect number of arguments. got %d, expected %d", args->nargs,
+            f->fun->params->nargs);
+
+    /* bind args to params */
+    f->fun->e->parent = e;
+    while (f->fun->params->nargs > 0) {
+        obj *param = obj_popcar(&f->fun->params);
         obj *arg = obj_popcar(&args);
-        env_insert(f->lambda->e, param, arg);
+        env_insert(f->fun->e, param, arg);
         obj_delete(param);
         obj_delete(arg);
     }
     obj_delete(args);
 
     /* evaluate each expression in lambda body but one */
-    while (f->lambda->body->nargs > 1) {
-        obj *expr = obj_popcar(&f->lambda->body);
-        obj *res = eval(f->lambda->e, expr);
+    while (f->fun->body->nargs > 1) {
+        obj *expr = obj_popcar(&f->fun->body);
+        obj *res = eval(f->fun->e, expr);
         obj_delete(res);
     }
 
-    /* last expression is return value */
-    obj *expr = obj_popcar(&f->lambda->body);
-    obj *res = eval(f->lambda->e, expr);
+    /* last expression evaluated is return value */
+    obj *expr = obj_popcar(&f->fun->body);
+    obj *res = eval(f->fun->e, expr);
 
     return res;
 }
@@ -1425,15 +1447,14 @@ obj *eval_list(env *e, obj *o) {
 
     ERRCHECK(o);
 
-    /* pop make sure first object is callable */
+    /* make sure first object is callable */
     obj *f = obj_car(o);
-    CASSERT(o, f->type == OBJ_BUILTIN || f->type == OBJ_LAMBDA,
-            "object of type %s is not callable", obj_typename(f->type));
+    CASSERT(o, f->type == OBJ_FUN, "object of type %s is not callable",
+            obj_typename(f->type));
 
-    /* pop first object and evalutate */
+    /* pop first object and evaluate */
     f = obj_popcar(&o);
-    obj *res =
-        f->type == OBJ_BUILTIN ? f->bltin->proc(e, o) : eval_call(e, f, o);
+    obj *res = eval_call(e, f, o);
 
     obj_delete(f);
 
@@ -1519,7 +1540,7 @@ void readfile(char *fname) {
     while (!feof(infile)) {
         obj *o = eval(universe, read(infile));
         if (o->type == OBJ_ERR) {
-            fprintf(stderr, "%s\n", o->err);
+            obj_println(o);
             obj_delete(o);
             break;
         }
