@@ -1393,9 +1393,8 @@ obj *eval_call(env *e, obj *f, obj *args) {
     if (f->fun->proc)
         return f->fun->proc(e, args);
 
-    CASSERT(args, f->fun->params->nargs == args->nargs,
-            "incorrect number of arguments. got %d, expected %d", args->nargs,
-            f->fun->params->nargs);
+    NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
+              f->fun->params->nargs);
 
     /* bind args to params */
     f->fun->e->parent = e;
