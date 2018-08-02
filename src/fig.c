@@ -585,11 +585,11 @@ obj *obj_lambda(obj *params, obj *body) {
     return o;
 }
 
-obj *obj_const(char *c) {
+obj *obj_const(char *constant) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_CONST;
 
-    o->constant = mk_const(c);
+    o->constant = mk_const(constant);
     if (o->constant->type == CONST_ERR) {
         obj *err = obj_err(o->constant->err);
         free(o->constant->err);
@@ -599,6 +599,18 @@ obj *obj_const(char *c) {
 
     o->nargs = 0;
     return o;
+}
+
+obj *obj_char(char c) {
+    char *repr = malloc(sizeof(char) * 4);
+    sprintf(repr, "#\\%c", c);
+    obj *constant = obj_const(repr);
+    free(repr);
+    return constant;
+}
+
+obj *obj_bool(bool_t type) {
+    return type == BOOL_T ? obj_const("#t") : obj_const("#f");
 }
 
 int obj_isfalse(obj *c) {
@@ -1147,7 +1159,7 @@ obj *builtin_gt(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res > 0 ? obj_const("#t") : obj_const("#f");
+    return res > 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
 }
 
 obj *builtin_gte(env *e, obj *args) {
@@ -1164,7 +1176,7 @@ obj *builtin_gte(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res >= 0 ? obj_const("#t") : obj_const("#f");
+    return res >= 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
 }
 
 obj *builtin_lt(env *e, obj *args) {
@@ -1181,7 +1193,7 @@ obj *builtin_lt(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res < 0 ? obj_const("#t") : obj_const("#f");
+    return res < 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
 }
 
 obj *builtin_lte(env *e, obj *args) {
@@ -1198,7 +1210,7 @@ obj *builtin_lte(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res <= 0 ? obj_const("#t") : obj_const("#f");
+    return res <= 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
 }
 
 obj *builtin_eq(env *e, obj *args) {
@@ -1219,31 +1231,31 @@ obj *builtin_eq(env *e, obj *args) {
         obj_delete(x);
         obj_delete(y);
         obj_delete(args);
-        return obj_const("#f");
+        return obj_bool(BOOL_F);
     }
 
     obj *res;
     switch (x->type) {
     case OBJ_NUM:
-        res = cmp_nums(x, y) == 0 ? obj_const("#t") : obj_const("#f");
+        res = cmp_nums(x, y) == 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
         break;
     case OBJ_SYM:
-        res = strcmp(x->sym, y->sym) == 0 ? obj_const("#t") : obj_const("#f");
+        res = strcmp(x->sym, y->sym) == 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
         break;
     case OBJ_STR:
-        res = strcmp(x->str, y->str) == 0 ? obj_const("#t") : obj_const("#f");
+        res = strcmp(x->str, y->str) == 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
         break;
     case OBJ_CONST:
         res = strcmp(x->constant->repr, y->constant->repr) == 0
-                  ? obj_const("#t")
-                  : obj_const("#f");
+                  ? obj_bool(BOOL_T)
+                  : obj_bool(BOOL_F);
         break;
     case OBJ_NIL:
-        res = obj_const("#t");
+        res = obj_bool(BOOL_T);
         break;
     case OBJ_KEYWORD:
-        res = strcmp(x->keyword, y->keyword) == 0 ? obj_const("#t")
-                                                  : obj_const("#f");
+        res = strcmp(x->keyword, y->keyword) == 0 ? obj_bool(BOOL_T)
+                                                  : obj_bool(BOOL_F);
         break;
     default:
         res = obj_err("parameter passed to eq must be atomic, got %s",
@@ -1313,6 +1325,62 @@ obj *builtin_atom(env *e, obj *args) {
     obj_delete(args);
 
     return res;
+}
+
+obj *builtin_strtolist(env *e, obj *args) {
+    NARGCHECK(args, "string->list", 1);
+    TARGCHECK(args, "string->list", OBJ_STR);
+
+    obj *arg = obj_popcar(&args);
+
+    int len = strlen(arg->str);
+    obj *list = obj_nil();
+    for (int i = 0; i < len; i++) {
+        if (list->nargs) {
+            obj *cur = list;
+            for (int i = 0; i < list->nargs - 1; i++) {
+                cur = obj_cdr(cur);
+            }
+            cur->cons->cdr = obj_cons(obj_char(arg->str[i]), cur->cons->cdr);
+        } else {
+            list = obj_cons(obj_char(arg->str[i]), list);
+        }
+        list->nargs++;
+    }
+
+    obj_delete(arg);
+    obj_delete(args);
+
+    return list;
+}
+
+obj *builtin_listtostr(env *e, obj *args) {
+    NARGCHECK(args, "list->string", 1);
+    TARGCHECK(args, "list->string", OBJ_CONS);
+
+    obj *arg = obj_popcar(&args);
+
+    char *str = malloc(sizeof(char) * (arg->nargs + 1));
+
+    /* every obj in list must be char type */
+    obj *cur = arg;
+    for (int i = 0; i < arg->nargs; i++) {
+        obj *c = obj_car(cur);
+        if (c->type != OBJ_CONST || c->constant->type != CONST_CHAR) {
+            obj *err = obj_err("list->string cannot take non character type %s",
+                               obj_typename(c->type));
+            obj_delete(arg);
+            obj_delete(args);
+            return err;
+        }
+        str[i] = c->constant->c;
+        cur = obj_cdr(cur);
+    }
+
+    obj_delete(arg);
+    obj_delete(args);
+
+    return obj_str(str);
 }
 
 obj *builtin_type(env *e, obj *args) {
@@ -1568,6 +1636,9 @@ env *global_env(void) {
     register_builtin(e, builtin_eq, "eq?");
     register_builtin(e, builtin_atom, "atom?");
     register_builtin(e, builtin_eval, "eval");
+
+    register_builtin(e, builtin_strtolist, "string->list");
+    register_builtin(e, builtin_listtostr, "list->string");
 
     register_builtin(e, builtin_type, "type");
     register_builtin(e, builtin_print, "print");
