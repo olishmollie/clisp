@@ -1220,7 +1220,7 @@ obj *builtin_eq(env *e, obj *args) {
     obj *y = obj_popcar(&args);
 
     if (!obj_isatom(x) || !obj_isatom(y)) {
-        obj *err = obj_err("arguments passed to eq? must be atomic");
+        obj *err = obj_err("arguments passed to eq must be atomic");
         obj_delete(x);
         obj_delete(y);
         obj_delete(args);
@@ -1319,7 +1319,7 @@ obj *builtin_atom(env *e, obj *args) {
     NARGCHECK(args, "atom", 1);
     obj *x = obj_popcar(&args);
 
-    obj *res = obj_isatom(x) ? obj_const("#t") : obj_const("#f");
+    obj *res = obj_isatom(x) ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
 
     obj_delete(x);
     obj_delete(args);
@@ -1633,8 +1633,8 @@ env *global_env(void) {
     register_builtin(e, builtin_car, "car");
     register_builtin(e, builtin_cdr, "cdr");
     register_builtin(e, builtin_list, "list");
-    register_builtin(e, builtin_eq, "eq?");
-    register_builtin(e, builtin_atom, "atom?");
+    register_builtin(e, builtin_eq, "eq");
+    register_builtin(e, builtin_atom, "atom");
     register_builtin(e, builtin_eval, "eval");
 
     register_builtin(e, builtin_strtolist, "string->list");

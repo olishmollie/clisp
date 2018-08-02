@@ -8,21 +8,21 @@
 (test ''a (quote a))
 (test ''(a b c) (quote (a b c)))
 
-(test '(atom? nil) #t)
-(test '(atom? 'sym) #t)
-(test '(atom? "string") #t)
-(test '(atom? 3/4) #t)
-(test '(atom? 42) #t)
-(test '(atom? (atom? 'a)) #t)
-(test '(atom? +) #f)
-(test '(atom? '(atom? 'a)) #f)
-(test '(atom? (lambda (x) x)) #f)
-(test '(atom? '(a b c)) #f)
+(test '(atom nil) #t)
+(test '(atom 'sym) #t)
+(test '(atom "string") #t)
+(test '(atom 3/4) #t)
+(test '(atom 42) #t)
+(test '(atom (atom 'a)) #t)
+(test '(atom +) #f)
+(test '(atom '(atom 'a)) #f)
+(test '(atom (lambda (x) x)) #f)
+(test '(atom '(a b c)) #f)
 
-(test '(eq? 'a 'a) #t)
-(test '(eq? 42 42) #t)
-(test '(eq? "string" "string") #t)
-(test '(eq? 'a 'b) #f)
+(test '(eq 'a 'a) #t)
+(test '(eq 42 42) #t)
+(test '(eq "string" "string") #t)
+(test '(eq 'a 'b) #f)
 
 (test '(car '(a . b)) 'a)
 (test '(car '(a b c)) 'a)
@@ -30,12 +30,15 @@
 (test '(cdr '(a . b)) 'b)
 (test '(cdr '(a b c)) '(b c))
 
-
 (test '((lambda (x) (cons x '(b))) 'a) '(a b))
 (test '((lambda (x y) (cons x (cdr y))) 'z '(a b c)) '(z b c))
 (test '((lambda (f) (f '(b c))) (lambda (x) (cons 'a x))) '(a b c))
-
 (test '((lambda () (def x 42) x)) 42)
+
+(test '(type '(a b c d e f)) "cons")
+(test '(type "string") "string")
+(test '(type 42) "number")
+(test '(type #t) "constant")
 
 (test '(string->list "hello") '(#\h #\e #\l #\l #\o))
 (test '(list->string '(#\h #\e #\l #\l #\o)) "hello")

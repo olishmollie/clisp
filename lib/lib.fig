@@ -1,6 +1,6 @@
 (def newline "\n")
 (def null? (lambda (x)
-    (cond ((atom? x) (eq? x '()))
+    (cond ((atom x) (eq x '()))
           (#t #f))))
 
 (def not (lambda (x)
@@ -23,8 +23,8 @@
 (def decr (lambda (x)
     (- x 1)))
 (def equal? (lambda (a b)
-    (cond ((and (atom? a) (atom? b)) (eq? a b))
-          ((or (atom? a) (atom? b)) #f)
+    (cond ((and (atom a) (atom b)) (eq a b))
+          ((or (atom a) (atom b)) #f)
           (#t (equal? (cdr a) (cdr b))))))
 (def append (lambda (x y
     (cond ((null? x) y)
