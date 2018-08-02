@@ -520,6 +520,16 @@ const_t *mk_const(char *c) {
     } else if (strcmp("#f", constant->repr) == 0) {
         constant->type = CONST_BOOL;
         constant->bool = BOOL_F;
+    } else if (strcmp(constant->repr, "#\\space") == 0) {
+        constant->type = CONST_CHAR;
+        constant->c = ' ';
+    } else if (strcmp(constant->repr, "#\\newline") == 0 ||
+               strcmp(constant->repr, "#\\linefeed") == 0) {
+        constant->type = CONST_CHAR;
+        constant->c = '\n';
+    } else if (strcmp(constant->repr, "#\\tab") == 0) {
+        constant->type = CONST_CHAR;
+        constant->c = '\t';
     } else if (constant->repr[1] == '\\' && strlen(constant->repr) == 3) {
         constant->type = CONST_CHAR;
         constant->c = constant->repr[2];
@@ -602,11 +612,22 @@ obj *obj_const(char *constant) {
 }
 
 obj *obj_char(char c) {
-    char *repr = malloc(sizeof(char) * 4);
-    sprintf(repr, "#\\%c", c);
-    obj *constant = obj_const(repr);
-    free(repr);
-    return constant;
+    char *repr = 0;
+    switch (c) {
+    case '\n':
+    case '\f':
+        return obj_const("#\\newline");
+    case ' ':
+        return obj_const("#\\space");
+    case '\t':
+        return obj_const("#\\tab");
+    default:
+        repr = malloc(sizeof(char) * 4);
+        sprintf(repr, "#\\%c", c);
+        obj *constant = obj_const(repr);
+        free(repr);
+        return constant;
+    }
 }
 
 obj *obj_bool(bool_t type) {
