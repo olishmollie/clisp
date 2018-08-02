@@ -42,3 +42,14 @@
 
 (test '(string->list "hello") '(#\h #\e #\l #\l #\o))
 (test '(list->string '(#\h #\e #\l #\l #\o)) "hello")
+
+(test '(and #t #t) #t)
+(test '(and #t #f) #f)
+(test '(and #f #f) #f)
+
+(test '(or #t #t) #t)
+(test '(or #t #f) #t)
+(test '(or #f #f) #f)
+
+(test '(not #t) #f)
+(test '(not #f) #t)

@@ -4,7 +4,7 @@
           (#t #f))))
 
 (def not (lambda (x)
-    (cond (x #t)
+    (cond (x #f)
           (#t #t))))
 (def and (lambda (x y)
     (cond (x
