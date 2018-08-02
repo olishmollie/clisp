@@ -17,6 +17,8 @@
 // #define _DEBUG_LEX
 // #define _DEBUG_READ
 
+typedef struct obj obj;
+
 /* TODO -----------------------------------------------------------------------
  * - lexer errors
  * - multiline repl input
@@ -85,8 +87,7 @@ typedef enum {
     TOK_RAT,
     TOK_STR,
     TOK_SYM,
-    TOK_TRUE,
-    TOK_FALSE,
+    TOK_CONST,
     TOK_NIL,
     TOK_LPAREN,
     TOK_RPAREN,
@@ -197,10 +198,6 @@ token lexsymbol(FILE *f) {
 
     if (strcmp(sym, "nil") == 0)
         return token_new(TOK_NIL, sym);
-    if (strcmp(sym, "true") == 0)
-        return token_new(TOK_TRUE, sym);
-    if (strcmp(sym, "false") == 0)
-        return token_new(TOK_FALSE, sym);
     if (strcmp(sym, "def") == 0)
         return token_new(TOK_DEF, sym);
     if (strcmp(sym, "quote") == 0)
@@ -255,10 +252,23 @@ token lexstring(FILE *f) {
     return token_new(TOK_STR, sym);
 }
 
+token lexconst(FILE *f) {
+    char sym[BUFSIZE];
+    int i = 0;
+    while (!feof(f) && !isspace(curchar) && curchar != ')') {
+        sym[i++] = curchar;
+        nextchar(f);
+    }
+    sym[i] = EOS;
+
+    ungetc(curchar, f);
+
+    return token_new(TOK_CONST, sym);
+}
+
 token lex(FILE *f) {
 
-    curchar = fgetc(f);
-
+    nextchar(f);
     skipspaces(f);
 
     if (feof(f))
@@ -273,8 +283,11 @@ token lex(FILE *f) {
         return token_new(TOK_DOT, ".");
     } else if (curchar == '\'') {
         return token_new(TOK_TICK, "'");
-    } else if (curchar == '"')
+    } else if (curchar == '"') {
         return lexstring(f);
+    } else if (curchar == '#') {
+        return lexconst(f);
+    }
 
     return lexsymbol(f);
 }
@@ -296,8 +309,6 @@ typedef struct {
     };
 } num_t;
 
-typedef struct obj obj;
-
 typedef struct {
     obj *car;
     obj *cdr;
@@ -305,6 +316,7 @@ typedef struct {
 
 typedef struct env env;
 typedef obj *(*builtin)(env *, obj *);
+
 typedef struct {
     char *name;
     builtin proc;
@@ -313,19 +325,30 @@ typedef struct {
     obj *body;
 } fun_t;
 
+typedef enum { CONST_CHAR, CONST_BOOL, CONST_ERR } const_type;
+typedef enum { BOOL_T, BOOL_F } bool_t;
+
+typedef struct {
+    const_type type;
+    char *repr;
+    union {
+        char c;
+        bool_t bool;
+        char *err;
+    };
+} const_t;
+
 typedef enum {
     OBJ_NUM,
     OBJ_SYM,
     OBJ_STR,
     OBJ_CONS,
-    OBJ_BOOL,
+    OBJ_CONST,
     OBJ_FUN,
     OBJ_KEYWORD,
     OBJ_NIL,
     OBJ_ERR
 } obj_t;
-
-typedef enum { TRUE, FALSE } bool_t;
 
 struct obj {
     obj_t type;
@@ -335,19 +358,19 @@ struct obj {
         char *sym;
         char *str;
         cons_t *cons;
-        bool_t bool;
+        const_t *constant;
         fun_t *fun;
         char *keyword;
         char *err;
     };
 };
 
-typedef struct env {
+struct env {
     struct env *parent;
     int count;
     char **syms;
     obj **vals;
-} env;
+};
 
 env *env_new(void) {
     env *e = malloc(sizeof(env));
@@ -430,7 +453,6 @@ void env_print(env *e) {
 /* interior types ---------------------------------------------------------- */
 
 void init_rat(num_t *n, char *ratstr) {
-    mpz_t numer, denom;
     char *nstr, *dstr;
 
     nstr = strtok(ratstr, "/");
@@ -486,6 +508,31 @@ fun_t *mk_fun(char *name, builtin bltin, obj *params, obj *body) {
     return fun;
 }
 
+const_t *mk_const(char *c) {
+    const_t *constant = malloc(sizeof(const_t));
+
+    constant->repr = malloc(sizeof(char) * (strlen(c) + 1));
+    strcpy(constant->repr, c);
+
+    if (strcmp("#t", constant->repr) == 0) {
+        constant->type = CONST_BOOL;
+        constant->bool = BOOL_T;
+    } else if (strcmp("#f", constant->repr) == 0) {
+        constant->type = CONST_BOOL;
+        constant->bool = BOOL_F;
+    } else if (constant->repr[1] == '\\' && strlen(constant->repr) == 3) {
+        constant->type = CONST_CHAR;
+        constant->c = constant->repr[2];
+    } else {
+        constant->type = CONST_ERR;
+        /* add length of "invalid constant", 16 */
+        constant->err = malloc(sizeof(char) * (strlen(c) + 1 + 17));
+        snprintf(constant->err, 17, "invalid constant %s", c);
+    }
+
+    return constant;
+}
+
 /* obj types --------------------------------------------------------------- */
 
 obj *obj_num(char *numstr, token_t ttype) {
@@ -538,13 +585,28 @@ obj *obj_lambda(obj *params, obj *body) {
     return o;
 }
 
-obj *obj_bool(bool_t b) {
+obj *obj_const(char *c) {
     obj *o = malloc(sizeof(obj));
-    o->type = OBJ_BOOL;
-    o->bool = b;
+    o->type = OBJ_CONST;
+
+    o->constant = mk_const(c);
+    if (o->constant->type == CONST_ERR) {
+        obj *err = obj_err(o->constant->err);
+        free(o->constant->err);
+        obj_delete(o);
+        return err;
+    }
+
     o->nargs = 0;
     return o;
 }
+
+int obj_isfalse(obj *c) {
+    return c->type == OBJ_CONST && c->constant->type == CONST_BOOL &&
+           c->constant->bool == BOOL_F;
+}
+
+int obj_istrue(obj *c) { return !obj_isfalse(c); }
 
 obj *obj_keyword(char *name) {
     obj *o = malloc(sizeof(obj));
@@ -588,8 +650,8 @@ char *obj_typename(obj_t type) {
         return "string";
     case OBJ_CONS:
         return "cons";
-    case OBJ_BOOL:
-        return "bool";
+    case OBJ_CONST:
+        return "constant";
     case OBJ_FUN:
         return "function";
     case OBJ_KEYWORD:
@@ -621,6 +683,14 @@ obj *obj_popcar(obj **o) {
 }
 
 /* copying ----------------------------------------------------------------- */
+
+obj *cpy_const(obj *o) {
+    char *repr = malloc(sizeof(char) * (strlen(o->constant->repr) + 1));
+    strcpy(repr, o->constant->repr);
+    obj *c = obj_const(repr);
+    free(repr);
+    return c;
+}
 
 obj *obj_cpy(obj *o) {
     obj *res;
@@ -661,8 +731,8 @@ obj *obj_cpy(obj *o) {
     case OBJ_KEYWORD:
         res = obj_keyword(o->keyword);
         break;
-    case OBJ_BOOL:
-        res = obj_bool(o->bool);
+    case OBJ_CONST:
+        res = cpy_const(o);
     }
     res->nargs = o->nargs;
     return res;
@@ -744,8 +814,8 @@ void obj_print(obj *o) {
     case OBJ_CONS:
         print_cons(o);
         break;
-    case OBJ_BOOL:
-        printf("%s", o->bool == TRUE ? "true" : "false");
+    case OBJ_CONST:
+        printf("%s", o->constant->repr);
         break;
     case OBJ_FUN:
         if (o->fun->name)
@@ -822,14 +892,17 @@ void obj_delete(obj *o) {
     case OBJ_KEYWORD:
         free(o->keyword);
         break;
-    case OBJ_BOOL:
+    case OBJ_CONST:
+        free(o->constant->repr);
+        free(o->constant);
+        break;
     case OBJ_NIL:
         break;
     }
     free(o);
 }
 
-/* PARSING ------------------------------------------------------------------ */
+/* parsing ------------------------------------------------------------------ */
 
 token nexttok(FILE *f) {
     curtok = peektok;
@@ -939,12 +1012,11 @@ obj *read(FILE *f) {
     case TOK_LPAREN:
         token_delete(curtok);
         return read_list(f);
-    case TOK_TRUE:
-    case TOK_FALSE:
+    case TOK_CONST:
         tok = curtok;
-        obj *b = obj_bool(strcmp(tok.val, "true") == 0 ? TRUE : FALSE);
+        obj *c = obj_const(tok.val);
         token_delete(tok);
-        return b;
+        return c;
     case TOK_TICK:
         token_delete(curtok);
         return expand_quote(f);
@@ -1075,7 +1147,7 @@ obj *builtin_gt(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res > 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+    return res > 0 ? obj_const("#t") : obj_const("#f");
 }
 
 obj *builtin_gte(env *e, obj *args) {
@@ -1092,7 +1164,7 @@ obj *builtin_gte(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res >= 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+    return res >= 0 ? obj_const("#t") : obj_const("#f");
 }
 
 obj *builtin_lt(env *e, obj *args) {
@@ -1109,7 +1181,7 @@ obj *builtin_lt(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res < 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+    return res < 0 ? obj_const("#t") : obj_const("#f");
 }
 
 obj *builtin_lte(env *e, obj *args) {
@@ -1126,7 +1198,7 @@ obj *builtin_lte(env *e, obj *args) {
     obj_delete(y);
     obj_delete(args);
 
-    return res <= 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+    return res <= 0 ? obj_const("#t") : obj_const("#f");
 }
 
 obj *builtin_eq(env *e, obj *args) {
@@ -1147,29 +1219,31 @@ obj *builtin_eq(env *e, obj *args) {
         obj_delete(x);
         obj_delete(y);
         obj_delete(args);
-        return obj_bool(FALSE);
+        return obj_const("#f");
     }
 
     obj *res;
     switch (x->type) {
     case OBJ_NUM:
-        res = cmp_nums(x, y) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        res = cmp_nums(x, y) == 0 ? obj_const("#t") : obj_const("#f");
         break;
     case OBJ_SYM:
-        res = strcmp(x->sym, y->sym) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        res = strcmp(x->sym, y->sym) == 0 ? obj_const("#t") : obj_const("#f");
         break;
     case OBJ_STR:
-        res = strcmp(x->str, y->str) == 0 ? obj_bool(TRUE) : obj_bool(FALSE);
+        res = strcmp(x->str, y->str) == 0 ? obj_const("#t") : obj_const("#f");
         break;
-    case OBJ_BOOL:
-        res = x->bool == y->bool ? obj_bool(TRUE) : obj_bool(FALSE);
+    case OBJ_CONST:
+        res = strcmp(x->constant->repr, y->constant->repr) == 0
+                  ? obj_const("#t")
+                  : obj_const("#f");
         break;
     case OBJ_NIL:
-        res = obj_bool(TRUE);
+        res = obj_const("#t");
         break;
     case OBJ_KEYWORD:
-        res = strcmp(x->keyword, y->keyword) == 0 ? obj_bool(TRUE)
-                                                  : obj_bool(FALSE);
+        res = strcmp(x->keyword, y->keyword) == 0 ? obj_const("#t")
+                                                  : obj_const("#f");
         break;
     default:
         res = obj_err("parameter passed to eq must be atomic, got %s",
@@ -1233,7 +1307,7 @@ obj *builtin_atom(env *e, obj *args) {
     NARGCHECK(args, "atom", 1);
     obj *x = obj_popcar(&args);
 
-    obj *res = obj_isatom(x) ? obj_bool(TRUE) : obj_bool(FALSE);
+    obj *res = obj_isatom(x) ? obj_const("#t") : obj_const("#f");
 
     obj_delete(x);
     obj_delete(args);
@@ -1329,8 +1403,7 @@ obj *eval_cond(env *e, obj *args) {
             return pred;
         }
 
-        if (pred->type != OBJ_BOOL ||
-            (pred->type == OBJ_BOOL && pred->bool != FALSE)) {
+        if (!obj_isfalse(pred)) {
             obj *res = obj_popcar(&arg);
             obj_delete(pred);
             obj_delete(args);

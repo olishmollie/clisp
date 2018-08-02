@@ -1,2 +1,2 @@
 fig: src/fig.c
-	cc src/fig.c -ledit -lgmp -o bin/fig
+	cc src/fig.c -Wall -std=c99 -ledit -lgmp -o bin/fig
