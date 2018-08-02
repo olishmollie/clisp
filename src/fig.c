@@ -11,8 +11,8 @@
 #define BUFSIZE 99
 #define EOS '\0'
 
-#define STDLIB "lib.fig"
-#define UNITTESTS "tests.fig"
+#define STDLIB "lib/lib.fig"
+#define UNITTESTS "lib/tests.fig"
 
 // #define _DEBUG_LEX
 // #define _DEBUG_READ
@@ -1562,7 +1562,7 @@ void repl_println(obj *o) {
 
 void repl() {
 
-    printf("clisp version 0.1\n\n");
+    printf("fig version 0.1\n\n");
 
     while (1) {
         input = readline("> ");

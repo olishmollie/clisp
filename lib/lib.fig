@@ -1,34 +1,33 @@
 (def newline "\n")
-
-
 (def null? (lambda (x)
     (cond ((atom? x) (eq? x '()))
           (true false))))
-
 (def not (lambda (x)
     (cond (x false)
           (true true))))
-
 (def and (lambda (x y)
     (cond (x
            (cond (y true)
                  (true false)))
           (true false))))
-
 (def or (lambda (x y)
     (cond (x true)
           (true (cond (y true)
                       (true false))))))
-
+(def for-each (lambda (fn l)
+    (cond ((null? (cdr l)) (cons (fn (car l)) (cdr l)))
+          (true (cons (fn (car l)) (for-each fn (cdr l)))))))
+(def incr (lambda (x)
+    (+ x 1)))
+(def decr (lambda (x)
+    (- x 1)))
 (def equal? (lambda (a b)
     (cond ((and (atom? a) (atom? b)) (eq? a b))
           ((or (atom? a) (atom? b)) false)
           (true (equal? (cdr a) (cdr b))))))
-
 (def append (lambda (x y
     (cond ((null? x) y)
            (true (cons (car x) (append (cdr x) y)))))))
-
 (def fact (lambda (n)
     (def fact-iter (lambda (prod count max)
         (cond ((> count max) prod)
