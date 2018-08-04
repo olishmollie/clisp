@@ -6,11 +6,15 @@
 
 typedef struct obj obj;
 
+typedef enum { NUM_INT, NUM_RAT, NUM_FLOAT, NUM_ERR } num_type;
+
 typedef struct {
-    token_t type;
+    num_type type;
     union {
-        mpz_t val;
+        mpz_t integ;
         mpq_t rat;
+        mpf_t dbl;
+        char *err;
     };
 } num_t;
 

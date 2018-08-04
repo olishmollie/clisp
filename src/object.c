@@ -99,17 +99,46 @@ void init_rat(num_t *n, char *ratstr) {
 
 num_t *mk_num(char *numstr, token_t ttype) {
     num_t *n = malloc(sizeof(num_t));
-    n->type = ttype;
-    switch (n->type) {
+    switch (ttype) {
     case TOK_INT:
-        mpz_init_set_str(n->val, numstr, 10);
+        n->type = NUM_INT;
+        mpz_init_set_str(n->integ, numstr, 10);
         break;
     case TOK_RAT:
+        n->type = NUM_RAT;
         init_rat(n, numstr);
         break;
+    case TOK_FLOAT:
+        n->type = NUM_FLOAT;
+        mpf_init_set_str(n->dbl, numstr, 10);
+        break;
     default:
+        n->type = NUM_ERR;
+        n->err = "cannot make num_t with unknown token type";
         break;
     }
+    return n;
+}
+
+num_t *mk_int(mpz_t integ) {
+    num_t *n = malloc(sizeof(num_t));
+    n->type = NUM_INT;
+    mpz_init_set(n->integ, integ);
+    return n;
+}
+
+num_t *mk_rat(mpq_t rat) {
+    num_t *n = malloc(sizeof(num_t));
+    n->type = NUM_RAT;
+    mpq_init(n->rat);
+    mpq_set(n->rat, rat);
+    return n;
+}
+
+num_t *mk_dbl(mpf_t dbl) {
+    num_t *n = malloc(sizeof(num_t));
+    n->type = NUM_FLOAT;
+    mpf_init_set(n->dbl, dbl);
     return n;
 }
 
@@ -181,6 +210,35 @@ obj *obj_num(char *numstr, token_t ttype) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NUM;
     o->num = mk_num(numstr, ttype);
+    if (o->type == NUM_ERR) {
+        obj *err = obj_err(o->num->err);
+        obj_delete(o);
+        return err;
+    }
+    o->nargs = 0;
+    return o;
+}
+
+obj *obj_int(mpz_t integ) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_NUM;
+    o->num = mk_int(integ);
+    o->nargs = 0;
+    return o;
+}
+
+obj *obj_rat(mpq_t rat) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_NUM;
+    o->num = mk_rat(rat);
+    o->nargs = 0;
+    return o;
+}
+
+obj *obj_dbl(mpf_t dbl) {
+    obj *o = malloc(sizeof(obj));
+    o->type = OBJ_NUM;
+    o->num = mk_dbl(dbl);
     o->nargs = 0;
     return o;
 }
@@ -357,15 +415,24 @@ obj *cpy_const(obj *o) {
     return c;
 }
 
+obj *cpy_num(obj *o) {
+    switch (o->num->type) {
+    case NUM_INT:
+        return obj_int(o->num->integ);
+    case NUM_RAT:
+        return obj_rat(o->num->rat);
+    case NUM_FLOAT:
+        return obj_dbl(o->num->dbl);
+    default:
+        return obj_err("cannot copy number of unknown type");
+    }
+}
+
 obj *obj_cpy(obj *o) {
     obj *res;
-    char *num;
     switch (o->type) {
     case OBJ_NUM:
-        num = mpz_get_str(NULL, 10, o->num->val);
-        res = obj_num(num, TOK_INT);
-        free(num);
-        return res;
+        return cpy_num(o);
     case OBJ_SYM:
         res = obj_sym(o->sym);
         break;
@@ -409,13 +476,14 @@ void obj_print(obj *o);
 
 void print_num(obj *o) {
     switch (o->num->type) {
-    case TOK_INT:
-        mpz_out_str(stdout, 10, o->num->val);
+    case NUM_INT:
+        mpz_out_str(stdout, 10, o->num->integ);
         break;
-    case TOK_RAT:
+    case NUM_RAT:
         mpq_out_str(stdout, 10, o->num->rat);
         break;
-    case TOK_FLOAT:
+    case NUM_FLOAT:
+        gmp_printf("%.Ff", o->num->dbl);
         break;
     default:
         break;
@@ -514,14 +582,17 @@ void obj_delete(obj *o);
 
 void clear_num(obj *o) {
     switch (o->num->type) {
-    case TOK_INT:
-        mpz_clear(o->num->val);
+    case NUM_INT:
+        mpz_clear(o->num->integ);
         break;
-    case TOK_RAT:
+    case NUM_RAT:
         mpq_clear(o->num->rat);
         break;
-    case TOK_FLOAT:
+    case NUM_FLOAT:
+        mpf_clear(o->num->dbl);
+        break;
     default:
+        fprintf(stderr, "warning: could not clear num of unknown type\n");
         break;
     }
     free(o->num);

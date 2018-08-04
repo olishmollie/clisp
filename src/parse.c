@@ -99,6 +99,7 @@ obj *read(FILE *f) {
     switch (curtok.type) {
     case TOK_INT:
     case TOK_RAT:
+    case TOK_FLOAT:
         tok = curtok;
         obj *n = obj_num(curtok.val, curtok.type);
         token_delete(tok);

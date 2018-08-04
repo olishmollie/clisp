@@ -131,20 +131,16 @@ void repl() {
         stream = fmemopen(input, strlen(input), "r");
         parse_init(stream);
 #ifdef _DEBUG_LEX
-
-        while (peektok.type != TOK_END) {
-            nexttok(stream);
+        while (!feof(stream)) {
+            token curtok = nexttok(stream);
             token_println(curtok);
             token_delete(curtok);
         }
-
 #elif defined _DEBUG_READ
-
         obj *o = read(stream);
         obj_println(o);
         printf("o->nargs = %d\n", o->nargs);
         obj_delete(o);
-
 #else
         obj *o = eval(universe, read(stream));
         repl_println(o);

@@ -34,7 +34,7 @@ void skipspaces(FILE *f) {
 }
 
 token lexnum(FILE *f) {
-    int rat = 0;
+    int rat = 0, frac = 0;
     char num[BUFSIZE];
 
     int i = 0;
@@ -60,6 +60,14 @@ token lexnum(FILE *f) {
             num[i++] = curchar;
             nextchar(f);
         }
+    } else if (curchar == '.') {
+        frac = 1;
+        num[i++] = curchar;
+        nextchar(f);
+        while (!feof(f) && isdigit(curchar)) {
+            num[i++] = curchar;
+            nextchar(f);
+        }
     }
     num[i] = EOS;
 
@@ -67,6 +75,8 @@ token lexnum(FILE *f) {
 
     if (rat)
         return token_new(TOK_RAT, num);
+    if (frac)
+        return token_new(TOK_FLOAT, num);
 
     return token_new(TOK_INT, num);
 }
