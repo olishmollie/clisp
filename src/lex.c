@@ -117,10 +117,8 @@ token lexstring(FILE *f) {
     int i = 0;
     while (curchar != '"') {
 
-        if (feof(f)) {
-            fprintf(stderr, "expected '\"'");
-            break;
-        }
+        if (feof(f))
+            return token_new(TOK_ERR, "unclosed quotation");
 
         if (curchar == '\\') {
 

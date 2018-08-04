@@ -22,7 +22,8 @@ typedef enum {
     TOK_QUOTE,
     TOK_TICK,
     TOK_LAMBDA,
-    TOK_END
+    TOK_END,
+    TOK_ERR
 } token_t;
 
 typedef struct {

@@ -66,9 +66,6 @@ env *global_env(void) {
     return e;
 }
 
-/* REPL
- * --------------------------------------------------------------------- */
-
 env *universe;
 FILE *stream;
 char *input;

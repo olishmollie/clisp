@@ -136,6 +136,11 @@ obj *read(FILE *f) {
         return obj_err("unexpected ')'");
     case TOK_DOT:
         return obj_err("unexpected '.'");
+    case TOK_ERR:
+        tok = curtok;
+        obj *res = obj_err(tok.val);
+        token_delete(tok);
+        return res;
     default:
         return obj_err("unknown token '%s'", curtok.val);
     }
