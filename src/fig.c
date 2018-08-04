@@ -142,7 +142,7 @@ token lexnum(FILE *f) {
     char num[BUFSIZE];
 
     int i = 0;
-    if (curchar == '+' || curchar == '-') {
+    if (curchar == '-') {
         num[i++] = curchar;
         nextchar(f);
     }
@@ -156,7 +156,7 @@ token lexnum(FILE *f) {
         rat = 1;
         num[i++] = curchar;
         nextchar(f);
-        if (curchar == '+' || curchar == '-') {
+        if (curchar == '-') {
             num[i++] = curchar;
             nextchar(f);
         }
@@ -176,7 +176,10 @@ token lexnum(FILE *f) {
 }
 
 token lexsymbol(FILE *f) {
-    if (curchar == '+' || curchar == '-') {
+    char sym[BUFSIZE];
+
+    int i = 0;
+    if (curchar == '-') {
         int c = fgetc(f);
         if (isdigit(c)) {
             ungetc(c, f);
@@ -185,9 +188,9 @@ token lexsymbol(FILE *f) {
         ungetc(c, f);
     }
 
-    char sym[BUFSIZE];
+    sym[i++] = curchar;
+    nextchar(f);
 
-    int i = 0;
     while (!feof(f) && !isspace(curchar) && curchar != ')') {
         sym[i++] = curchar;
         nextchar(f);
@@ -1743,7 +1746,6 @@ void repl() {
             token_println(curtok);
             token_delete(curtok);
         }
-        printf("numtok = %d\n", numtok);
 
 #elif defined _DEBUG_READ
 
