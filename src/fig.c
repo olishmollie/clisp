@@ -15,13 +15,12 @@
 
 #include <editline/readline.h>
 
-// #define _DEBUG_LEX
-// #define _DEBUG_READ
-
 /* TODO -----------------------------------------------------------------------
  * - lexer errors
  * - multiline repl input
  * - floating point/rational arithmetic
+ * - make lexer and parser self-initializing and self-destructive
+ * - compile to bytecode
  */
 
 void register_builtin(env *e, builtin fun, char *name) {
@@ -130,22 +129,9 @@ void repl() {
         add_history(input);
         stream = fmemopen(input, strlen(input), "r");
         parse_init(stream);
-#ifdef _DEBUG_LEX
-        while (!feof(stream)) {
-            token curtok = nexttok(stream);
-            token_println(curtok);
-            token_delete(curtok);
-        }
-#elif defined _DEBUG_READ
-        obj *o = read(stream);
-        obj_println(o);
-        printf("o->nargs = %d\n", o->nargs);
-        obj_delete(o);
-#else
         obj *o = eval(universe, read(stream));
         repl_println(o);
         obj_delete(o);
-#endif
         cleanup(input, stream);
     }
 }

@@ -1,11 +1,33 @@
 #include "builtins.h"
 #include "object.h"
 #include "eval.h"
+#include "conversions.h"
+#include "gmp.h"
 #include "global.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define __ARITH(x, y, op)                                                      \
+    {                                                                          \
+        conv(&x, &y);                                                          \
+        switch (x->num->type) {                                                \
+        case NUM_INT:                                                          \
+            mpz_##op(x->num->integ, x->num->integ, y->num->integ);             \
+            break;                                                             \
+        case NUM_RAT:                                                          \
+            mpq_##op(x->num->rat, x->num->rat, y->num->rat);                   \
+            break;                                                             \
+        case NUM_DBL:                                                          \
+            mpf_##op(x->num->dbl, x->num->dbl, y->num->dbl);                   \
+            break;                                                             \
+        case NUM_ERR:                                                          \
+            fprintf(                                                           \
+                stderr,                                                        \
+                "warning: trying to perform arithmetic on unknown num type");  \
+        }                                                                      \
+    }
 
 obj *builtin_plus(env *e, obj *args) {
     CASSERT(args, args->nargs > 0, "plus passed no arguments");
@@ -13,7 +35,7 @@ obj *builtin_plus(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        mpz_add(x->num->val, x->num->val, y->num->val);
+        __ARITH(x, y, add);
         obj_delete(y);
     }
     obj_delete(args);
@@ -26,7 +48,7 @@ obj *builtin_minus(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        mpz_sub(x->num->val, x->num->val, y->num->val);
+        __ARITH(x, y, sub);
         obj_delete(y);
     }
     obj_delete(args);
@@ -39,7 +61,7 @@ obj *builtin_times(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        mpz_mul(x->num->val, x->num->val, y->num->val);
+        __ARITH(x, y, mul);
         obj_delete(y);
     }
     obj_delete(args);
@@ -52,13 +74,13 @@ obj *builtin_divide(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        if (mpz_sgn(y->num->val) == 0) {
+        if (mpz_sgn(y->num->integ) == 0) {
             obj_delete(x);
             x = obj_err("division by zero");
             obj_delete(y);
             break;
         }
-        mpz_div(x->num->val, x->num->val, y->num->val);
+        __ARITH(x, y, div);
         obj_delete(y);
     }
     return x;
@@ -69,15 +91,31 @@ obj *builtin_remainder(env *e, obj *args) {
     CASSERT(args, args->nargs > 0, "times passed no arguments");
     TARGCHECK(args, "remainder", OBJ_NUM);
     obj *x = obj_popcar(&args);
+
+    if (x->num->type != NUM_INT) {
+        obj_delete(x);
+        obj_delete(args);
+        return obj_err("cannot perform mod on non-integers");
+    }
+
     while (args->nargs > 0) {
+
         obj *y = obj_popcar(&args);
-        if (mpz_sgn(y->num->val) == 0) {
+
+        if (y->num->type != NUM_INT) {
+            obj_delete(x);
+            obj_delete(y);
+            obj_delete(args);
+            return obj_err("cannot perorm mod on non-integers");
+        }
+
+        if (mpz_sgn(y->num->integ) == 0) {
             obj_delete(x);
             x = obj_err("division by zero");
             obj_delete(y);
             break;
         }
-        mpz_mod(x->num->val, x->num->val, y->num->val);
+        mpz_mod(x->num->integ, x->num->integ, y->num->integ);
         obj_delete(y);
     }
     obj_delete(args);
@@ -87,7 +125,7 @@ obj *builtin_remainder(env *e, obj *args) {
 int cmp_nums(obj *x, obj *y) {
     switch (x->num->type) {
     case TOK_INT:
-        return mpz_cmp(x->num->val, y->num->val);
+        return mpz_cmp(x->num->integ, y->num->integ);
     default:
         return 0;
     }

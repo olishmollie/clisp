@@ -6,7 +6,7 @@
 
 typedef struct obj obj;
 
-typedef enum { NUM_INT, NUM_RAT, NUM_FLOAT, NUM_ERR } num_type;
+typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
 
 typedef struct {
     num_type type;
@@ -88,6 +88,10 @@ void env_delete(env *e);
 void env_print(env *e);
 
 obj *obj_num(char *numstr, token_t ttype);
+obj *obj_int(mpz_t integ);
+obj *obj_rat(mpq_t rat);
+obj *obj_dbl(mpf_t dbl);
+
 obj *obj_sym(char *name);
 obj *obj_str(char *str);
 obj *obj_cons(obj *car, obj *cdr);

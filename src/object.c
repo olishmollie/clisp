@@ -109,7 +109,7 @@ num_t *mk_num(char *numstr, token_t ttype) {
         init_rat(n, numstr);
         break;
     case TOK_FLOAT:
-        n->type = NUM_FLOAT;
+        n->type = NUM_DBL;
         mpf_init_set_str(n->dbl, numstr, 10);
         break;
     default:
@@ -137,8 +137,9 @@ num_t *mk_rat(mpq_t rat) {
 
 num_t *mk_dbl(mpf_t dbl) {
     num_t *n = malloc(sizeof(num_t));
-    n->type = NUM_FLOAT;
+    n->type = NUM_DBL;
     mpf_init_set(n->dbl, dbl);
+    mpf_set_prec(n->dbl, 0);
     return n;
 }
 
@@ -421,9 +422,10 @@ obj *cpy_num(obj *o) {
         return obj_int(o->num->integ);
     case NUM_RAT:
         return obj_rat(o->num->rat);
-    case NUM_FLOAT:
+    case NUM_DBL:
         return obj_dbl(o->num->dbl);
     default:
+        obj_delete(o);
         return obj_err("cannot copy number of unknown type");
     }
 }
@@ -482,7 +484,7 @@ void print_num(obj *o) {
     case NUM_RAT:
         mpq_out_str(stdout, 10, o->num->rat);
         break;
-    case NUM_FLOAT:
+    case NUM_DBL:
         gmp_printf("%.Ff", o->num->dbl);
         break;
     default:
@@ -588,7 +590,7 @@ void clear_num(obj *o) {
     case NUM_RAT:
         mpq_clear(o->num->rat);
         break;
-    case NUM_FLOAT:
+    case NUM_DBL:
         mpf_clear(o->num->dbl);
         break;
     default:
