@@ -82,9 +82,10 @@ obj *finit(char *fname, FILE **f) {
 }
 
 void cleanup(char *input, FILE *stream) {
-    if (input)
+    if (input) {
         free(input);
-    parse_cleanup();
+        parse_cleanup();
+    }
     fclose(stream);
 }
 
