@@ -31,6 +31,7 @@ void register_builtin(env *e, builtin fun, char *name) {
     obj_delete(v);
 }
 
+obj *builtin_load(env *e, obj *args);
 obj *builtin_exit(env *e, obj *args);
 
 env *global_env(void) {
@@ -61,6 +62,8 @@ env *global_env(void) {
     register_builtin(e, builtin_print, "print");
     register_builtin(e, builtin_println, "println");
     register_builtin(e, builtin_err, "err");
+
+    register_builtin(e, builtin_load, "load");
     register_builtin(e, builtin_exit, "exit");
     return e;
 }
@@ -69,13 +72,13 @@ env *universe;
 FILE *stream;
 char *input;
 
-void finit(char *fname, FILE **f) {
+obj *finit(char *fname, FILE **f) {
     *f = fopen(fname, "r");
     if (!(*f)) {
-        fprintf(stderr, "unable to locate file %s\n", fname);
-        exit(1);
+        return obj_err("unable to open file %s", fname);
     }
     parse_init(*f);
+    return obj_nil();
 }
 
 void cleanup(char *input, FILE *stream) {
@@ -85,20 +88,14 @@ void cleanup(char *input, FILE *stream) {
     fclose(stream);
 }
 
-obj *builtin_exit(env *e, obj *args) {
-    NARGCHECK(args, "exit", 0);
-    env_delete(e);
-    obj_delete(args);
-    cleanup(input, stream);
-    exit(0);
-    return NULL;
-}
-
-void readfile(char *fname) {
+obj *readfile(char *fname) {
 
     FILE *infile;
 
-    finit(fname, &infile);
+    obj *res = finit(fname, &infile);
+    if (res->type == OBJ_ERR) {
+        return res;
+    }
 
     while (!feof(infile)) {
         obj *o = eval(universe, read(infile));
@@ -111,11 +108,32 @@ void readfile(char *fname) {
     }
 
     cleanup(NULL, infile);
+
+    return res;
 }
 
 void repl_println(obj *o) {
     printf("=> ");
     obj_println(o);
+}
+
+obj *builtin_load(env *e, obj *args) {
+    NARGCHECK(args, "load", 1);
+    obj *f = obj_popcar(&args);
+    char *filename = f->str;
+    obj *res = readfile(filename);
+    obj_delete(f);
+    obj_delete(args);
+    return res;
+}
+
+obj *builtin_exit(env *e, obj *args) {
+    NARGCHECK(args, "exit", 0);
+    env_delete(e);
+    obj_delete(args);
+    cleanup(input, stream);
+    exit(0);
+    return NULL;
 }
 
 void repl() {

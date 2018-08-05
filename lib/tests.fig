@@ -53,3 +53,10 @@
 
 (test '(not #t) #f)
 (test '(not #f) #t)
+
+(test '(> 1 0) #t)
+(test '(> 1 1) #f)
+(test '(> 3/4 3/8) #t)
+(test '(> 3/8 3/4) #f)
+(test '(> 0.75 1.5) #f)
+(test '(> 1.5 0.75) #t)

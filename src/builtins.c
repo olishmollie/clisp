@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define __ARITH(x, y, op)                                                      \
+#define binop(x, y, op)                                                        \
     {                                                                          \
         conv(&x, &y);                                                          \
         switch (x->num->type) {                                                \
@@ -35,7 +35,7 @@ obj *builtin_plus(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        __ARITH(x, y, add);
+        binop(x, y, add);
         obj_delete(y);
     }
     obj_delete(args);
@@ -48,7 +48,7 @@ obj *builtin_minus(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        __ARITH(x, y, sub);
+        binop(x, y, sub);
         obj_delete(y);
     }
     obj_delete(args);
@@ -61,7 +61,7 @@ obj *builtin_times(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);
-        __ARITH(x, y, mul);
+        binop(x, y, mul);
         obj_delete(y);
     }
     obj_delete(args);
@@ -80,7 +80,7 @@ obj *builtin_divide(env *e, obj *args) {
             obj_delete(y);
             break;
         }
-        __ARITH(x, y, div);
+        binop(x, y, div);
         obj_delete(y);
     }
     return x;
@@ -122,11 +122,17 @@ obj *builtin_remainder(env *e, obj *args) {
     return x;
 }
 
-int cmp_nums(obj *x, obj *y) {
+int cmp(obj *x, obj *y) {
+    conv(&x, &y);
     switch (x->num->type) {
-    case TOK_INT:
+    case NUM_INT:
         return mpz_cmp(x->num->integ, y->num->integ);
-    default:
+    case NUM_RAT:
+        return mpq_cmp(x->num->rat, y->num->rat);
+    case NUM_DBL:
+        return mpf_cmp(x->num->dbl, y->num->dbl);
+    case NUM_ERR:
+        fprintf(stderr, "warning: cannot compare numbers of unknown type");
         return 0;
     }
 }
@@ -139,7 +145,7 @@ obj *builtin_gt(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = cmp_nums(x, y);
+    int res = cmp(x, y);
 
     obj_delete(x);
     obj_delete(y);
@@ -156,7 +162,7 @@ obj *builtin_gte(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = cmp_nums(x, y);
+    int res = cmp(x, y);
 
     obj_delete(x);
     obj_delete(y);
@@ -173,7 +179,7 @@ obj *builtin_lt(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = cmp_nums(x, y);
+    int res = cmp(x, y);
 
     obj_delete(x);
     obj_delete(y);
@@ -190,7 +196,7 @@ obj *builtin_lte(env *e, obj *args) {
     obj *x = obj_popcar(&args);
     obj *y = obj_popcar(&args);
 
-    int res = cmp_nums(x, y);
+    int res = cmp(x, y);
 
     obj_delete(x);
     obj_delete(y);
@@ -223,7 +229,7 @@ obj *builtin_eq(env *e, obj *args) {
     obj *res;
     switch (x->type) {
     case OBJ_NUM:
-        res = cmp_nums(x, y) == 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
+        res = cmp(x, y) == 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
         break;
     case OBJ_SYM:
         res = strcmp(x->sym, y->sym) == 0 ? obj_bool(BOOL_T) : obj_bool(BOOL_F);
