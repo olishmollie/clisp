@@ -1,24 +1,77 @@
 #include "eval.h"
 #include "object.h"
+#include "builtins.h"
 #include "global.h"
 
 #include <string.h>
 
+obj *eval_lambda(env *e, obj *args) {
+    // NARGCHECK(args, "lambda", 2);
+    CASSERT(args,
+            obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
+            "first argument should be a list, got %s",
+            obj_typename(obj_car(args)->type));
+
+    /* check param list for non-symbols */
+    obj *params = obj_popcar(&args);
+    obj *cur = params;
+    for (int i = 0; i < params->nargs; i++) {
+        obj *sym = obj_car(cur);
+        CASSERT(args, sym->type == OBJ_SYM,
+                "lambda param list must contain only symbols, got %s",
+                obj_typename(sym->type));
+        cur = obj_cdr(cur);
+    }
+
+    obj *res = obj_lambda(params, args);
+
+    return res;
+}
+
 obj *eval_def(env *e, obj *args) {
     NARGCHECK(args, "define", 2);
 
-    obj *car = obj_car(args);
-    CASSERT(args, car->type == OBJ_SYM,
-            "first arg to define must be symbol, got %s",
-            obj_typename(car->type));
+    obj *params = obj_car(args);
+    CASSERT(args, params->type == OBJ_SYM || params->type == OBJ_CONS,
+            "first arg to define must be symbol or cons, got %s",
+            obj_typename(params->type));
 
-    obj *k = obj_popcar(&args);
+    if (params->type == OBJ_SYM) {
+        /* typical define, e.g. (define x 100) */
+        obj *k = obj_popcar(&args);
+        obj *v = eval(e, obj_popcar(&args));
+        env_insert(e, k, v);
+        obj_delete(k);
+        obj_delete(v);
+    } else {
+        /* syntactic sugar, e.g. (define (square x) (* x x)) */
 
-    obj *v = eval(e, obj_popcar(&args));
-    env_insert(e, k, v);
+        /* first arg to params should be symbol */
+        params = obj_car(args);
+        obj *name = obj_car(params);
+        CASSERT(args, name->type == OBJ_SYM, "invalid syntax define");
 
-    obj_delete(k);
-    obj_delete(v);
+        /* build arguments to lambda */
+        params = obj_popcar(&args);
+        name = obj_popcar(&params);
+
+        obj *body = obj_popcar(&args);
+
+        obj *list = obj_cons(params, obj_cons(body, obj_nil()));
+
+        /* create and save lambda */
+        obj *lambda = eval_lambda(e, list);
+        env_insert(e, name, lambda);
+
+        /* delete unused objects */
+        obj_delete(name);
+        obj_delete(params);
+        obj_delete(body);
+
+        // TODO: why does this segfault?
+        // obj_delete(lambda);
+    }
+
     obj_delete(args);
     return NULL;
 }
@@ -61,29 +114,6 @@ obj *eval_quote(env *e, obj *args) {
     obj *quote = obj_popcar(&args);
     obj_delete(args);
     return quote;
-}
-
-obj *eval_lambda(env *e, obj *args) {
-    // NARGCHECK(args, "lambda", 2);
-    CASSERT(args,
-            obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
-            "first argument should be a list, got %s",
-            obj_typename(obj_car(args)->type));
-
-    /* check param list for non-symbols */
-    obj *params = obj_popcar(&args);
-    obj *cur = params;
-    for (int i = 0; i < params->nargs; i++) {
-        obj *sym = obj_car(cur);
-        CASSERT(args, sym->type == OBJ_SYM,
-                "lambda param list must contain only symbols, got %s",
-                obj_typename(sym->type));
-        cur = obj_cdr(cur);
-    }
-
-    obj *res = obj_lambda(params, args);
-
-    return res;
 }
 
 obj *eval_keyword(env *e, obj *o) {

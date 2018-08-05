@@ -29,6 +29,7 @@ void register_builtin(env *e, builtin fun, char *name) {
     obj_delete(v);
 }
 
+obj *builtin_printenv(env *e, obj *args);
 obj *builtin_load(env *e, obj *args);
 obj *builtin_exit(env *e, obj *args);
 
@@ -61,6 +62,7 @@ env *global_env(void) {
     register_builtin(e, builtin_println, "println");
     register_builtin(e, builtin_err, "err");
 
+    register_builtin(e, builtin_printenv, "printenv");
     register_builtin(e, builtin_load, "load");
     register_builtin(e, builtin_exit, "exit");
     return e;
@@ -106,6 +108,13 @@ void repl_println(obj *o) {
         printf("=> ");
         obj_println(o);
     }
+}
+
+obj *builtin_printenv(env *e, obj *args) {
+    NARGCHECK(args, "printenv", 0);
+    obj_delete(args);
+    env_print(e);
+    return NULL;
 }
 
 obj *builtin_load(env *e, obj *args) {
