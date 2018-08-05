@@ -18,7 +18,6 @@
 /* TODO -----------------------------------------------------------------------
  * - lexer errors
  * - multiline repl input
- * - floating point/rational arithmetic
  * - compile to bytecode
  */
 

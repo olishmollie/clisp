@@ -485,7 +485,7 @@ void print_num(obj *o) {
         mpq_out_str(stdout, 10, o->num->rat);
         break;
     case NUM_DBL:
-        gmp_printf("%.Ff", o->num->dbl);
+        gmp_printf("%Fg", o->num->dbl);
         break;
     default:
         break;
