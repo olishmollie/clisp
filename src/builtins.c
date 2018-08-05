@@ -42,9 +42,35 @@ obj *builtin_plus(env *e, obj *args) {
     return x;
 }
 
+void unary_minus(obj *x) {
+    switch (x->num->type) {
+    case NUM_INT:
+        mpz_neg(x->num->integ, x->num->integ);
+        return;
+    case NUM_RAT:
+        mpq_neg(x->num->rat, x->num->rat);
+        return;
+    case NUM_DBL:
+        mpf_neg(x->num->dbl, x->num->dbl);
+        return;
+    case NUM_ERR:
+        fprintf(stderr, "cannot apply unary minus to error number type");
+        return;
+    }
+}
+
 obj *builtin_minus(env *e, obj *args) {
     CASSERT(args, args->nargs > 0, "minus passed no arguments");
     TARGCHECK(args, "minus", OBJ_NUM);
+
+    /* unary minus */
+    if (args->nargs == 1) {
+        obj *x = obj_popcar(&args);
+        unary_minus(x);
+        obj_delete(args);
+        return x;
+    }
+
     obj *x = obj_popcar(&args);
     while (args->nargs > 0) {
         obj *y = obj_popcar(&args);

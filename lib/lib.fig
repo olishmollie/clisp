@@ -1,3 +1,11 @@
+(define (abs x)
+    (cond ((> x 0) x)
+          ((eq x 0) 0)
+          ((< x 0) (- x))))
+
+
+
+
 (define newline "\n")
 (define null? (lambda (x)
     (cond ((atom x) (eq x '()))
