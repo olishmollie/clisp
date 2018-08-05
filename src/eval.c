@@ -18,7 +18,7 @@ obj *eval_def(env *e, obj *args) {
     obj_delete(k);
     obj_delete(v);
     obj_delete(args);
-    return obj_nil();
+    return NULL;
 }
 
 obj *eval_cond(env *e, obj *args) {

@@ -601,41 +601,43 @@ void clear_num(obj *o) {
 }
 
 void obj_delete(obj *o) {
-    switch (o->type) {
-    case OBJ_NUM:
-        clear_num(o);
-        break;
-    case OBJ_SYM:
-        free(o->sym);
-        break;
-    case OBJ_STR:
-        free(o->str);
-        break;
-    case OBJ_CONS:
-        obj_delete(obj_car(o));
-        obj_delete(obj_cdr(o));
-        free(o->cons);
-        break;
-    case OBJ_ERR:
-        free(o->err);
-        break;
-    case OBJ_FUN:
-        free(o->fun->name);
-        if (o->fun->params)
-            obj_delete(o->fun->params);
-        if (o->fun->body)
-            obj_delete(o->fun->body);
-        free(o->fun);
-        break;
-    case OBJ_KEYWORD:
-        free(o->keyword);
-        break;
-    case OBJ_CONST:
-        free(o->constant->repr);
-        free(o->constant);
-        break;
-    case OBJ_NIL:
-        break;
+    if (o) {
+        switch (o->type) {
+        case OBJ_NUM:
+            clear_num(o);
+            break;
+        case OBJ_SYM:
+            free(o->sym);
+            break;
+        case OBJ_STR:
+            free(o->str);
+            break;
+        case OBJ_CONS:
+            obj_delete(obj_car(o));
+            obj_delete(obj_cdr(o));
+            free(o->cons);
+            break;
+        case OBJ_ERR:
+            free(o->err);
+            break;
+        case OBJ_FUN:
+            free(o->fun->name);
+            if (o->fun->params)
+                obj_delete(o->fun->params);
+            if (o->fun->body)
+                obj_delete(o->fun->body);
+            free(o->fun);
+            break;
+        case OBJ_KEYWORD:
+            free(o->keyword);
+            break;
+        case OBJ_CONST:
+            free(o->constant->repr);
+            free(o->constant);
+            break;
+        case OBJ_NIL:
+            break;
+        }
+        free(o);
     }
-    free(o);
 }

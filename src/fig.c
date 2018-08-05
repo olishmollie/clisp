@@ -87,7 +87,7 @@ obj *readfile(char *fname) {
 
     while (!feof(infile)) {
         obj *o = eval(universe, read(p));
-        if (o->type == OBJ_ERR) {
+        if (o && o->type == OBJ_ERR) {
             obj_println(o);
             obj_delete(o);
             break;
@@ -98,12 +98,14 @@ obj *readfile(char *fname) {
     parser_delete(p);
     fclose(infile);
 
-    return obj_nil();
+    return NULL;
 }
 
 void repl_println(obj *o) {
-    printf("=> ");
-    obj_println(o);
+    if (o) {
+        printf("=> ");
+        obj_println(o);
+    }
 }
 
 obj *builtin_load(env *e, obj *args) {
@@ -144,6 +146,7 @@ void repl() {
 
         obj *o = eval(universe, read(repl_parser));
         repl_println(o);
+
         obj_delete(o);
 
         free(input);
