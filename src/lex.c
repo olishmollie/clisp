@@ -117,7 +117,7 @@ token lexsymbol(lexer *l) {
 
     if (strcmp(sym, "nil") == 0)
         return token_new(TOK_NIL, sym);
-    if (strcmp(sym, "def") == 0)
+    if (strcmp(sym, "define") == 0)
         return token_new(TOK_DEF, sym);
     if (strcmp(sym, "quote") == 0)
         return token_new(TOK_QUOTE, sym);

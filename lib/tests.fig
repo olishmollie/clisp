@@ -1,4 +1,4 @@
-(def test (lambda (given expected)
+(define test (lambda (given expected)
     (print "Test: (equal? " given " " expected ")")
     (cond ((equal? (eval given) expected) (println " --- PASS"))
           (#t (println " --- FAIL")))))
@@ -33,7 +33,7 @@
 (test '((lambda (x) (cons x '(b))) 'a) '(a b))
 (test '((lambda (x y) (cons x (cdr y))) 'z '(a b c)) '(z b c))
 (test '((lambda (f) (f '(b c))) (lambda (x) (cons 'a x))) '(a b c))
-(test '((lambda () (def x 42) x)) 42)
+(test '((lambda () (define x 42) x)) 42)
 
 (test '(type '(a b c d e f)) "cons")
 (test '(type "string") "string")

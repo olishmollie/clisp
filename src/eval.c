@@ -9,9 +9,11 @@ obj *eval_def(env *e, obj *args) {
 
     obj *car = obj_car(args);
     CASSERT(args, car->type == OBJ_SYM,
-            "first arg to def must be symbol, got %s", obj_typename(car->type));
+            "first arg to define must be symbol, got %s",
+            obj_typename(car->type));
 
     obj *k = obj_popcar(&args);
+
     obj *v = eval(e, obj_popcar(&args));
     env_insert(e, k, v);
 
@@ -94,7 +96,7 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_lambda(e, o);
     else if (strcmp(k->keyword, "cond") == 0)
         res = eval_cond(e, o);
-    else if (strcmp(k->keyword, "def") == 0) {
+    else if (strcmp(k->keyword, "define") == 0) {
         res = eval_def(e, o);
     }
     obj_delete(k);
