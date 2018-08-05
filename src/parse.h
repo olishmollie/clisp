@@ -6,9 +6,14 @@
 
 #include <stdio.h>
 
-token nexttok(FILE *);
-void parse_init(FILE *);
-obj *read(FILE *);
-void parse_cleanup(void);
+typedef struct {
+    lexer *l;
+    token curtok;
+    token peektok;
+} parser;
+
+parser *parser_new(FILE *);
+void parser_delete(parser *);
+obj *read(parser *);
 
 #endif

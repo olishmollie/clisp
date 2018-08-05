@@ -5,9 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 
-int curchar, numtok;
-token curtok, peektok;
-
 token token_new(token_t type, char *val) {
     token t;
     t.type = type;
@@ -22,56 +19,69 @@ void token_println(token t) {
     printf("<type: %d, val: '%s'>\n", t.type, t.val);
 }
 
-int nextchar(FILE *f) {
-    curchar = fgetc(f);
-    return curchar;
+lexer *lexer_new(FILE *f) {
+    lexer *l = malloc(sizeof(lexer));
+    l->infile = f;
+    l->curchar = 0;
+    l->linenum = 0;
+    return l;
 }
 
-void skipspaces(FILE *f) {
-    while (isspace(curchar)) {
-        nextchar(f);
+void lexer_delete(lexer *l) {
+    fclose(l->infile);
+    free(l);
+}
+
+int nextchar(lexer *l) {
+    l->curchar = fgetc(l->infile);
+    return l->curchar;
+}
+
+void skipspaces(lexer *l) {
+    while (isspace(l->curchar)) {
+        nextchar(l);
     }
 }
 
-token lexnum(FILE *f) {
+token lexnum(lexer *l) {
     int rat = 0, frac = 0;
     char num[BUFSIZE];
 
     int i = 0;
-    if (curchar == '-') {
-        num[i++] = curchar;
-        nextchar(f);
+    if (l->curchar == '-') {
+        num[i++] = l->curchar;
+        nextchar(l);
     }
 
-    while (!feof(f) && isdigit(curchar)) {
-        num[i++] = curchar;
-        nextchar(f);
+    while (!feof(l->infile) && isdigit(l->curchar)) {
+        num[i++] = l->curchar;
+        nextchar(l);
     }
 
-    if (curchar == '/') {
+    if (l->curchar == '/') {
         rat = 1;
-        num[i++] = curchar;
-        nextchar(f);
-        if (curchar == '-') {
-            num[i++] = curchar;
-            nextchar(f);
+        num[i++] = l->curchar;
+        nextchar(l);
+        if (l->curchar == '-') {
+            num[i++] = l->curchar;
+            nextchar(l);
         }
-        while (!feof(f) && isdigit(curchar)) {
-            num[i++] = curchar;
-            nextchar(f);
+        while (!feof(l->infile) && isdigit(l->curchar)) {
+            num[i++] = l->curchar;
+            nextchar(l);
         }
-    } else if (curchar == '.') {
+    } else if (l->curchar == '.') {
         frac = 1;
-        num[i++] = curchar;
-        nextchar(f);
-        while (!feof(f) && isdigit(curchar)) {
-            num[i++] = curchar;
-            nextchar(f);
+        num[i++] = l->curchar;
+        nextchar(l);
+        while (!feof(l->infile) && isdigit(l->curchar)) {
+            num[i++] = l->curchar;
+            nextchar(l);
         }
     }
     num[i] = EOS;
 
-    ungetc(curchar, f);
+    ungetc(l->curchar, l->infile);
 
     if (rat)
         return token_new(TOK_RAT, num);
@@ -81,29 +91,29 @@ token lexnum(FILE *f) {
     return token_new(TOK_INT, num);
 }
 
-token lexsymbol(FILE *f) {
+token lexsymbol(lexer *l) {
     char sym[BUFSIZE];
 
     int i = 0;
-    if (curchar == '-') {
-        int c = fgetc(f);
+    if (l->curchar == '-') {
+        int c = fgetc(l->infile);
         if (isdigit(c)) {
-            ungetc(c, f);
-            return lexnum(f);
+            ungetc(c, l->infile);
+            return lexnum(l);
         }
-        ungetc(c, f);
+        ungetc(c, l->infile);
     }
 
-    sym[i++] = curchar;
-    nextchar(f);
+    sym[i++] = l->curchar;
+    nextchar(l);
 
-    while (!feof(f) && !isspace(curchar) && curchar != ')') {
-        sym[i++] = curchar;
-        nextchar(f);
+    while (!feof(l->infile) && !isspace(l->curchar) && l->curchar != ')') {
+        sym[i++] = l->curchar;
+        nextchar(l);
     }
     sym[i] = EOS;
 
-    ungetc(curchar, f);
+    ungetc(l->curchar, l->infile);
 
     if (strcmp(sym, "nil") == 0)
         return token_new(TOK_NIL, sym);
@@ -119,22 +129,22 @@ token lexsymbol(FILE *f) {
     return token_new(TOK_SYM, sym);
 }
 
-token lexstring(FILE *f) {
-    nextchar(f);
+token lexstring(lexer *l) {
+    nextchar(l);
 
     char sym[BUFSIZE];
 
     int i = 0;
-    while (curchar != '"') {
+    while (l->curchar != '"') {
 
-        if (feof(f))
+        if (feof(l->infile))
             return token_new(TOK_ERR, "unclosed quotation");
 
-        if (curchar == '\\') {
+        if (l->curchar == '\\') {
 
-            nextchar(f);
+            nextchar(l);
 
-            switch (curchar) {
+            switch (l->curchar) {
             case 'n':
                 sym[i++] = '\n';
                 break;
@@ -145,56 +155,55 @@ token lexstring(FILE *f) {
                 sym[i++] = '\f';
                 break;
             default:
-                sym[i++] = curchar;
+                sym[i++] = l->curchar;
             }
 
         } else {
-            sym[i++] = curchar;
+            sym[i++] = l->curchar;
         }
 
-        nextchar(f);
+        nextchar(l);
     }
     sym[i] = EOS;
 
     return token_new(TOK_STR, sym);
 }
 
-token lexconst(FILE *f) {
+token lexconst(lexer *l) {
     char sym[BUFSIZE];
     int i = 0;
-    while (!feof(f) && !isspace(curchar) && curchar != ')') {
-        sym[i++] = curchar;
-        nextchar(f);
+    while (!feof(l->infile) && !isspace(l->curchar) && l->curchar != ')') {
+        sym[i++] = l->curchar;
+        nextchar(l);
     }
     sym[i] = EOS;
 
-    ungetc(curchar, f);
+    ungetc(l->curchar, l->infile);
 
     return token_new(TOK_CONST, sym);
 }
 
-token lex(FILE *f) {
+token lex(lexer *l) {
 
-    nextchar(f);
-    skipspaces(f);
+    nextchar(l);
+    skipspaces(l);
 
-    if (feof(f))
+    if (feof(l->infile))
         return token_new(TOK_END, "end");
-    else if (isdigit(curchar))
-        return lexnum(f);
-    else if (curchar == '(') {
+    else if (isdigit(l->curchar))
+        return lexnum(l);
+    else if (l->curchar == '(')
         return token_new(TOK_LPAREN, "(");
-    } else if (curchar == ')') {
+    else if (l->curchar == ')')
         return token_new(TOK_RPAREN, ")");
-    } else if (curchar == '.') {
+    else if (l->curchar == '.')
         return token_new(TOK_DOT, ".");
-    } else if (curchar == '\'') {
+    else if (l->curchar == '\'')
         return token_new(TOK_TICK, "'");
-    } else if (curchar == '"') {
-        return lexstring(f);
-    } else if (curchar == '#') {
-        return lexconst(f);
-    }
+    else if (l->curchar == '"')
+        return lexstring(l);
+    else if (l->curchar == '#')
+        return lexconst(l);
 
-    return lexsymbol(f);
+    return lexsymbol(l);
 }

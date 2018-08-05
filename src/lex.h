@@ -31,7 +31,16 @@ typedef struct {
     char *val;
 } token;
 
-token lex(FILE *f);
+typedef struct {
+    FILE *infile;
+    int linenum;
+    char curchar;
+} lexer;
+
+lexer *lexer_new(FILE *);
+void lexer_delete(lexer *);
+
+token lex(lexer *l);
 
 token token_new(token_t type, char *val);
 void token_println(token t);

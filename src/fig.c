@@ -19,7 +19,6 @@
  * - lexer errors
  * - multiline repl input
  * - floating point/rational arithmetic
- * - make lexer and parser self-initializing and self-destructive
  * - compile to bytecode
  */
 
@@ -68,38 +67,27 @@ env *global_env(void) {
     return e;
 }
 
+/*
+ * these are globals so that builtin_exit
+ * can clean up after itself
+ */
 env *universe;
 FILE *stream;
 char *input;
-
-obj *finit(char *fname, FILE **f) {
-    *f = fopen(fname, "r");
-    if (!(*f)) {
-        return obj_err("unable to open file %s", fname);
-    }
-    parse_init(*f);
-    return obj_nil();
-}
-
-void cleanup(char *input, FILE *stream) {
-    if (input) {
-        free(input);
-        parse_cleanup();
-    }
-    fclose(stream);
-}
+parser *repl_parser;
 
 obj *readfile(char *fname) {
 
     FILE *infile;
+    infile = fopen(fname, "r");
 
-    obj *res = finit(fname, &infile);
-    if (res->type == OBJ_ERR) {
-        return res;
-    }
+    if (!infile)
+        return obj_err("could not open %s", fname);
+
+    parser *p = parser_new(infile);
 
     while (!feof(infile)) {
-        obj *o = eval(universe, read(infile));
+        obj *o = eval(universe, read(p));
         if (o->type == OBJ_ERR) {
             obj_println(o);
             obj_delete(o);
@@ -108,9 +96,10 @@ obj *readfile(char *fname) {
         obj_delete(o);
     }
 
-    cleanup(NULL, infile);
+    parser_delete(p);
+    fclose(infile);
 
-    return res;
+    return obj_nil();
 }
 
 void repl_println(obj *o) {
@@ -132,7 +121,9 @@ obj *builtin_exit(env *e, obj *args) {
     NARGCHECK(args, "exit", 0);
     env_delete(e);
     obj_delete(args);
-    cleanup(input, stream);
+    parser_delete(repl_parser);
+    free(input);
+    fclose(stream);
     exit(0);
     return NULL;
 }
@@ -143,15 +134,21 @@ void repl() {
 
     while (1) {
         input = readline("> ");
+
         if (strlen(input) == 0)
             continue;
+
         add_history(input);
         stream = fmemopen(input, strlen(input), "r");
-        parse_init(stream);
-        obj *o = eval(universe, read(stream));
+
+        repl_parser = parser_new(stream);
+
+        obj *o = eval(universe, read(repl_parser));
         repl_println(o);
         obj_delete(o);
-        cleanup(input, stream);
+
+        free(input);
+        parser_delete(repl_parser);
     }
 }
 
