@@ -1,8 +1,6 @@
 (define (abs x)
-    (cond ((> x 0) x)
-          ((eq x 0) 0)
-          ((< x 0) (- x))))
-
+    (cond ((< x 0) (- x))
+          (else x)))
 
 
 

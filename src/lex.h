@@ -19,6 +19,7 @@ typedef enum {
     TOK_DOT,
     TOK_DEF,
     TOK_COND,
+    TOK_ELSE,
     TOK_QUOTE,
     TOK_TICK,
     TOK_LAMBDA,

@@ -80,7 +80,7 @@ obj *eval_cond(env *e, obj *args) {
 
     TARGCHECK(args, "cond", OBJ_CONS);
 
-    while (args->nargs > 0) {
+    while (args->nargs > 1) {
         obj *arg = obj_popcar(&args);
 
         CASSERT(args, arg->nargs == 2,
@@ -102,6 +102,29 @@ obj *eval_cond(env *e, obj *args) {
         }
 
         obj_delete(pred);
+    }
+
+    /* else keyword */
+    /* TODO: refactor this? */
+    obj *arg = obj_popcar(&args);
+    obj *maybe_else = obj_car(arg);
+    if (maybe_else->type == OBJ_KEYWORD &&
+        strcmp(maybe_else->keyword, "else") == 0) {
+        maybe_else = obj_popcar(&arg);
+        obj_delete(maybe_else);
+        obj *res = obj_popcar(&arg);
+        obj_delete(arg);
+        obj_delete(args);
+        return eval(e, res);
+    } else {
+        obj *pred = obj_popcar(&arg);
+        if (!obj_isfalse(pred)) {
+            obj *res = obj_popcar(&arg);
+            obj_delete(pred);
+            obj_delete(arg);
+            obj_delete(args);
+            return eval(e, res);
+        }
     }
 
     obj_delete(args);
@@ -128,6 +151,8 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_cond(e, o);
     else if (strcmp(k->keyword, "define") == 0) {
         res = eval_def(e, o);
+    } else {
+        res = obj_err("invalid use of keyword %s", k->keyword);
     }
     obj_delete(k);
     return res;

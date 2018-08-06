@@ -125,6 +125,8 @@ token lexsymbol(lexer *l) {
         return token_new(TOK_COND, sym);
     if (strcmp(sym, "lambda") == 0)
         return token_new(TOK_LAMBDA, sym);
+    if (strcmp(sym, "else") == 0)
+        return token_new(TOK_ELSE, sym);
 
     return token_new(TOK_SYM, sym);
 }

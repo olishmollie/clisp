@@ -140,6 +140,7 @@ obj *read(parser *p) {
     case TOK_COND:
     case TOK_LAMBDA:
     case TOK_QUOTE:
+    case TOK_ELSE:
         tok = p->curtok;
         obj *k = obj_keyword(tok.val);
         token_delete(tok);
