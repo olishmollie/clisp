@@ -29,8 +29,6 @@ obj *eval_lambda(env *e, obj *args) {
 }
 
 obj *eval_def(env *e, obj *args) {
-    NARGCHECK(args, "define", 2);
-
     obj *params = obj_car(args);
     CASSERT(args, params->type == OBJ_SYM || params->type == OBJ_CONS,
             "first arg to define must be symbol or cons, got %s",
@@ -38,6 +36,7 @@ obj *eval_def(env *e, obj *args) {
 
     if (params->type == OBJ_SYM) {
         /* typical define, e.g. (define x 100) */
+        NARGCHECK(args, "define", 2);
         obj *k = obj_popcar(&args);
         obj *v = eval(e, obj_popcar(&args));
         env_insert(e, k, v);
@@ -55,9 +54,9 @@ obj *eval_def(env *e, obj *args) {
         params = obj_popcar(&args);
         name = obj_popcar(&params);
 
-        obj *body = obj_popcar(&args);
-
-        obj *list = obj_cons(params, obj_cons(body, obj_nil()));
+        /* join list and set nargs + 1 for param list */
+        obj *list = obj_cons(params, args);
+        list->nargs = args->nargs + 1;
 
         /* create and save lambda */
         obj *lambda = eval_lambda(e, list);
@@ -66,7 +65,6 @@ obj *eval_def(env *e, obj *args) {
         /* delete unused objects */
         obj_delete(name);
         obj_delete(params);
-        obj_delete(body);
 
         // TODO: why does this segfault?
         // obj_delete(lambda);

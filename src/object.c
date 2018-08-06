@@ -61,6 +61,17 @@ void env_insert(env *e, obj *k, obj *v) {
     }
 }
 
+env *cpy_env(env *e) {
+    env *res = env_new();
+    for (int i = 0; i < e->count; i++) {
+        obj *k = obj_sym(e->syms[i]);
+        obj *v = e->vals[i];
+        env_insert(res, k, v);
+        obj_delete(k);
+    }
+    return res;
+}
+
 void env_delete(env *e) {
     if (e) {
         for (int i = 0; i < e->count; i++) {
@@ -139,7 +150,6 @@ num_t *mk_dbl(mpf_t dbl) {
     num_t *n = malloc(sizeof(num_t));
     n->type = NUM_DBL;
     mpf_init_set(n->dbl, dbl);
-    mpf_set_prec(n->dbl, 0);
     return n;
 }
 
@@ -449,6 +459,7 @@ obj *obj_cpy(obj *o) {
             res = obj_builtin(o->fun->name, o->fun->proc);
         else {
             res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
+            res->fun->e = cpy_env(o->fun->e);
             if (o->fun->name) {
                 res->fun->name =
                     malloc(sizeof(char) * (strlen(o->fun->name) + 1));
@@ -536,40 +547,42 @@ void print_cons(obj *o) {
 }
 
 void obj_print(obj *o) {
-    switch (o->type) {
-    case OBJ_NUM:
-        print_num(o);
-        break;
-    case OBJ_SYM:
-        printf("%s", o->sym);
-        break;
-    case OBJ_STR:
-        print_rawstr(o->str);
-        break;
-    case OBJ_CONS:
-        print_cons(o);
-        break;
-    case OBJ_CONST:
-        printf("%s", o->constant->repr);
-        break;
-    case OBJ_FUN:
-        if (o->fun->name)
-            printf("<function '%s'>", o->fun->name);
-        else {
-            printf("<function>");
+    if (o) {
+        switch (o->type) {
+        case OBJ_NUM:
+            print_num(o);
+            break;
+        case OBJ_SYM:
+            printf("%s", o->sym);
+            break;
+        case OBJ_STR:
+            print_rawstr(o->str);
+            break;
+        case OBJ_CONS:
+            print_cons(o);
+            break;
+        case OBJ_CONST:
+            printf("%s", o->constant->repr);
+            break;
+        case OBJ_FUN:
+            if (o->fun->name)
+                printf("<function '%s'>", o->fun->name);
+            else {
+                printf("<function>");
+            }
+            break;
+        case OBJ_ERR:
+            printf("Error: %s", o->err);
+            break;
+        case OBJ_KEYWORD:
+            printf("%s", o->keyword);
+            break;
+        case OBJ_NIL:
+            printf("()");
+            break;
+        default:
+            printf("Cannot print unknown obj type\n");
         }
-        break;
-    case OBJ_ERR:
-        printf("Error: %s", o->err);
-        break;
-    case OBJ_KEYWORD:
-        printf("%s", o->keyword);
-        break;
-    case OBJ_NIL:
-        printf("()");
-        break;
-    default:
-        printf("Cannot print unknown obj type\n");
     }
 }
 
@@ -583,6 +596,7 @@ void obj_println(obj *o) {
 void obj_delete(obj *o);
 
 void clear_num(obj *o) {
+    printf("o->num->type = %d\n", o->num->type);
     switch (o->num->type) {
     case NUM_INT:
         mpz_clear(o->num->integ);
@@ -602,6 +616,7 @@ void clear_num(obj *o) {
 
 void obj_delete(obj *o) {
     if (o) {
+        printf("deleting object of type %s\n\n", obj_typename(o->type));
         switch (o->type) {
         case OBJ_NUM:
             clear_num(o);

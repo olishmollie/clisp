@@ -152,12 +152,10 @@ void repl() {
         stream = fmemopen(input, strlen(input), "r");
 
         repl_parser = parser_new(stream);
-
         obj *o = eval(universe, read(repl_parser));
         repl_println(o);
 
         obj_delete(o);
-
         free(input);
         parser_delete(repl_parser);
     }
