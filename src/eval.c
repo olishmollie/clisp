@@ -83,6 +83,13 @@ obj *eval_if(env *e, obj *args) {
     obj *conseq = obj_popcar(&args);
     obj *alt = obj_popcar(&args);
 
+    if (pred->type == OBJ_ERR) {
+        obj_delete(conseq);
+        obj_delete(alt);
+        obj_delete(args);
+        return pred;
+    }
+
     obj *res;
     if (obj_istrue(pred)) {
         obj_delete(alt);
@@ -167,17 +174,18 @@ obj *eval_keyword(env *e, obj *o) {
     ERRCHECK(o);
     if (strcmp(k->keyword, "quote") == 0)
         res = eval_quote(e, o);
-    if (strcmp(k->keyword, "lambda") == 0)
+    else if (strcmp(k->keyword, "lambda") == 0)
         res = eval_lambda(e, o);
     else if (strcmp(k->keyword, "cond") == 0)
         res = eval_cond(e, o);
     else if (strcmp(k->keyword, "if") == 0)
         res = eval_if(e, o);
-    else if (strcmp(k->keyword, "define") == 0) {
+    else if (strcmp(k->keyword, "define") == 0)
         res = eval_def(e, o);
-    } else {
+    else {
         res = obj_err("invalid syntax %s", k->keyword);
     }
+
     obj_delete(k);
     return res;
 }

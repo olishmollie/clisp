@@ -3,8 +3,13 @@
         (- x)
         x))
 
+(define (= x y)
+    (if (and (eq (type x) "number") (eq (type y) "number"))
+        (eq x y)
+        (error "args to = must be numbers")))
 
 (define newline "\n")
+
 (define null? (lambda (x)
     (cond ((atom x) (eq x '()))
           (#t #f))))
@@ -12,29 +17,37 @@
 (define not (lambda (x)
     (cond (x #f)
           (#t #t))))
+
 (define and (lambda (x y)
     (cond (x
            (cond (y #t)
                  (#t #f)))
           (#t #f))))
+
 (define or (lambda (x y)
     (cond (x #t)
           (#t (cond (y #t)
                       (#t #f))))))
+
 (define for-each (lambda (fn l)
     (cond ((null? (cdr l)) (cons (fn (car l)) (cdr l)))
           (#t (cons (fn (car l)) (for-each fn (cdr l)))))))
+
 (define incr (lambda (x)
     (+ x 1)))
+
 (define decr (lambda (x)
     (- x 1)))
+
 (define equal? (lambda (a b)
     (cond ((and (atom a) (atom b)) (eq a b))
           ((or (atom a) (atom b)) #f)
           (#t (equal? (cdr a) (cdr b))))))
+
 (define append (lambda (x y
     (cond ((null? x) y)
            (#t (cons (car x) (append (cdr x) y)))))))
+
 (define fact (lambda (n)
     (define fact-iter (lambda (prod count max)
         (cond ((> count max) prod)
@@ -42,3 +55,20 @@
                                (+ count 1)
                                max)))))
     (fact-iter 1 1 n)))
+
+
+(define (square x) (* x x))
+
+(define (sqrt-iter guess x)
+    (if (good-enough? guess x)
+        guess
+        (sqrt-iter (improve guess x)
+                   x)))
+(define (improve guess x)
+    (average guess (/ x guess)))
+(define (average x y)
+    (/ (+ x y) 2))
+(define (good-enough? guess x)
+    (< (abs (- (square guess) x)) 0.001))
+(define (sqrt x)
+    (sqrt-iter 1.0 x))

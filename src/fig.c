@@ -60,7 +60,7 @@ env *global_env(void) {
     register_builtin(e, builtin_type, "type");
     register_builtin(e, builtin_print, "print");
     register_builtin(e, builtin_println, "println");
-    register_builtin(e, builtin_err, "err");
+    register_builtin(e, builtin_error, "error");
 
     register_builtin(e, builtin_printenv, "printenv");
     register_builtin(e, builtin_load, "load");

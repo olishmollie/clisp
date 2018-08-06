@@ -432,7 +432,7 @@ obj *builtin_println(env *e, obj *args) {
     return res;
 }
 
-obj *builtin_err(env *e, obj *args) {
+obj *builtin_error(env *e, obj *args) {
     NARGCHECK(args, "err", 1);
     TARGCHECK(args, "err", OBJ_STR);
 
