@@ -76,6 +76,28 @@ obj *eval_def(env *e, obj *args) {
     return NULL;
 }
 
+obj *eval_if(env *e, obj *args) {
+    NARGCHECK(args, "if", 3);
+
+    obj *pred = eval(e, obj_popcar(&args));
+    obj *conseq = obj_popcar(&args);
+    obj *alt = obj_popcar(&args);
+
+    obj *res;
+    if (obj_istrue(pred)) {
+        obj_delete(alt);
+        res = eval(e, conseq);
+    } else {
+        obj_delete(conseq);
+        res = eval(e, alt);
+    }
+
+    obj_delete(pred);
+    obj_delete(args);
+
+    return res;
+}
+
 obj *eval_cond(env *e, obj *args) {
 
     TARGCHECK(args, "cond", OBJ_CONS);
@@ -149,10 +171,12 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_lambda(e, o);
     else if (strcmp(k->keyword, "cond") == 0)
         res = eval_cond(e, o);
+    else if (strcmp(k->keyword, "if") == 0)
+        res = eval_if(e, o);
     else if (strcmp(k->keyword, "define") == 0) {
         res = eval_def(e, o);
     } else {
-        res = obj_err("invalid use of keyword %s", k->keyword);
+        res = obj_err("invalid syntax %s", k->keyword);
     }
     obj_delete(k);
     return res;
