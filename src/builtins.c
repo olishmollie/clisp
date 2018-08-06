@@ -109,8 +109,8 @@ obj *builtin_divide(env *e, obj *args) {
         binop(x, y, div);
         obj_delete(y);
     }
-    return x;
     obj_delete(args);
+    return x;
 }
 
 obj *builtin_remainder(env *e, obj *args) {
@@ -437,8 +437,12 @@ obj *builtin_error(env *e, obj *args) {
     TARGCHECK(args, "err", OBJ_STR);
 
     obj *msg = obj_popcar(&args);
+    obj *err = obj_err(msg->str);
+
     obj_delete(args);
-    return obj_err(msg->str);
+    obj_delete(msg);
+
+    return err;
 }
 
 obj *builtin_eval(env *e, obj *args) {

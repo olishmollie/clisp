@@ -129,20 +129,25 @@ obj *builtin_load(env *e, obj *args) {
 
 obj *builtin_exit(env *e, obj *args) {
     NARGCHECK(args, "exit", 0);
-    env_delete(e);
+    printf("exiting...numobj = %d\n", numobj);
+    env_delete(universe);
     obj_delete(args);
     parser_delete(repl_parser);
     free(input);
     fclose(stream);
+    printf("numobj = %d\n", numobj);
     exit(0);
     return NULL;
 }
+
+int numobj = 0;
 
 void repl() {
 
     printf("fig version 0.1\n\n");
 
     while (1) {
+        printf("numobj = %d\n", numobj);
         input = readline("> ");
 
         if (strlen(input) == 0)
@@ -164,7 +169,7 @@ void repl() {
 int main(int argc, char **argv) {
 
     universe = global_env();
-    readfile(STDLIB);
+    // readfile(STDLIB);
 
     if (argc > 1)
         readfile(argv[1]);

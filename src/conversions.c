@@ -97,11 +97,6 @@ obj *conv_dbl(obj *d, num_type type) {
     }
 }
 
-/* int op int -> int
- * int op rat -> rat
- * int op float -> float
- */
-
 void conv(obj **x, obj **y) {
     if ((*x)->num->type == (*y)->num->type)
         return;

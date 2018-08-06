@@ -251,14 +251,18 @@ obj *eval_list(env *e, obj *o) {
 }
 
 obj *eval(env *e, obj *o) {
-    if (o->type == OBJ_SYM)
-        return env_lookup(e, o);
-    if (o->type == OBJ_CONS)
-        return eval_list(e, o);
-    if (o->type == OBJ_KEYWORD) {
-        obj *err = obj_err("invalid syntax %s", o->keyword);
+    if (o->type == OBJ_SYM) {
+        obj *res = env_lookup(e, o);
         obj_delete(o);
-        return err;
+        return res;
+    } else if (o->type == OBJ_CONS) {
+        obj *res = eval_list(e, o);
+        return res;
+    } else if (o->type == OBJ_KEYWORD) {
+        obj *res = obj_err("invalid syntax %s", o->keyword);
+        obj_delete(o);
+        return res;
     }
+
     return o;
 }

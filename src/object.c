@@ -226,6 +226,7 @@ obj *obj_num(char *numstr, token_t ttype) {
         obj_delete(o);
         return err;
     }
+    MKOBJ(o);
     o->nargs = 0;
     return o;
 }
@@ -235,6 +236,7 @@ obj *obj_int(mpz_t integ) {
     o->type = OBJ_NUM;
     o->num = mk_int(integ);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -243,6 +245,7 @@ obj *obj_rat(mpq_t rat) {
     o->type = OBJ_NUM;
     o->num = mk_rat(rat);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -251,6 +254,7 @@ obj *obj_dbl(mpf_t dbl) {
     o->type = OBJ_NUM;
     o->num = mk_dbl(dbl);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -260,6 +264,7 @@ obj *obj_sym(char *name) {
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -269,6 +274,7 @@ obj *obj_str(char *str) {
     o->str = malloc(sizeof(char) * (strlen(str) + 1));
     strcpy(o->str, str);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -277,6 +283,7 @@ obj *obj_cons(obj *car, obj *cdr) {
     o->type = OBJ_CONS;
     o->cons = mk_cons(car, cdr);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -285,6 +292,7 @@ obj *obj_builtin(char *name, builtin proc) {
     o->type = OBJ_FUN;
     o->fun = mk_fun(name, proc, NULL, NULL);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -293,6 +301,7 @@ obj *obj_lambda(obj *params, obj *body) {
     o->type = OBJ_FUN;
     o->fun = mk_fun(NULL, NULL, params, body);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -309,30 +318,37 @@ obj *obj_const(char *constant) {
     }
 
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
 obj *obj_char(char c) {
     char *repr = 0;
+    obj *res;
     switch (c) {
     case '\n':
     case '\f':
-        return obj_const("#\\newline");
+        res = obj_const("#\\newline");
+        break;
     case ' ':
-        return obj_const("#\\space");
+        res = obj_const("#\\space");
+        break;
     case '\t':
-        return obj_const("#\\tab");
+        res = obj_const("#\\tab");
+        break;
     default:
         repr = malloc(sizeof(char) * 4);
         sprintf(repr, "#\\%c", c);
-        obj *constant = obj_const(repr);
+        res = obj_const(repr);
         free(repr);
-        return constant;
     }
+
+    return res;
 }
 
 obj *obj_bool(bool_t type) {
-    return type == BOOL_T ? obj_const("#t") : obj_const("#f");
+    obj *res = type == BOOL_T ? obj_const("#t") : obj_const("#f");
+    return res;
 }
 
 int obj_isfalse(obj *c) {
@@ -348,6 +364,7 @@ obj *obj_keyword(char *name) {
     o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->keyword, name);
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -355,6 +372,7 @@ obj *obj_nil(void) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NIL;
     o->nargs = 0;
+    MKOBJ(o);
     return o;
 }
 
@@ -368,6 +386,7 @@ obj *obj_err(char *fmt, ...) {
     vsnprintf(o->err, 511, fmt, args);
     va_end(args);
     o->nargs = 0;
+    MKOBJ(o);
 
     return o;
 }
@@ -408,9 +427,10 @@ obj *obj_cdr(obj *o) { return o->cons->cdr; }
 obj *obj_cadr(obj *o) { return obj_car(obj_cdr(o)); }
 
 obj *obj_popcar(obj **o) {
-    obj *car = obj_car(*o);
-    obj *cdr = obj_cdr(*o);
+    obj *car = obj_cpy(obj_car(*o));
+    obj *cdr = obj_cpy(obj_cdr(*o));
     int count = (*o)->nargs;
+    obj_delete(*o);
     *o = cdr;
     (*o)->nargs = count - 1;
     return car;
@@ -528,23 +548,31 @@ void print_rawstr(char *str) {
 }
 
 void print_cons(obj *o) {
-    putchar('(');
-    obj *p = o;
-    while (1) {
-        obj_print(obj_car(p));
-        obj *cdr = obj_cdr(p);
-        if (cdr->type != OBJ_CONS) {
-            if (cdr->type != OBJ_NIL) {
-                printf(" . ");
-                obj_print(cdr);
-            }
-            putchar(')');
-            break;
-        }
-        putchar(' ');
-        p = obj_cdr(p);
-    }
+    printf("(");
+    obj_print(o->cons->car);
+    printf(" . ");
+    obj_print(o->cons->cdr);
+    printf(")");
 }
+
+// void print_cons(obj *o) {
+//     putchar('(');
+//     obj *p = o;
+//     while (1) {
+//         obj_print(obj_car(p));
+//         obj *cdr = obj_cdr(p);
+//         if (cdr->type != OBJ_CONS) {
+//             if (cdr->type != OBJ_NIL) {
+//                 printf(" . ");
+//                 obj_print(cdr);
+//             }
+//             putchar(')');
+//             break;
+//         }
+//         putchar(' ');
+//         p = obj_cdr(p);
+//     }
+// }
 
 void obj_print(obj *o) {
     if (o) {
@@ -596,7 +624,6 @@ void obj_println(obj *o) {
 void obj_delete(obj *o);
 
 void clear_num(obj *o) {
-    printf("o->num->type = %d\n", o->num->type);
     switch (o->num->type) {
     case NUM_INT:
         mpz_clear(o->num->integ);
@@ -616,7 +643,7 @@ void clear_num(obj *o) {
 
 void obj_delete(obj *o) {
     if (o) {
-        printf("deleting object of type %s\n\n", obj_typename(o->type));
+        DLTOBJ(o);
         switch (o->type) {
         case OBJ_NUM:
             clear_num(o);

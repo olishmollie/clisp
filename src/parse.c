@@ -82,6 +82,7 @@ obj *read_list(parser *p) {
             for (int i = 0; i < list->nargs - 1; i++) {
                 cur = obj_cdr(cur);
             }
+            printf("growing list\n");
             cur->cons->cdr = obj_cons(car, cur->cons->cdr);
         } else {
             list = obj_cons(car, list);
