@@ -132,6 +132,7 @@ obj *eval_cond(env *e, obj *args) {
         }
 
         obj_delete(pred);
+        obj_delete(arg);
     }
 
     /* else keyword */
@@ -145,7 +146,6 @@ obj *eval_cond(env *e, obj *args) {
         obj_delete(maybe_else);
         res = eval(e, obj_popcar(&arg));
     } else {
-        PRINT("arg", arg);
         obj *pred = eval(e, obj_popcar(&arg));
         if (obj_istrue(pred)) {
             res = eval(e, obj_popcar(&arg));
