@@ -3,6 +3,7 @@
 #include "builtins.h"
 #include "global.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 obj *eval_lambda(env *e, obj *args) {
@@ -41,6 +42,11 @@ obj *eval_def(env *e, obj *args) {
         obj *k = obj_popcar(&args);
         obj *v = eval(e, obj_popcar(&args));
 
+        if (v->type == OBJ_FUN) {
+            v->fun->name = malloc(sizeof(char) * (strlen(k->sym) + 1));
+            strcpy(v->fun->name, k->sym);
+        }
+
         env_insert(e, k, v);
 
         obj_delete(k);
@@ -64,6 +70,9 @@ obj *eval_def(env *e, obj *args) {
 
         /* create and save lambda */
         obj *lambda = eval_lambda(e, list);
+
+        lambda->fun->name = malloc(sizeof(char) * (strlen(name->sym) + 1));
+        strcpy(lambda->fun->name, name->sym);
 
         env_insert(e, name, lambda);
 

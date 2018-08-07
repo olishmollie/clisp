@@ -48,13 +48,6 @@ void env_insert(env *e, obj *k, obj *v) {
     e->vals[e->count - 1] = obj_cpy(v);
     e->syms[e->count - 1] = malloc(sizeof(char) * (strlen(k->sym) + 1));
     strcpy(e->syms[e->count - 1], k->sym);
-
-    /* copy name into lambda */
-    if (v->type == OBJ_FUN && !v->fun->proc && !v->fun->name) {
-        e->vals[e->count - 1]->fun->name =
-            malloc(sizeof(char) * (strlen(k->sym) + 1));
-        strcpy(e->vals[e->count - 1]->fun->name, k->sym);
-    }
 }
 
 env *cpy_env(env *e) {
