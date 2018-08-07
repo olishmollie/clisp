@@ -115,9 +115,8 @@ obj *eval_if(env *e, obj *args) {
 }
 
 obj *eval_cond(env *e, obj *args) {
-
+    CASSERT(args, args->nargs > 0, "invalid syntax cond");
     TARGCHECK(args, "cond", OBJ_CONS);
-
     while (args->nargs > 1) {
         obj *arg = obj_popcar(&args);
 
@@ -133,42 +132,39 @@ obj *eval_cond(env *e, obj *args) {
             return pred;
         }
 
-        if (!obj_isfalse(pred)) {
+        if (obj_istrue(pred)) {
             obj *res = obj_popcar(&arg);
             obj_delete(pred);
             obj_delete(args);
             return eval(e, res);
         }
 
+        printf("DELETING PRED!!!!\n");
         obj_delete(pred);
     }
 
     /* else keyword */
-    /* TODO: refactor this? */
     obj *arg = obj_popcar(&args);
     obj *maybe_else = obj_car(arg);
+
+    obj *res = NULL;
     if (maybe_else->type == OBJ_KEYWORD &&
         strcmp(maybe_else->keyword, "else") == 0) {
         maybe_else = obj_popcar(&arg);
         obj_delete(maybe_else);
-        obj *res = obj_popcar(&arg);
-        obj_delete(arg);
-        obj_delete(args);
-        return eval(e, res);
+        res = eval(e, obj_popcar(&arg));
     } else {
-        obj *pred = obj_popcar(&arg);
-        if (!obj_isfalse(pred)) {
-            obj *res = obj_popcar(&arg);
-            obj_delete(pred);
-            obj_delete(arg);
-            obj_delete(args);
-            return eval(e, res);
+        obj *pred = eval(e, obj_popcar(&arg));
+        if (obj_istrue(pred)) {
+            res = eval(e, obj_popcar(&arg));
         }
+        obj_delete(pred);
     }
 
+    obj_delete(arg);
     obj_delete(args);
 
-    return obj_nil();
+    return res;
 }
 
 obj *eval_quote(env *e, obj *args) {

@@ -456,7 +456,6 @@ obj *cpy_num(obj *o) {
 }
 
 obj *obj_cpy(obj *o) {
-    printf("copying object of type %s\n", obj_typename(o->type));
     obj *res;
     switch (o->type) {
     case OBJ_NUM:
@@ -542,32 +541,32 @@ void print_rawstr(char *str) {
     printf("\"");
 }
 
-void print_cons(obj *o) {
-    printf("(");
-    obj_print(o->cons->car);
-    printf(" . ");
-    obj_print(o->cons->cdr);
-    printf(")");
-}
-
 // void print_cons(obj *o) {
-//     putchar('(');
-//     obj *p = o;
-//     while (1) {
-//         obj_print(obj_car(p));
-//         obj *cdr = obj_cdr(p);
-//         if (cdr->type != OBJ_CONS) {
-//             if (cdr->type != OBJ_NIL) {
-//                 printf(" . ");
-//                 obj_print(cdr);
-//             }
-//             putchar(')');
-//             break;
-//         }
-//         putchar(' ');
-//         p = obj_cdr(p);
-//     }
+//     printf("(");
+//     obj_print(o->cons->car);
+//     printf(" . ");
+//     obj_print(o->cons->cdr);
+//     printf(")");
 // }
+
+void print_cons(obj *o) {
+    putchar('(');
+    obj *p = o;
+    while (1) {
+        obj_print(obj_car(p));
+        obj *cdr = obj_cdr(p);
+        if (cdr->type != OBJ_CONS) {
+            if (cdr->type != OBJ_NIL) {
+                printf(" . ");
+                obj_print(cdr);
+            }
+            putchar(')');
+            break;
+        }
+        putchar(' ');
+        p = obj_cdr(p);
+    }
+}
 
 void obj_print(obj *o) {
     if (o) {
