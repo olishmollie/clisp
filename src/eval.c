@@ -78,7 +78,9 @@ obj *eval_def(env *e, obj *args) {
 obj *eval_if(env *e, obj *args) {
     NARGCHECK(args, "if", 3);
 
-    obj *pred = eval(e, obj_popcar(&args));
+    obj *arg = obj_popcar(&args);
+    obj *pred = eval(e, arg);
+
     obj *conseq = obj_popcar(&args);
     obj *alt = obj_popcar(&args);
 
@@ -115,6 +117,7 @@ obj *eval_cond(env *e, obj *args) {
                 "arguments to cond must themselves have two arguments");
 
         obj *pred = eval(e, obj_popcar(&arg));
+        obj_delete(arg);
 
         if (pred->type == OBJ_ERR) {
             obj_delete(arg);
