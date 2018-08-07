@@ -15,10 +15,6 @@ env *env_new(void) {
     return e;
 }
 
-obj *obj_cpy(obj *);
-obj *obj_err(char *, ...);
-void obj_delete(obj *);
-
 obj *env_lookup(env *e, obj *k) {
     /* search local env */
     for (int i = 0; i < e->count; i++) {
@@ -59,6 +55,17 @@ void env_insert(env *e, obj *k, obj *v) {
             malloc(sizeof(char) * (strlen(k->sym) + 1));
         strcpy(e->vals[e->count - 1]->fun->name, k->sym);
     }
+}
+
+env *cpy_env(env *e) {
+    env *res = env_new();
+    for (int i = 0; i < e->count; i++) {
+        obj *k = obj_sym(e->syms[i]);
+        obj *v = e->vals[i];
+        env_insert(res, k, v);
+        obj_delete(k);
+    }
+    return res;
 }
 
 void env_delete(env *e) {
@@ -139,7 +146,6 @@ num_t *mk_dbl(mpf_t dbl) {
     num_t *n = malloc(sizeof(num_t));
     n->type = NUM_DBL;
     mpf_init_set(n->dbl, dbl);
-    mpf_set_prec(n->dbl, 0);
     return n;
 }
 
@@ -158,8 +164,7 @@ fun_t *mk_fun(char *name, builtin bltin, obj *params, obj *body) {
     fun->params = params;
     fun->body = body;
 
-    if (!fun->proc)
-        fun->e = env_new();
+    fun->e = !fun->proc ? env_new() : NULL;
 
     if (name) {
         fun->name = malloc(sizeof(char) * (strlen(name) + 1));
@@ -216,6 +221,7 @@ obj *obj_num(char *numstr, token_t ttype) {
         obj_delete(o);
         return err;
     }
+    INCR_OBJ(o);
     o->nargs = 0;
     return o;
 }
@@ -225,6 +231,7 @@ obj *obj_int(mpz_t integ) {
     o->type = OBJ_NUM;
     o->num = mk_int(integ);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -233,6 +240,7 @@ obj *obj_rat(mpq_t rat) {
     o->type = OBJ_NUM;
     o->num = mk_rat(rat);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -241,6 +249,7 @@ obj *obj_dbl(mpf_t dbl) {
     o->type = OBJ_NUM;
     o->num = mk_dbl(dbl);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -250,6 +259,7 @@ obj *obj_sym(char *name) {
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -259,6 +269,7 @@ obj *obj_str(char *str) {
     o->str = malloc(sizeof(char) * (strlen(str) + 1));
     strcpy(o->str, str);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -267,6 +278,7 @@ obj *obj_cons(obj *car, obj *cdr) {
     o->type = OBJ_CONS;
     o->cons = mk_cons(car, cdr);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -275,6 +287,7 @@ obj *obj_builtin(char *name, builtin proc) {
     o->type = OBJ_FUN;
     o->fun = mk_fun(name, proc, NULL, NULL);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -283,6 +296,7 @@ obj *obj_lambda(obj *params, obj *body) {
     o->type = OBJ_FUN;
     o->fun = mk_fun(NULL, NULL, params, body);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -299,30 +313,37 @@ obj *obj_const(char *constant) {
     }
 
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_char(char c) {
     char *repr = 0;
+    obj *res;
     switch (c) {
     case '\n':
     case '\f':
-        return obj_const("#\\newline");
+        res = obj_const("#\\newline");
+        break;
     case ' ':
-        return obj_const("#\\space");
+        res = obj_const("#\\space");
+        break;
     case '\t':
-        return obj_const("#\\tab");
+        res = obj_const("#\\tab");
+        break;
     default:
         repr = malloc(sizeof(char) * 4);
         sprintf(repr, "#\\%c", c);
-        obj *constant = obj_const(repr);
+        res = obj_const(repr);
         free(repr);
-        return constant;
     }
+
+    return res;
 }
 
 obj *obj_bool(bool_t type) {
-    return type == BOOL_T ? obj_const("#t") : obj_const("#f");
+    obj *res = type == BOOL_T ? obj_const("#t") : obj_const("#f");
+    return res;
 }
 
 int obj_isfalse(obj *c) {
@@ -338,6 +359,7 @@ obj *obj_keyword(char *name) {
     o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->keyword, name);
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -345,6 +367,7 @@ obj *obj_nil(void) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NIL;
     o->nargs = 0;
+    INCR_OBJ(o);
     return o;
 }
 
@@ -358,6 +381,7 @@ obj *obj_err(char *fmt, ...) {
     vsnprintf(o->err, 511, fmt, args);
     va_end(args);
     o->nargs = 0;
+    INCR_OBJ(o);
 
     return o;
 }
@@ -398,9 +422,10 @@ obj *obj_cdr(obj *o) { return o->cons->cdr; }
 obj *obj_cadr(obj *o) { return obj_car(obj_cdr(o)); }
 
 obj *obj_popcar(obj **o) {
-    obj *car = obj_car(*o);
-    obj *cdr = obj_cdr(*o);
+    obj *car = obj_cpy(obj_car(*o));
+    obj *cdr = obj_cpy(obj_cdr(*o));
     int count = (*o)->nargs;
+    obj_delete(*o);
     *o = cdr;
     (*o)->nargs = count - 1;
     return car;
@@ -516,6 +541,14 @@ void print_rawstr(char *str) {
     printf("\"");
 }
 
+// void print_cons(obj *o) {
+//     printf("(");
+//     obj_print(o->cons->car);
+//     printf(" . ");
+//     obj_print(o->cons->cdr);
+//     printf(")");
+// }
+
 void print_cons(obj *o) {
     putchar('(');
     obj *p = o;
@@ -536,40 +569,42 @@ void print_cons(obj *o) {
 }
 
 void obj_print(obj *o) {
-    switch (o->type) {
-    case OBJ_NUM:
-        print_num(o);
-        break;
-    case OBJ_SYM:
-        printf("%s", o->sym);
-        break;
-    case OBJ_STR:
-        print_rawstr(o->str);
-        break;
-    case OBJ_CONS:
-        print_cons(o);
-        break;
-    case OBJ_CONST:
-        printf("%s", o->constant->repr);
-        break;
-    case OBJ_FUN:
-        if (o->fun->name)
-            printf("<function '%s'>", o->fun->name);
-        else {
-            printf("<function>");
+    if (o) {
+        switch (o->type) {
+        case OBJ_NUM:
+            print_num(o);
+            break;
+        case OBJ_SYM:
+            printf("%s", o->sym);
+            break;
+        case OBJ_STR:
+            print_rawstr(o->str);
+            break;
+        case OBJ_CONS:
+            print_cons(o);
+            break;
+        case OBJ_CONST:
+            printf("%s", o->constant->repr);
+            break;
+        case OBJ_FUN:
+            if (o->fun->name)
+                printf("<function '%s'>", o->fun->name);
+            else {
+                printf("<function>");
+            }
+            break;
+        case OBJ_ERR:
+            printf("Error: %s", o->err);
+            break;
+        case OBJ_KEYWORD:
+            printf("%s", o->keyword);
+            break;
+        case OBJ_NIL:
+            printf("()");
+            break;
+        default:
+            printf("Cannot print unknown obj type\n");
         }
-        break;
-    case OBJ_ERR:
-        printf("Error: %s", o->err);
-        break;
-    case OBJ_KEYWORD:
-        printf("%s", o->keyword);
-        break;
-    case OBJ_NIL:
-        printf("()");
-        break;
-    default:
-        printf("Cannot print unknown obj type\n");
     }
 }
 
@@ -601,41 +636,45 @@ void clear_num(obj *o) {
 }
 
 void obj_delete(obj *o) {
-    switch (o->type) {
-    case OBJ_NUM:
-        clear_num(o);
-        break;
-    case OBJ_SYM:
-        free(o->sym);
-        break;
-    case OBJ_STR:
-        free(o->str);
-        break;
-    case OBJ_CONS:
-        obj_delete(obj_car(o));
-        obj_delete(obj_cdr(o));
-        free(o->cons);
-        break;
-    case OBJ_ERR:
-        free(o->err);
-        break;
-    case OBJ_FUN:
-        free(o->fun->name);
-        if (o->fun->params)
-            obj_delete(o->fun->params);
-        if (o->fun->body)
-            obj_delete(o->fun->body);
-        free(o->fun);
-        break;
-    case OBJ_KEYWORD:
-        free(o->keyword);
-        break;
-    case OBJ_CONST:
-        free(o->constant->repr);
-        free(o->constant);
-        break;
-    case OBJ_NIL:
-        break;
+    if (o) {
+        DECR_OBJ(o);
+        switch (o->type) {
+        case OBJ_NUM:
+            clear_num(o);
+            break;
+        case OBJ_SYM:
+            free(o->sym);
+            break;
+        case OBJ_STR:
+            free(o->str);
+            break;
+        case OBJ_CONS:
+            obj_delete(obj_car(o));
+            obj_delete(obj_cdr(o));
+            free(o->cons);
+            break;
+        case OBJ_ERR:
+            free(o->err);
+            break;
+        case OBJ_FUN:
+            free(o->fun->name);
+            env_delete(o->fun->e);
+            if (o->fun->params)
+                obj_delete(o->fun->params);
+            if (o->fun->body)
+                obj_delete(o->fun->body);
+            free(o->fun);
+            break;
+        case OBJ_KEYWORD:
+            free(o->keyword);
+            break;
+        case OBJ_CONST:
+            free(o->constant->repr);
+            free(o->constant);
+            break;
+        case OBJ_NIL:
+            break;
+        }
+        free(o);
     }
-    free(o);
 }

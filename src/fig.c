@@ -29,6 +29,7 @@ void register_builtin(env *e, builtin fun, char *name) {
     obj_delete(v);
 }
 
+obj *builtin_printenv(env *e, obj *args);
 obj *builtin_load(env *e, obj *args);
 obj *builtin_exit(env *e, obj *args);
 
@@ -59,8 +60,9 @@ env *global_env(void) {
     register_builtin(e, builtin_type, "type");
     register_builtin(e, builtin_print, "print");
     register_builtin(e, builtin_println, "println");
-    register_builtin(e, builtin_err, "err");
+    register_builtin(e, builtin_error, "error");
 
+    register_builtin(e, builtin_printenv, "printenv");
     register_builtin(e, builtin_load, "load");
     register_builtin(e, builtin_exit, "exit");
     return e;
@@ -87,7 +89,7 @@ obj *readfile(char *fname) {
 
     while (!feof(infile)) {
         obj *o = eval(universe, read(p));
-        if (o->type == OBJ_ERR) {
+        if (o && o->type == OBJ_ERR) {
             obj_println(o);
             obj_delete(o);
             break;
@@ -98,12 +100,21 @@ obj *readfile(char *fname) {
     parser_delete(p);
     fclose(infile);
 
-    return obj_nil();
+    return NULL;
 }
 
 void repl_println(obj *o) {
-    printf("=> ");
-    obj_println(o);
+    if (o) {
+        printf("=> ");
+        obj_println(o);
+    }
+}
+
+obj *builtin_printenv(env *e, obj *args) {
+    NARGCHECK(args, "printenv", 0);
+    obj_delete(args);
+    env_print(e);
+    return NULL;
 }
 
 obj *builtin_load(env *e, obj *args) {
@@ -123,9 +134,12 @@ obj *builtin_exit(env *e, obj *args) {
     parser_delete(repl_parser);
     free(input);
     fclose(stream);
+    printf("numobj = %d\n", numobj);
     exit(0);
     return NULL;
 }
+
+int numobj = 0;
 
 void repl() {
 
@@ -142,10 +156,11 @@ void repl() {
 
         repl_parser = parser_new(stream);
 
-        obj *o = eval(universe, read(repl_parser));
+        obj *o = read(repl_parser);
+        o = eval(universe, o);
         repl_println(o);
-        obj_delete(o);
 
+        obj_delete(o);
         free(input);
         parser_delete(repl_parser);
     }

@@ -117,7 +117,7 @@ token lexsymbol(lexer *l) {
 
     if (strcmp(sym, "nil") == 0)
         return token_new(TOK_NIL, sym);
-    if (strcmp(sym, "def") == 0)
+    if (strcmp(sym, "define") == 0)
         return token_new(TOK_DEF, sym);
     if (strcmp(sym, "quote") == 0)
         return token_new(TOK_QUOTE, sym);
@@ -125,6 +125,10 @@ token lexsymbol(lexer *l) {
         return token_new(TOK_COND, sym);
     if (strcmp(sym, "lambda") == 0)
         return token_new(TOK_LAMBDA, sym);
+    if (strcmp(sym, "if") == 0)
+        return token_new(TOK_IF, sym);
+    if (strcmp(sym, "else") == 0)
+        return token_new(TOK_ELSE, sym);
 
     return token_new(TOK_SYM, sym);
 }

@@ -58,4 +58,18 @@
         }                                                                      \
     }
 
+#define INCR_OBJ(o)                                                            \
+    { numobj++; }
+
+#define DECR_OBJ(o)                                                            \
+    { numobj--; }
+
+#define PRINT(name, o)                                                         \
+    {                                                                          \
+        printf("%s = ", name);                                                 \
+        obj_println(o);                                                        \
+    }
+
+int numobj;
+
 #endif

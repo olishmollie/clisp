@@ -108,6 +108,18 @@ obj *read(parser *p) {
     nexttok(p);
     token tok;
     switch (p->curtok.type) {
+    /* special forms */
+    case TOK_DEF:
+    case TOK_COND:
+    case TOK_LAMBDA:
+    case TOK_QUOTE:
+    case TOK_IF:
+    case TOK_ELSE:
+        tok = p->curtok;
+        obj *k = obj_keyword(tok.val);
+        token_delete(tok);
+        return k;
+    /* numbers */
     case TOK_INT:
     case TOK_RAT:
     case TOK_FLOAT:
@@ -136,14 +148,6 @@ obj *read(parser *p) {
     case TOK_TICK:
         token_delete(p->curtok);
         return expand_quote(p);
-    case TOK_DEF:
-    case TOK_COND:
-    case TOK_LAMBDA:
-    case TOK_QUOTE:
-        tok = p->curtok;
-        obj *k = obj_keyword(tok.val);
-        token_delete(tok);
-        return k;
     case TOK_RPAREN:
         token_delete(p->curtok);
         return obj_err("unexpected ')'");

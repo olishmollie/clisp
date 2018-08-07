@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS=-c -Wall
+CFLAGS=-c -g -Wall
 LDFLAGS=-ledit -lgmp
 SOURCES:=$(wildcard src/*.c)
 OBJECTS=$(SOURCES:.c=.o)
@@ -14,4 +14,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm src/*.o $(EXECUTABLE)
+	rm src/*.o $(EXECUTABLE) && make all

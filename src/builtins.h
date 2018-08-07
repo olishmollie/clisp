@@ -23,7 +23,9 @@ obj *builtin_listtostr(env *e, obj *args);
 obj *builtin_type(env *e, obj *args);
 obj *builtin_print(env *e, obj *args);
 obj *builtin_println(env *e, obj *args);
-obj *builtin_err(env *e, obj *args);
+obj *builtin_error(env *e, obj *args);
 obj *builtin_eval(env *e, obj *args);
+obj *builtin_exit(env *e, obj *args);
+obj *builtin_load(env *e, obj *args);
 
 #endif
