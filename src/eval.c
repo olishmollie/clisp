@@ -6,7 +6,6 @@
 #include <string.h>
 
 obj *eval_lambda(env *e, obj *args) {
-    printf("\n ENTERING EVAL_LAMBDA!!!!!!!\n\n");
     // NARGCHECK(args, "lambda", 2);
     CASSERT(args,
             obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
@@ -55,20 +54,13 @@ obj *eval_def(env *e, obj *args) {
         obj *name = obj_car(params);
         CASSERT(args, name->type == OBJ_SYM, "invalid syntax define");
 
-        PRINT("args", args);
-
         /* build arguments to lambda */
         params = obj_popcar(&args);
         name = obj_popcar(&params);
 
-        // PRINT("params", params);
-        // PRINT("name", name);
-
         /* join list and set nargs + 1 for param list */
         obj *list = obj_cons(params, args);
         list->nargs = args->nargs + 1;
-
-        PRINT("list", list);
 
         /* create and save lambda */
         obj *lambda = eval_lambda(e, list);
@@ -139,7 +131,6 @@ obj *eval_cond(env *e, obj *args) {
             return eval(e, res);
         }
 
-        printf("DELETING PRED!!!!\n");
         obj_delete(pred);
     }
 
@@ -197,8 +188,6 @@ obj *eval_keyword(env *e, obj *o) {
 }
 
 obj *eval_call(env *e, obj *f, obj *args) {
-    printf("\nENTERING EVAL CALL!!!!!!!!\n\n");
-
     /* check builtin */
     if (f->fun->proc) {
         if (strcmp(f->fun->name, "exit") == 0) {
@@ -234,7 +223,6 @@ obj *eval_call(env *e, obj *f, obj *args) {
     obj *expr = obj_popcar(&f->fun->body);
     obj *res = eval(f->fun->e, expr);
 
-    printf("returning from lambda\n");
     return res;
 }
 

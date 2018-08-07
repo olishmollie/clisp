@@ -58,21 +58,11 @@
         }                                                                      \
     }
 
-#define MKOBJ(o)                                                               \
-    {                                                                          \
-        printf("making object of type %s\n", obj_typename(o->type));           \
-        obj_println(o);                                                        \
-        printf("\n");                                                          \
-        numobj++;                                                              \
-    }
+#define INCR_OBJ(o)                                                            \
+    { numobj++; }
 
-#define DLTOBJ(o)                                                              \
-    {                                                                          \
-        printf("deleting object of type %s\n", obj_typename(o->type));         \
-        obj_println(o);                                                        \
-        printf("\n");                                                          \
-        numobj--;                                                              \
-    }
+#define DECR_OBJ(o)                                                            \
+    { numobj--; }
 
 #define PRINT(name, o)                                                         \
     {                                                                          \

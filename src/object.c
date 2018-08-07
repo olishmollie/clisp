@@ -221,7 +221,7 @@ obj *obj_num(char *numstr, token_t ttype) {
         obj_delete(o);
         return err;
     }
-    MKOBJ(o);
+    INCR_OBJ(o);
     o->nargs = 0;
     return o;
 }
@@ -231,7 +231,7 @@ obj *obj_int(mpz_t integ) {
     o->type = OBJ_NUM;
     o->num = mk_int(integ);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -240,7 +240,7 @@ obj *obj_rat(mpq_t rat) {
     o->type = OBJ_NUM;
     o->num = mk_rat(rat);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -249,7 +249,7 @@ obj *obj_dbl(mpf_t dbl) {
     o->type = OBJ_NUM;
     o->num = mk_dbl(dbl);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -259,7 +259,7 @@ obj *obj_sym(char *name) {
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -269,7 +269,7 @@ obj *obj_str(char *str) {
     o->str = malloc(sizeof(char) * (strlen(str) + 1));
     strcpy(o->str, str);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -278,7 +278,7 @@ obj *obj_cons(obj *car, obj *cdr) {
     o->type = OBJ_CONS;
     o->cons = mk_cons(car, cdr);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -287,7 +287,7 @@ obj *obj_builtin(char *name, builtin proc) {
     o->type = OBJ_FUN;
     o->fun = mk_fun(name, proc, NULL, NULL);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -296,7 +296,7 @@ obj *obj_lambda(obj *params, obj *body) {
     o->type = OBJ_FUN;
     o->fun = mk_fun(NULL, NULL, params, body);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -313,7 +313,7 @@ obj *obj_const(char *constant) {
     }
 
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -359,7 +359,7 @@ obj *obj_keyword(char *name) {
     o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->keyword, name);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -367,7 +367,7 @@ obj *obj_nil(void) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_NIL;
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
     return o;
 }
 
@@ -381,7 +381,7 @@ obj *obj_err(char *fmt, ...) {
     vsnprintf(o->err, 511, fmt, args);
     va_end(args);
     o->nargs = 0;
-    MKOBJ(o);
+    INCR_OBJ(o);
 
     return o;
 }
@@ -637,7 +637,7 @@ void clear_num(obj *o) {
 
 void obj_delete(obj *o) {
     if (o) {
-        DLTOBJ(o);
+        DECR_OBJ(o);
         switch (o->type) {
         case OBJ_NUM:
             clear_num(o);

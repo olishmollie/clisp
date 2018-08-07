@@ -146,7 +146,6 @@ void repl() {
     printf("fig version 0.1\n\n");
 
     while (1) {
-        printf("numobj = %d\n", numobj);
         input = readline("> ");
 
         if (strlen(input) == 0)
@@ -158,8 +157,6 @@ void repl() {
         repl_parser = parser_new(stream);
 
         obj *o = read(repl_parser);
-
-        printf("\nENTERING EVAL!!!!!!!\n\n");
         o = eval(universe, o);
         repl_println(o);
 
@@ -172,7 +169,7 @@ void repl() {
 int main(int argc, char **argv) {
 
     universe = global_env();
-    // readfile(STDLIB);
+    readfile(STDLIB);
 
     if (argc > 1)
         readfile(argv[1]);
