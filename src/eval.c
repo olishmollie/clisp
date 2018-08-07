@@ -6,6 +6,7 @@
 #include <string.h>
 
 obj *eval_lambda(env *e, obj *args) {
+    printf("\n ENTERING EVAL_LAMBDA!!!!!!!\n\n");
     // NARGCHECK(args, "lambda", 2);
     CASSERT(args,
             obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
@@ -189,10 +190,17 @@ obj *eval_keyword(env *e, obj *o) {
 }
 
 obj *eval_call(env *e, obj *f, obj *args) {
+    printf("\nENTERING EVAL CALL!!!!!!!!\n\n");
 
     /* check builtin */
-    if (f->fun->proc)
+    if (f->fun->proc) {
+        if (strcmp(f->fun->name, "exit") == 0) {
+            obj_delete(f);
+            builtin_exit(e, args);
+        }
+
         return f->fun->proc(e, args);
+    }
 
     NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
               f->fun->params->nargs);
@@ -219,6 +227,7 @@ obj *eval_call(env *e, obj *f, obj *args) {
     obj *expr = obj_popcar(&f->fun->body);
     obj *res = eval(f->fun->e, expr);
 
+    printf("returning from lambda\n");
     return res;
 }
 

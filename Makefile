@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS=-c -Wall
+CFLAGS=-c -g -Wall
 LDFLAGS=-ledit -lgmp
 SOURCES:=$(wildcard src/*.c)
 OBJECTS=$(SOURCES:.c=.o)

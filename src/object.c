@@ -15,10 +15,6 @@ env *env_new(void) {
     return e;
 }
 
-obj *obj_cpy(obj *);
-obj *obj_err(char *, ...);
-void obj_delete(obj *);
-
 obj *env_lookup(env *e, obj *k) {
     /* search local env */
     for (int i = 0; i < e->count; i++) {
@@ -168,8 +164,7 @@ fun_t *mk_fun(char *name, builtin bltin, obj *params, obj *body) {
     fun->params = params;
     fun->body = body;
 
-    if (!fun->proc)
-        fun->e = env_new();
+    fun->e = !fun->proc ? env_new() : NULL;
 
     if (name) {
         fun->name = malloc(sizeof(char) * (strlen(name) + 1));
@@ -479,6 +474,8 @@ obj *obj_cpy(obj *o) {
             res = obj_builtin(o->fun->name, o->fun->proc);
         else {
             res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
+            // TODO: Hack, fix this
+            env_delete(res->fun->e);
             res->fun->e = cpy_env(o->fun->e);
             if (o->fun->name) {
                 res->fun->name =
@@ -664,6 +661,8 @@ void obj_delete(obj *o) {
             break;
         case OBJ_FUN:
             free(o->fun->name);
+            // if (!o->fun->proc)
+            env_delete(o->fun->e);
             if (o->fun->params)
                 obj_delete(o->fun->params);
             if (o->fun->body)

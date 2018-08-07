@@ -129,8 +129,7 @@ obj *builtin_load(env *e, obj *args) {
 
 obj *builtin_exit(env *e, obj *args) {
     NARGCHECK(args, "exit", 0);
-    printf("exiting...numobj = %d\n", numobj);
-    env_delete(universe);
+    env_delete(e);
     obj_delete(args);
     parser_delete(repl_parser);
     free(input);
@@ -157,7 +156,11 @@ void repl() {
         stream = fmemopen(input, strlen(input), "r");
 
         repl_parser = parser_new(stream);
-        obj *o = eval(universe, read(repl_parser));
+
+        obj *o = read(repl_parser);
+
+        printf("\nENTERING EVAL!!!!!!!\n\n");
+        o = eval(universe, o);
         repl_println(o);
 
         obj_delete(o);
