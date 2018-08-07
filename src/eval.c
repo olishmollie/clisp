@@ -116,7 +116,6 @@ obj *eval_cond(env *e, obj *args) {
                 "arguments to cond must themselves have two arguments");
 
         obj *pred = eval(e, obj_popcar(&arg));
-        obj_delete(arg);
 
         if (pred->type == OBJ_ERR) {
             obj_delete(arg);
@@ -127,6 +126,7 @@ obj *eval_cond(env *e, obj *args) {
         if (obj_istrue(pred)) {
             obj *res = obj_popcar(&arg);
             obj_delete(pred);
+            obj_delete(arg);
             obj_delete(args);
             return eval(e, res);
         }
@@ -145,6 +145,7 @@ obj *eval_cond(env *e, obj *args) {
         obj_delete(maybe_else);
         res = eval(e, obj_popcar(&arg));
     } else {
+        PRINT("arg", arg);
         obj *pred = eval(e, obj_popcar(&arg));
         if (obj_istrue(pred)) {
             res = eval(e, obj_popcar(&arg));

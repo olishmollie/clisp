@@ -19,20 +19,19 @@
           (#t #t))))
 
 (define and (lambda (x y)
-    (cond (x
-           (cond (y #t)
-                 (#t #f)))
-          (#t #f))))
+    (if x
+        (if y #t #f)
+        #f)))
 
 (define or (lambda (x y)
     (cond (x #t)
           (#t (cond (y #t)
                       (#t #f))))))
 
-(define incr (lambda (x)
+(define inc (lambda (x)
     (+ x 1)))
 
-(define decr (lambda (x)
+(define dec (lambda (x)
     (- x 1)))
 
 (define equal? (lambda (a b)
@@ -44,12 +43,12 @@
 (define (average x y) (/ (+ x y) 2))
 
 (define (sqrt x)
-    (define (good-enough? guess x)
+    (define (good-enough? guess)
         (< (abs (- (square guess) x)) 0.001))
-    (define (improve guess x)
+    (define (improve guess)
         (average guess (/ x guess)))
-    (define (sqrt-iter guess x)
-        (if (good-enough? guess x)
+    (define (sqrt-iter guess)
+        (if (good-enough? guess)
             guess
-            (sqrt-iter (improve guess x) x)))
-    (sqrt-iter 1.0 x))
+            (sqrt-iter (improve guess))))
+    (sqrt-iter 1.0))

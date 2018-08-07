@@ -134,7 +134,7 @@ obj *builtin_exit(env *e, obj *args) {
     parser_delete(repl_parser);
     free(input);
     fclose(stream);
-    printf("numobj = %d\n", numobj);
+    printf("objects still in memory: %d\n", numobj);
     exit(0);
     return NULL;
 }
