@@ -40,6 +40,7 @@
           (#t (equal? (cdr a) (cdr b))))))
 
 (define (square x) (* x x))
+(define (cube x) (* x x x))
 (define (average x y) (/ (+ x y) 2))
 
 (define (sqrt x)
@@ -59,3 +60,24 @@
           ((= y 1) 2)
           (else (A (- x 1)
                    (A x (- y 1))))))
+
+(define (pow b n)
+    (define (pow-iter b counter product)
+        (if (= counter 0)
+            product
+            (pow-iter b
+                      (- counter 1)
+                      (* b product))))
+    (pow-iter b n 1))
+
+(define (gcd a b)
+    (if (= b 0)
+        a
+        (gcd b (mod a b))))
+
+(define (f x y)
+    (let ((a (+ 1 (* x y)))
+          (b (- 1 y)))
+        (+ (* x (square a))
+           (* y b)
+           (* a b))))

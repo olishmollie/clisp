@@ -112,6 +112,7 @@ obj *read(parser *p) {
     case TOK_DEF:
     case TOK_COND:
     case TOK_LAMBDA:
+    case TOK_LET:
     case TOK_QUOTE:
     case TOK_IF:
     case TOK_ELSE:

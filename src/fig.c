@@ -39,7 +39,7 @@ env *global_env(void) {
     register_builtin(e, builtin_minus, "-");
     register_builtin(e, builtin_times, "*");
     register_builtin(e, builtin_divide, "/");
-    register_builtin(e, builtin_remainder, "%");
+    register_builtin(e, builtin_remainder, "mod");
 
     register_builtin(e, builtin_gt, ">");
     register_builtin(e, builtin_gte, ">=");

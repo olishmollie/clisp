@@ -159,6 +159,50 @@ obj *eval_cond(env *e, obj *args) {
     return res;
 }
 
+// (let ((<var1> <exp1>)
+//       (<var2> <exp2>)
+//       (<varN> <expN>))
+//    (<body>)
+
+obj *eval_let(env *e, obj *args) {
+    NARGCHECK(args, "let", 2);
+
+    obj *params = obj_popcar(&args);
+    env *local = env_new();
+    local->parent = e;
+
+    while (params->nargs > 0) {
+        obj *pair = obj_popcar(&params);
+
+        obj *k = obj_popcar(&pair);
+        if (k->type != OBJ_SYM) {
+            obj *err = obj_err("let binding must be symbol, got %s",
+                               obj_typename(k->type));
+            obj_delete(k);
+            obj_delete(pair);
+            obj_delete(params);
+            obj_delete(args);
+            return err;
+        }
+
+        obj *v = eval(e, obj_popcar(&pair));
+        env_insert(local, k, v);
+
+        obj_delete(k);
+        obj_delete(v);
+        obj_delete(pair);
+    }
+
+    obj *body = obj_popcar(&args);
+    obj *res = eval(local, body);
+
+    obj_delete(params);
+    obj_delete(args);
+    env_delete(local);
+
+    return res;
+}
+
 obj *eval_quote(env *e, obj *args) {
     NARGCHECK(args, "quote", 1);
     obj *quote = obj_popcar(&args);
@@ -174,6 +218,8 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_quote(e, o);
     else if (strcmp(k->keyword, "lambda") == 0)
         res = eval_lambda(e, o);
+    else if (strcmp(k->keyword, "let") == 0)
+        res = eval_let(e, o);
     else if (strcmp(k->keyword, "cond") == 0)
         res = eval_cond(e, o);
     else if (strcmp(k->keyword, "if") == 0)

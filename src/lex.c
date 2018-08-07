@@ -129,6 +129,8 @@ token lexsymbol(lexer *l) {
         return token_new(TOK_IF, sym);
     if (strcmp(sym, "else") == 0)
         return token_new(TOK_ELSE, sym);
+    if (strcmp(sym, "let") == 0)
+        return token_new(TOK_LET, sym);
 
     return token_new(TOK_SYM, sym);
 }
