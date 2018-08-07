@@ -456,6 +456,7 @@ obj *cpy_num(obj *o) {
 }
 
 obj *obj_cpy(obj *o) {
+    printf("copying object of type %s\n", obj_typename(o->type));
     obj *res;
     switch (o->type) {
     case OBJ_NUM:
@@ -474,9 +475,6 @@ obj *obj_cpy(obj *o) {
             res = obj_builtin(o->fun->name, o->fun->proc);
         else {
             res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
-            // TODO: Hack, fix this
-            env_delete(res->fun->e);
-            res->fun->e = cpy_env(o->fun->e);
             if (o->fun->name) {
                 res->fun->name =
                     malloc(sizeof(char) * (strlen(o->fun->name) + 1));
@@ -661,7 +659,6 @@ void obj_delete(obj *o) {
             break;
         case OBJ_FUN:
             free(o->fun->name);
-            // if (!o->fun->proc)
             env_delete(o->fun->e);
             if (o->fun->params)
                 obj_delete(o->fun->params);

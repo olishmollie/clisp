@@ -38,40 +38,48 @@ obj *eval_def(env *e, obj *args) {
     if (params->type == OBJ_SYM) {
         /* typical define, e.g. (define x 100) */
         NARGCHECK(args, "define", 2);
+
         obj *k = obj_popcar(&args);
         obj *v = eval(e, obj_popcar(&args));
+
         env_insert(e, k, v);
+
         obj_delete(k);
         obj_delete(v);
+        obj_delete(args);
+
     } else {
         /* syntactic sugar, e.g. (define (square x) (* x x)) */
 
         /* first arg to params should be symbol */
-        params = obj_car(args);
         obj *name = obj_car(params);
         CASSERT(args, name->type == OBJ_SYM, "invalid syntax define");
+
+        PRINT("args", args);
 
         /* build arguments to lambda */
         params = obj_popcar(&args);
         name = obj_popcar(&params);
 
+        // PRINT("params", params);
+        // PRINT("name", name);
+
         /* join list and set nargs + 1 for param list */
         obj *list = obj_cons(params, args);
         list->nargs = args->nargs + 1;
 
+        PRINT("list", list);
+
         /* create and save lambda */
         obj *lambda = eval_lambda(e, list);
+
         env_insert(e, name, lambda);
 
         /* delete unused objects */
         obj_delete(name);
-        obj_delete(params);
-
-        // TODO: why does this segfault?
-        // obj_delete(lambda);
+        obj_delete(lambda);
     }
 
-    obj_delete(args);
     return NULL;
 }
 
