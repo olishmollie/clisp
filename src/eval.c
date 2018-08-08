@@ -7,7 +7,6 @@
 #include <string.h>
 
 obj *eval_lambda(env *e, obj *args) {
-    // NARGCHECK(args, "lambda", 2);
     CASSERT(args,
             obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
             "first argument should be a list, got %s",
@@ -171,11 +170,6 @@ obj *eval_cond(env *e, obj *args) {
 
     return res;
 }
-
-// (let ((<var1> <exp1>)
-//       (<var2> <exp2>)
-//       (<varN> <expN>))
-//    (<body>)
 
 obj *eval_let(env *e, obj *args) {
     NARGCHECK(args, "let", 2);
