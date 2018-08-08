@@ -118,11 +118,13 @@ obj *eval_if(env *e, obj *args) {
 obj *eval_cond(env *e, obj *args) {
     CASSERT(args, args->nargs > 0, "invalid syntax cond");
     TARGCHECK(args, "cond", OBJ_CONS);
-    while (args->nargs > 1) {
-        obj *arg = obj_popcar(&args);
 
-        CASSERT(args, arg->nargs == 2,
+    while (args->nargs > 1) {
+
+        CASSERT(args, obj_car(args)->nargs == 2,
                 "arguments to cond must themselves have two arguments");
+
+        obj *arg = obj_popcar(&args);
 
         obj *pred = eval(e, obj_popcar(&arg));
 
@@ -144,7 +146,9 @@ obj *eval_cond(env *e, obj *args) {
         obj_delete(arg);
     }
 
-    /* else keyword */
+    CASSERT(args, obj_car(args)->nargs == 2,
+            "arguments to cond must themselves have two arguments");
+
     obj *arg = obj_popcar(&args);
     obj *maybe_else = obj_car(arg);
 
