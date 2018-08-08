@@ -433,9 +433,12 @@ obj *builtin_println(env *e, obj *args) {
 }
 
 obj *builtin_error(env *e, obj *args) {
-    NARGCHECK(args, "err", 1);
-    TARGCHECK(args, "err", OBJ_STR);
+    CASSERT(args, args->nargs > 0, "error expects at least one argument");
+    CASSERT(args, obj_car(args)->type == OBJ_STR,
+            "first argument to error must be type string, got %s",
+            obj_typename(obj_car(args)->type));
 
+    // TODO: support variadic args
     obj *msg = obj_popcar(&args);
     obj *err = obj_err(msg->str);
 
