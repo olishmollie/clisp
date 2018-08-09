@@ -1,3 +1,4 @@
+;; numbers
 (define (abs x)
     (if (< x 0)
         (- x)
@@ -7,38 +8,26 @@
     (if (and (eq (type x) "number") (eq (type y) "number"))
         (eq x y)
         (error "args to = must be numbers")))
+(define inc (lambda (x)
+    (+ x 1)))
+(define dec (lambda (x)
+    (- x 1)))
+(define (odd? x) (= (mod x 2) 1))
 
-(define newline "\n")
-
-(define null? (lambda (x)
-    (cond ((atom x) (eq x '()))
-          (#t #f))))
-
+;; logical ops
 (define not (lambda (x)
     (cond (x #f)
           (#t #t))))
-
 (define and (lambda (x y)
     (if x
         (if y #t #f)
         #f)))
-
 (define or (lambda (x y)
     (cond (x #t)
           (#t (cond (y #t)
                       (#t #f))))))
 
-(define inc (lambda (x)
-    (+ x 1)))
-
-(define dec (lambda (x)
-    (- x 1)))
-
-(define equal? (lambda (a b)
-    (cond ((and (atom a) (atom b)) (eq a b))
-          ((or (atom a) (atom b)) #f)
-          (#t (equal? (cdr a) (cdr b))))))
-
+;; math
 (define (square x) (* x x))
 (define (cube x) (* x x x))
 (define (average x y) (/ (+ x y) 2))
@@ -53,6 +42,15 @@
             guess
             (sqrt-iter (improve guess))))
     (sqrt-iter 1.0))
+
+(define (fact n)
+    (define (fact-iter prod count max)
+        (if (> count max)
+            prod
+            (fact-iter (* count prod)
+                       (+ count 1)
+                       max)))
+    (fact-iter 1 1 n))
 
 (define (A x y)
     (cond ((= y 0) 0)
@@ -75,9 +73,92 @@
         a
         (gcd b (mod a b))))
 
-(define (f x y)
-    (let ((a (+ 1 (* x y)))
-          (b (- 1 y)))
-        (+ (* x (square a))
-           (* y b)
-           (* a b))))
+;; list ops
+(define null? (lambda (x)
+    (cond ((atom x) (eq x '()))
+          (#t #f))))
+
+(define (pair? x)
+    (not (atom x)))
+
+(define equal? (lambda (a b)
+    (cond ((and (atom a) (atom b)) (eq a b))
+          ((or (atom a) (atom b)) #f)
+          (#t (equal? (cdr a) (cdr b))))))
+
+(define (list-ref items n)
+    (if (= n 0)
+        (car items)
+        (list-ref (cdr items) (- n 1))))
+
+(define (length items)
+    (if (null? items)
+        0
+        (+ 1 (length (cdr items)))))
+
+(define (append list1 list2)
+    (if (null? list1)
+        list2
+        (cons (car list1) (append (cdr list1) list2))))
+
+(define (last-pair items)
+    (if (null? (cdr items))
+        (car items)
+        (last-pair (cdr items))))
+
+(define (map f items)
+    (if (null? items)
+        nil
+        (cons (f (car items))
+              (map f (cdr items)))))
+
+(define (for-each f items)
+    (f (car items))
+    (if (null? items)
+        ()
+        (for-each f (cdr items))))
+
+(define (count-leaves root)
+    (cond ((null? root) 0)
+          ((atom root) 1)
+          (else (+ (count-leaves (car root))
+                   (count-leaves (cdr root))))))
+
+(define (filter predicate sequence)
+    (cond ((null? sequence) nil)
+          ((predicate (car sequence))
+           (cons (car sequence)
+                 (filter predicate (cdr sequence))))
+          (else (filter predicate (cdr sequence)))))
+
+(define (accumulate op initial seq)
+    (if (null? seq)
+        initial
+        (op (car seq)
+            (accumulate op initial (cdr seq)))))
+
+(define (enumerate-interval low high)
+    (if (> low high)
+        nil
+        (cons low (enumerate-interval (+ low 1) high))))
+
+(define (enumerate-tree tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (list tree))
+        (else (append (enumerate-tree (car tree))
+                      (enumerate-tree (cdr tree))))))
+
+(define (flatmap proc seq)
+    (accumulate append nil (map proc seq)))
+
+(define (memq item x)
+    (cond ((null? x) #f)
+          ((equal? item (car x)) x)
+          (else (memq item (cdr x)))))
+
+;; differentiation
+(define (symbol? x) (eq (type x) "symbol"))
+(define (number? x) (eq (type x) "number"))
+(define (variable? x) (symbol? x))
+(define (same-variable? v1 v2)
+    (and (variable? v1) (variable? v2) (eq v1 v2)))
