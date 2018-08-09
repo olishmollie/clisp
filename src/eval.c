@@ -235,6 +235,7 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_def(e, o);
     else {
         res = obj_err("invalid syntax %s", k->keyword);
+        obj_delete(o);
     }
 
     obj_delete(k);
