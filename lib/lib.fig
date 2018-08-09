@@ -140,7 +140,7 @@
           (else (A (- x 1)
                    (A x (- y 1))))))
 
-(define (pow b n)
+(define (** b n)
     (define (pow-iter b counter product)
         (if (= counter 0)
             product
@@ -168,6 +168,10 @@
                               (deriv (multiplicand exp) var))
                 (make-product (deriv (multiplier exp) var)
                               (multiplicand exp))))
+          ((exponentiation? exp)
+            (make-exponentiation
+                (make-product (exponent exp) (base exp))
+                (make-sum (exponent exp) -1)))
           (else
             (error "unknown expression type -- DERIV"))))
 
@@ -178,8 +182,7 @@
 (define (variable? x) (symbol? x))
 
 (define (same-variable? v1 v2)
-    (and (variable? v1)
-         (and (variable? v2) (eq v1 v2))))
+    (and (variable? v1) (variable? v2) (eq v1 v2)))
 
 (define (=number? exp num)
     (and (number? exp) (= exp num)))
@@ -197,6 +200,12 @@
           ((and (number? m1) (number? m2)) (* m1 m2))
           (else (list '* m1 m2))))
 
+(define (make-exponentiation b exp)
+    (cond ((=number? exp 0) 1)
+          ((=number? exp 1) b)
+          ((and (number? b) (number? exp)) (** b exp))
+          (else (list '** b exp))))
+
 (define (sum? x)
     (and (pair? x) (eq (car x) '+)))
 
@@ -210,3 +219,10 @@
 (define (multiplier p) (cadr p))
 
 (define (multiplicand p) (caddr p))
+
+(define (exponentiation? x)
+    (and (pair? x) (eq (car x) '**)))
+
+(define (base e) (cadr e))
+
+(define (exponent e) (caddr e))
