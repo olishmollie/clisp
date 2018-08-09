@@ -1,85 +1,15 @@
-;; numbers
-(define (abs x)
-    (if (< x 0)
-        (- x)
-        x))
+;; lists
+(define (list . args) args)
 
-(define (= x y)
-    (if (and (eq (type x) "number") (eq (type y) "number"))
-        (eq x y)
-        (error "args to = must be numbers")))
-(define inc (lambda (x)
-    (+ x 1)))
-(define dec (lambda (x)
-    (- x 1)))
-(define (odd? x) (= (mod x 2) 1))
+(define (cadr x)
+    (car (cdr x)))
+(define (caddr x)
+    (car (cdr (cdr x))))
 
-;; logical ops
-(define not (lambda (x)
-    (cond (x #f)
-          (#t #t))))
-(define and (lambda (x y)
-    (if x
-        (if y #t #f)
-        #f)))
-(define or (lambda (x y)
-    (cond (x #t)
-          (#t (cond (y #t)
-                      (#t #f))))))
+(define (null? x)
+    (if (atom x) (eq x nil) #f))
 
-;; math
-(define (square x) (* x x))
-(define (cube x) (* x x x))
-(define (average x y) (/ (+ x y) 2))
-
-(define (sqrt x)
-    (define (good-enough? guess)
-        (< (abs (- (square guess) x)) 0.001))
-    (define (improve guess)
-        (average guess (/ x guess)))
-    (define (sqrt-iter guess)
-        (if (good-enough? guess)
-            guess
-            (sqrt-iter (improve guess))))
-    (sqrt-iter 1.0))
-
-(define (fact n)
-    (define (fact-iter prod count max)
-        (if (> count max)
-            prod
-            (fact-iter (* count prod)
-                       (+ count 1)
-                       max)))
-    (fact-iter 1 1 n))
-
-(define (A x y)
-    (cond ((= y 0) 0)
-          ((= x 0) (* 2 y))
-          ((= y 1) 2)
-          (else (A (- x 1)
-                   (A x (- y 1))))))
-
-(define (pow b n)
-    (define (pow-iter b counter product)
-        (if (= counter 0)
-            product
-            (pow-iter b
-                      (- counter 1)
-                      (* b product))))
-    (pow-iter b n 1))
-
-(define (gcd a b)
-    (if (= b 0)
-        a
-        (gcd b (mod a b))))
-
-;; list ops
-(define null? (lambda (x)
-    (cond ((atom x) (eq x '()))
-          (#t #f))))
-
-(define (pair? x)
-    (not (atom x)))
+(define (pair? x) (not (atom x)))
 
 (define equal? (lambda (a b)
     (cond ((and (atom a) (atom b)) (eq a b))
@@ -156,9 +86,127 @@
           ((equal? item (car x)) x)
           (else (memq item (cdr x)))))
 
+
+;; math
+(define (not x)
+    (if (eq x #f) #t #f))
+
+(define (abs x)
+    (if (< x 0)
+        (- x)
+        x))
+
+(define (= x y)
+    (if (and (eq (type x) "number") (eq (type y) "number"))
+        (eq x y)
+        (error "args to = must be numbers")))
+
+(define (inc x) (+ x 1))
+
+(define (dec x) (- x 1))
+
+(define (odd? x) (= (mod x 2) 1))
+
+(define (square x) (* x x))
+
+(define (cube x) (* x x x))
+
+(define (average x y) (/ (+ x y) 2))
+
+(define (sqrt x)
+    (define (good-enough? guess)
+        (< (abs (- (square guess) x)) 0.001))
+    (define (improve guess)
+        (average guess (/ x guess)))
+    (define (sqrt-iter guess)
+        (if (good-enough? guess)
+            guess
+            (sqrt-iter (improve guess))))
+    (sqrt-iter 1.0))
+
+(define (fact n)
+    (define (fact-iter prod count max)
+        (if (> count max)
+            prod
+            (fact-iter (* count prod)
+                       (+ count 1)
+                       max)))
+    (fact-iter 1 1 n))
+
+(define (A x y)
+    (cond ((= y 0) 0)
+          ((= x 0) (* 2 y))
+          ((= y 1) 2)
+          (else (A (- x 1)
+                   (A x (- y 1))))))
+
+(define (pow b n)
+    (define (pow-iter b counter product)
+        (if (= counter 0)
+            product
+            (pow-iter b
+                      (- counter 1)
+                      (* b product))))
+    (pow-iter b n 1))
+
+(define (gcd a b)
+    (if (= b 0)
+        a
+        (gcd b (mod a b))))
+
 ;; differentiation
+(define (deriv exp var)
+    (cond ((number? exp) 0)
+          ((variable? exp)
+            (if (same-variable? exp var) 1 0))
+          ((sum? exp)
+            (make-sum (deriv (addend exp) var)
+                      (deriv (augend exp) var)))
+          ((product? exp)
+            (make-sum
+                (make-product (multiplier exp)
+                              (deriv (multiplicand exp) var))
+                (make-product (deriv (multiplier exp) var)
+                              (multiplicand exp))))
+          (else
+            (error "unknown expression type -- DERIV"))))
+
 (define (symbol? x) (eq (type x) "symbol"))
+
 (define (number? x) (eq (type x) "number"))
+
 (define (variable? x) (symbol? x))
+
 (define (same-variable? v1 v2)
-    (and (variable? v1) (variable? v2) (eq v1 v2)))
+    (and (variable? v1)
+         (and (variable? v2) (eq v1 v2))))
+
+(define (=number? exp num)
+    (and (number? exp) (= exp num)))
+
+(define (make-sum a1 a2)
+    (cond ((=number? a1 0) a2)
+          ((=number? a2 0) a1)
+          ((and (number? a1) (number? a2)) (+ a1 a2))
+          (else (list '+ a1 a2))))
+
+(define (make-product m1 m2)
+    (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+          ((=number? m1 1) m2)
+          ((=number? m2 1) m1)
+          ((and (number? m1) (number? m2)) (* m1 m2))
+          (else (list '* m1 m2))))
+
+(define (sum? x)
+    (and (pair? x) (eq (car x) '+)))
+
+(define (addend s) (cadr s))
+
+(define (augend s) (caddr s))
+
+(define (product? x)
+    (and (pair? x) (eq (car x) '*)))
+
+(define (multiplier p) (cadr p))
+
+(define (multiplicand p) (caddr p))

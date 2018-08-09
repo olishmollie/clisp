@@ -214,6 +214,38 @@ obj *eval_quote(env *e, obj *args) {
     return quote;
 }
 
+obj *eval_and(env *e, obj *args) {
+
+    while (args->nargs > 0) {
+        obj *pred = eval(e, obj_popcar(&args));
+        if (obj_isfalse(pred)) {
+            obj_delete(args);
+            return pred;
+        }
+        obj_delete(pred);
+    }
+
+    obj_delete(args);
+
+    return obj_bool(BOOL_T);
+}
+
+obj *eval_or(env *e, obj *args) {
+
+    while (args->nargs > 0) {
+        obj *pred = eval(e, obj_popcar(&args));
+        if (obj_istrue(pred)) {
+            obj_delete(args);
+            return pred;
+        }
+        obj_delete(pred);
+    }
+
+    obj_delete(args);
+
+    return obj_bool(BOOL_F);
+}
+
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_popcar(&o);
@@ -230,6 +262,10 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_if(e, o);
     else if (strcmp(k->keyword, "define") == 0)
         res = eval_def(e, o);
+    else if (strcmp(k->keyword, "and") == 0)
+        res = eval_and(e, o);
+    else if (strcmp(k->keyword, "or") == 0)
+        res = eval_or(e, o);
     else {
         res = obj_err("invalid syntax %s", k->keyword);
         obj_delete(o);

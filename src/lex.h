@@ -25,6 +25,8 @@ typedef enum {
     TOK_TICK,
     TOK_LAMBDA,
     TOK_LET,
+    TOK_AND,
+    TOK_OR,
     TOK_END,
     TOK_ERR
 } token_t;
