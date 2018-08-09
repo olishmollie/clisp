@@ -592,7 +592,7 @@ void obj_print(obj *o) {
             }
             break;
         case OBJ_ERR:
-            printf("Error: %s", o->err);
+            printf("error: %s", o->err);
             break;
         case OBJ_KEYWORD:
             printf("%s", o->keyword);
