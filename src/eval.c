@@ -7,13 +7,10 @@
 #include <string.h>
 
 obj *eval_lambda(env *e, obj *args) {
-    CASSERT(args,
-            obj_car(args)->type == OBJ_CONS || obj_car(args)->type == OBJ_NIL,
-            "first argument should be a list, got %s",
-            obj_typename(obj_car(args)->type));
 
     /* check param list for non-symbols */
     obj *params = obj_popcar(&args);
+
     obj *cur = params;
     for (int i = 0; i < params->nargs; i++) {
         obj *sym = obj_car(cur);
@@ -244,26 +241,29 @@ obj *eval_keyword(env *e, obj *o) {
 
 obj *eval_call(env *e, obj *f, obj *args) {
     /* check builtin */
-    if (f->fun->proc) {
-        if (strcmp(f->fun->name, "exit") == 0) {
-            obj_delete(f);
-            builtin_exit(e, args);
-        }
-
+    if (f->fun->proc)
         return f->fun->proc(e, args);
-    }
 
-    NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
-              f->fun->params->nargs);
+    if (f->fun->params->nargs == 0) {
 
-    /* bind args to params */
-    f->fun->e->parent = e;
-    while (f->fun->params->nargs > 0) {
-        obj *param = obj_popcar(&f->fun->params);
-        obj *arg = obj_popcar(&args);
-        env_insert(f->fun->e, param, arg);
-        obj_delete(param);
-        obj_delete(arg);
+        /* variadic args */
+        f->fun->e->parent = e;
+        env_insert(f->fun->e, f->fun->params, args);
+
+    } else {
+
+        NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
+                  f->fun->params->nargs);
+
+        /* bind args to params */
+        f->fun->e->parent = e;
+        while (f->fun->params->nargs > 0) {
+            obj *param = obj_popcar(&f->fun->params);
+            obj *arg = obj_popcar(&args);
+            env_insert(f->fun->e, param, arg);
+            obj_delete(param);
+            obj_delete(arg);
+        }
     }
     obj_delete(args);
 
@@ -276,6 +276,7 @@ obj *eval_call(env *e, obj *f, obj *args) {
 
     /* last expression evaluated is return value */
     obj *expr = obj_popcar(&f->fun->body);
+
     obj *res = eval(f->fun->e, expr);
 
     return res;
@@ -290,7 +291,8 @@ obj *eval_list(env *e, obj *o) {
     /* evaluate all children and check for errors*/
     obj *cur = o;
     for (int i = 0; i < o->nargs; i++) {
-        cur->cons->car = eval(e, cur->cons->car);
+        obj *child = eval(e, cur->cons->car);
+        cur->cons->car = child;
         cur = obj_cdr(cur);
     }
     ERRCHECK(o);

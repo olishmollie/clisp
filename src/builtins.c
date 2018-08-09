@@ -331,8 +331,6 @@ obj *builtin_cdr(env *e, obj *args) {
     return list;
 }
 
-obj *builtin_list(env *e, obj *args) { return args; }
-
 obj *builtin_atom(env *e, obj *args) {
     NARGCHECK(args, "atom", 1);
     obj *x = obj_popcar(&args);

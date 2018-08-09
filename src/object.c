@@ -381,6 +381,11 @@ obj *obj_err(char *fmt, ...) {
 
 int obj_isatom(obj *o) { return o->type != OBJ_CONS && o->type != OBJ_FUN; }
 
+int obj_ispair(obj *o) {
+    return o->type == OBJ_CONS && obj_isatom(obj_car(o)) &&
+           obj_isatom(obj_cdr(o));
+}
+
 char *obj_typename(obj_t type) {
     switch (type) {
     case OBJ_NUM:
@@ -420,7 +425,7 @@ obj *obj_popcar(obj **o) {
     int count = (*o)->nargs;
     obj_delete(*o);
     *o = cdr;
-    (*o)->nargs = count - 1;
+    (*o)->nargs = obj_isatom(*o) ? 0 : count - 1;
     return car;
 }
 

@@ -49,7 +49,6 @@ env *global_env(void) {
     register_builtin(e, builtin_cons, "cons");
     register_builtin(e, builtin_car, "car");
     register_builtin(e, builtin_cdr, "cdr");
-    register_builtin(e, builtin_list, "list");
     register_builtin(e, builtin_eq, "eq");
     register_builtin(e, builtin_atom, "atom");
     register_builtin(e, builtin_eval, "eval");
@@ -134,7 +133,7 @@ obj *builtin_exit(env *e, obj *args) {
     parser_delete(repl_parser);
     free(input);
     fclose(stream);
-    if (numobj)
+    if (numobj > 1)
         printf("WARNING: %d objects still in memory\n", numobj);
     exit(0);
     return NULL;
