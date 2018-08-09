@@ -37,12 +37,6 @@ int nextchar(lexer *l) {
     return l->curchar;
 }
 
-void skipspaces(lexer *l) {
-    while (isspace(l->curchar)) {
-        nextchar(l);
-    }
-}
-
 token lexnum(lexer *l) {
     int rat = 0, frac = 0;
     char num[BUFSIZE];
@@ -189,10 +183,26 @@ token lexconst(lexer *l) {
     return token_new(TOK_CONST, sym);
 }
 
+void skipspaces(lexer *l) {
+    while (isspace(l->curchar)) {
+        nextchar(l);
+    }
+}
+
+void skipcomments(lexer *l) {
+    while (l->curchar != '\n') {
+        nextchar(l);
+    }
+    nextchar(l);
+}
+
 token lex(lexer *l) {
 
     nextchar(l);
+
     skipspaces(l);
+    if (l->curchar == ';')
+        skipcomments(l);
 
     if (feof(l->infile))
         return token_new(TOK_END, "end");
