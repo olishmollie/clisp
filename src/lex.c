@@ -34,6 +34,8 @@ void lexer_delete(lexer *l) {
 
 int nextchar(lexer *l) {
     l->curchar = fgetc(l->infile);
+    if (l->curchar == '\n')
+        l->linenum++;
     return l->curchar;
 }
 
