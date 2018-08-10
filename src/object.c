@@ -29,6 +29,24 @@ obj *env_lookup(env *e, obj *k) {
     return obj_err("unbound symbol '%s'", k->sym);
 }
 
+void env_set(env *e, obj *k, obj *v) {
+    /* if in current env, overwrite */
+    for (int i = 0; i < e->count; i++) {
+        if (strcmp(k->sym, e->syms[i]) == 0) {
+            obj_delete(e->vals[i]);
+            e->vals[i] = obj_cpy(v);
+            return;
+        }
+    }
+
+    /* search in parent env */
+    if (e->parent)
+        return env_set(e->parent, k, v);
+
+    /* add to current env */
+    env_insert(e, k, v);
+}
+
 void env_insert(env *e, obj *k, obj *v) {
 
     /* Overwrite an exisiting symbol if exists */

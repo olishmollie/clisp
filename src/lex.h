@@ -27,6 +27,7 @@ typedef enum {
     TOK_LET,
     TOK_AND,
     TOK_OR,
+    TOK_SET,
     TOK_END,
     TOK_ERR
 } token_t;

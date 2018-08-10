@@ -246,6 +246,20 @@ obj *eval_or(env *e, obj *args) {
     return obj_bool(BOOL_F);
 }
 
+obj *eval_set(env *e, obj *args) {
+    NARGCHECK(args, "set!", 2);
+
+    obj *name = obj_popcar(&args);
+    obj *res = eval(e, obj_popcar(&args));
+    env_set(e, name, res);
+
+    obj_delete(name);
+    obj_delete(res);
+    obj_delete(args);
+
+    return NULL;
+}
+
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_popcar(&o);
@@ -266,6 +280,8 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_and(e, o);
     else if (strcmp(k->keyword, "or") == 0)
         res = eval_or(e, o);
+    else if (strcmp(k->keyword, "set!") == 0)
+        res = eval_set(e, o);
     else {
         res = obj_err("invalid syntax %s", k->keyword);
         obj_delete(o);
