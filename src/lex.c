@@ -133,6 +133,8 @@ token lexsymbol(lexer *l) {
         return token_new(TOK_OR, sym);
     if (strcmp(sym, "set!") == 0)
         return token_new(TOK_SET, sym);
+    if (strcmp(sym, "begin") == 0)
+        return token_new(TOK_BEGIN, sym);
 
     return token_new(TOK_SYM, sym);
 }

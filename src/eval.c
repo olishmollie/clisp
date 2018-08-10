@@ -260,6 +260,19 @@ obj *eval_set(env *e, obj *args) {
     return NULL;
 }
 
+obj *eval_begin(env *e, obj *args) {
+
+    while (args->nargs > 1) {
+        obj *arg = eval(e, obj_popcar(&args));
+        obj_delete(arg);
+    }
+
+    obj *res = eval(e, obj_popcar(&args));
+    obj_delete(args);
+
+    return res;
+}
+
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_popcar(&o);
@@ -282,6 +295,8 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_or(e, o);
     else if (strcmp(k->keyword, "set!") == 0)
         res = eval_set(e, o);
+    else if (strcmp(k->keyword, "begin") == 0)
+        res = eval_begin(e, o);
     else {
         res = obj_err("invalid syntax %s", k->keyword);
         obj_delete(o);

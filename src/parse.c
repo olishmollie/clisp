@@ -119,6 +119,7 @@ obj *read(parser *p) {
     case TOK_AND:
     case TOK_OR:
     case TOK_SET:
+    case TOK_BEGIN:
         tok = p->curtok;
         obj *k = obj_keyword(tok.val);
         token_delete(tok);
