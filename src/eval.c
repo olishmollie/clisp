@@ -20,7 +20,7 @@ obj *eval_lambda(env *e, obj *args) {
         cur = obj_cdr(cur);
     }
 
-    obj *res = obj_lambda(params, args);
+    obj *res = obj_lambda(NULL, params, args);
 
     return res;
 }

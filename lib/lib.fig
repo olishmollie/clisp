@@ -1,3 +1,5 @@
+(define lib "lib/lib.fig")
+
 ;; lists
 (define (list . args) args)
 
@@ -226,3 +228,11 @@
 (define (base e) (cadr e))
 
 (define (exponent e) (caddr e))
+
+;; chapter 3 SICP
+(define new-withdraw
+  (let ((balance 100))
+    (lambda (amount)
+      (if (>= balance amount)
+          (- balance amount)
+          "Insufficient funds"))))

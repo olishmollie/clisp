@@ -169,13 +169,17 @@ cons_t *mk_cons(obj *car, obj *cdr) {
 
 obj *obj_nil(void);
 
-fun_t *mk_fun(char *name, builtin bltin, obj *params, obj *body) {
+fun_t *mk_fun(char *name, builtin bltin, env *e, obj *params, obj *body) {
     fun_t *fun = malloc(sizeof(fun_t));
     fun->proc = bltin;
     fun->params = params;
     fun->body = body;
 
-    fun->e = !fun->proc ? env_new() : NULL;
+    if (fun->proc) {
+        fun->e = NULL;
+    } else {
+        fun->e = e ? e : env_new();
+    }
 
     if (name) {
         fun->name = malloc(sizeof(char) * (strlen(name) + 1));
@@ -296,16 +300,16 @@ obj *obj_cons(obj *car, obj *cdr) {
 obj *obj_builtin(char *name, builtin proc) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_FUN;
-    o->fun = mk_fun(name, proc, NULL, NULL);
+    o->fun = mk_fun(name, proc, NULL, NULL, NULL);
     o->nargs = 0;
     INCR_OBJ(o);
     return o;
 }
 
-obj *obj_lambda(obj *params, obj *body) {
+obj *obj_lambda(env *e, obj *params, obj *body) {
     obj *o = malloc(sizeof(obj));
     o->type = OBJ_FUN;
-    o->fun = mk_fun(NULL, NULL, params, body);
+    o->fun = mk_fun(NULL, NULL, e, params, body);
     o->nargs = 0;
     INCR_OBJ(o);
     return o;
@@ -489,7 +493,8 @@ obj *obj_cpy(obj *o) {
         if (o->fun->proc)
             res = obj_builtin(o->fun->name, o->fun->proc);
         else {
-            res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
+            res = obj_lambda(cpy_env(o->fun->e), obj_cpy(o->fun->params),
+                             obj_cpy(o->fun->body));
             if (o->fun->name) {
                 res->fun->name =
                     malloc(sizeof(char) * (strlen(o->fun->name) + 1));
