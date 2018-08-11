@@ -421,7 +421,9 @@ obj *builtin_print(env *e, obj *args) {
         obj_delete(item);
     }
 
-    return args;
+    obj_delete(args);
+
+    return NULL;
 }
 
 obj *builtin_println(env *e, obj *args) {
