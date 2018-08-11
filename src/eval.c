@@ -216,7 +216,7 @@ obj *eval_quote(env *e, obj *args) {
 
 obj *eval_and(env *e, obj *args) {
 
-    while (args->nargs > 0) {
+    while (args->nargs > 1) {
         obj *pred = eval(e, obj_popcar(&args));
         if (obj_isfalse(pred)) {
             obj_delete(args);
@@ -225,9 +225,15 @@ obj *eval_and(env *e, obj *args) {
         obj_delete(pred);
     }
 
+    obj *pred = eval(e, obj_popcar(&args));
+    if (obj_isfalse(pred)) {
+        obj_delete(args);
+        return pred;
+    }
+
     obj_delete(args);
 
-    return obj_bool(BOOL_T);
+    return pred;
 }
 
 obj *eval_or(env *e, obj *args) {
