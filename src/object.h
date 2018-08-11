@@ -85,6 +85,7 @@ env *env_new(void);
 obj *env_lookup(env *e, obj *k);
 void env_insert(env *e, obj *k, obj *v);
 void env_set(env *e, obj *k, obj *v);
+env *env_cpy(env *e);
 void env_delete(env *e);
 void env_print(env *e);
 

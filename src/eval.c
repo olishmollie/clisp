@@ -21,8 +21,7 @@ obj *eval_lambda(env *e, obj *args) {
     }
 
     obj *res = obj_lambda(params, args);
-    res->fun->e = env_new();
-    res->fun->e->parent = e;
+    res->fun->e = env_cpy(e);
 
     return res;
 }
@@ -164,6 +163,8 @@ obj *eval_call(env *e, obj *f, obj *args) {
 
     NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
               f->fun->params->nargs);
+
+    f->fun->e->parent = e;
 
     /* bind args to params */
     while (f->fun->params->nargs > 0) {

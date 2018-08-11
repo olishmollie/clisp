@@ -68,7 +68,7 @@ void env_insert(env *e, obj *k, obj *v) {
     strcpy(e->syms[e->count - 1], k->sym);
 }
 
-env *cpy_env(env *e) {
+env *env_cpy(env *e) {
     env *res = env_new();
     res->parent = e->parent;
     for (int i = 0; i < e->count; i++) {
@@ -491,7 +491,7 @@ obj *obj_cpy(obj *o) {
             res = obj_builtin(o->fun->name, o->fun->proc);
         else {
             res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
-            res->fun->e = cpy_env(o->fun->e);
+            res->fun->e = env_cpy(o->fun->e);
             if (o->fun->name) {
                 res->fun->name =
                     malloc(sizeof(char) * (strlen(o->fun->name) + 1));
