@@ -97,7 +97,7 @@ obj *obj_sym(char *name);
 obj *obj_str(char *str);
 obj *obj_cons(obj *car, obj *cdr);
 obj *obj_builtin(char *name, builtin proc);
-obj *obj_lambda(env *e, obj *params, obj *body);
+obj *obj_lambda(obj *params, obj *body);
 obj *obj_const(char *constant);
 obj *obj_char(char c);
 obj *obj_bool(bool_t type);

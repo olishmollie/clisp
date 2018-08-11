@@ -20,7 +20,9 @@ obj *eval_lambda(env *e, obj *args) {
         cur = obj_cdr(cur);
     }
 
-    obj *res = obj_lambda(NULL, params, args);
+    obj *res = obj_lambda(params, args);
+    res->fun->e = env_new();
+    res->fun->e->parent = e;
 
     return res;
 }
@@ -163,7 +165,7 @@ obj *eval_call(env *e, obj *f, obj *args) {
     if (f->fun->params->nargs == 0) {
 
         /* variadic args */
-        f->fun->e->parent = e;
+        printf("got here\n");
         env_insert(f->fun->e, f->fun->params, args);
 
     } else {
@@ -172,7 +174,6 @@ obj *eval_call(env *e, obj *f, obj *args) {
                   f->fun->params->nargs);
 
         /* bind args to params */
-        f->fun->e->parent = e;
         while (f->fun->params->nargs > 0) {
             obj *param = obj_popcar(&f->fun->params);
             obj *arg = obj_popcar(&args);
@@ -192,7 +193,6 @@ obj *eval_call(env *e, obj *f, obj *args) {
 
     /* last expression evaluated is return value */
     obj *expr = obj_popcar(&f->fun->body);
-
     obj *res = eval(f->fun->e, expr);
 
     return res;

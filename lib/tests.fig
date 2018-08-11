@@ -1,7 +1,7 @@
-(define test (lambda (given expected)
-    (print "Test: (equal? " given " " expected ")")
-    (cond ((equal? (eval given) expected) (println " --- PASS"))
-          (#t (println " --- FAIL")))))
+(define (test given expected)
+  (print "Test: (equal? " given " " expected ")")
+  (if (equal? (eval given) expected) (println " --- PASS")
+      (println " --- FAIL")))
 
 
 (test '(quote a) 'a)
@@ -60,3 +60,6 @@
 (test '(> 3/8 3/4) #f)
 (test '(> 0.75 1.5) #f)
 (test '(> 1.5 0.75) #t)
+
+(test '(((lambda (a)
+            (lambda (b) (list a b))) 1) 2) '(1 2))
