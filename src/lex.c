@@ -203,7 +203,7 @@ void skipcomments(lexer *l) {
     while (l->curchar != '\n') {
         nextchar(l);
     }
-    nextchar(l);
+    skipspaces(l);
 }
 
 token lex(lexer *l) {
