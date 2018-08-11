@@ -110,21 +110,15 @@ obj *read(parser *p) {
     switch (p->curtok.type) {
     /* special forms */
     case TOK_DEF:
-    case TOK_COND:
     case TOK_LAMBDA:
-    case TOK_LET:
     case TOK_QUOTE:
     case TOK_IF:
-    case TOK_ELSE:
-    case TOK_AND:
-    case TOK_OR:
     case TOK_SET:
-    case TOK_BEGIN:
         tok = p->curtok;
         obj *k = obj_keyword(tok.val);
         token_delete(tok);
         return k;
-    /* numbers */
+    /* atoms */
     case TOK_INT:
     case TOK_RAT:
     case TOK_FLOAT:
@@ -142,14 +136,15 @@ obj *read(parser *p) {
     case TOK_NIL:
         token_delete(p->curtok);
         return obj_nil();
-    case TOK_LPAREN:
-        token_delete(p->curtok);
-        return read_list(p);
     case TOK_CONST:
         tok = p->curtok;
         obj *c = obj_const(tok.val);
         token_delete(tok);
         return c;
+    /* lists */
+    case TOK_LPAREN:
+        token_delete(p->curtok);
+        return read_list(p);
     case TOK_TICK:
         token_delete(p->curtok);
         return expand_quote(p);

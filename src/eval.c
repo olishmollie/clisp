@@ -111,145 +111,11 @@ obj *eval_if(env *e, obj *args) {
     return res;
 }
 
-obj *eval_cond(env *e, obj *args) {
-    CASSERT(args, args->nargs > 0, "invalid syntax cond");
-    TARGCHECK(args, "cond", OBJ_CONS);
-
-    while (args->nargs > 1) {
-
-        CASSERT(args, obj_car(args)->nargs == 2,
-                "arguments to cond must themselves have two arguments");
-
-        obj *arg = obj_popcar(&args);
-
-        obj *pred = eval(e, obj_popcar(&arg));
-
-        if (pred->type == OBJ_ERR) {
-            obj_delete(arg);
-            obj_delete(args);
-            return pred;
-        }
-
-        if (obj_istrue(pred)) {
-            obj *res = obj_popcar(&arg);
-            obj_delete(pred);
-            obj_delete(arg);
-            obj_delete(args);
-            return eval(e, res);
-        }
-
-        obj_delete(pred);
-        obj_delete(arg);
-    }
-
-    CASSERT(args, obj_car(args)->nargs == 2,
-            "arguments to cond must themselves have two arguments");
-
-    obj *arg = obj_popcar(&args);
-    obj *maybe_else = obj_car(arg);
-
-    obj *res = NULL;
-    if (maybe_else->type == OBJ_KEYWORD &&
-        strcmp(maybe_else->keyword, "else") == 0) {
-        maybe_else = obj_popcar(&arg);
-        obj_delete(maybe_else);
-        res = eval(e, obj_popcar(&arg));
-    } else {
-        obj *pred = eval(e, obj_popcar(&arg));
-        if (obj_istrue(pred)) {
-            res = eval(e, obj_popcar(&arg));
-        }
-        obj_delete(pred);
-    }
-
-    obj_delete(arg);
-    obj_delete(args);
-
-    return res;
-}
-
-obj *eval_let(env *e, obj *args) {
-    NARGCHECK(args, "let", 2);
-
-    obj *params = obj_popcar(&args);
-    env *local = env_new();
-    local->parent = e;
-
-    while (params->nargs > 0) {
-        obj *pair = obj_popcar(&params);
-
-        obj *k = obj_popcar(&pair);
-        if (k->type != OBJ_SYM) {
-            obj *err = obj_err("let binding must be symbol, got %s",
-                               obj_typename(k->type));
-            obj_delete(k);
-            obj_delete(pair);
-            obj_delete(params);
-            obj_delete(args);
-            return err;
-        }
-
-        obj *v = eval(e, obj_popcar(&pair));
-        env_insert(local, k, v);
-
-        obj_delete(k);
-        obj_delete(v);
-        obj_delete(pair);
-    }
-
-    obj *body = obj_popcar(&args);
-    obj *res = eval(local, body);
-
-    obj_delete(params);
-    obj_delete(args);
-    env_delete(local);
-
-    return res;
-}
-
 obj *eval_quote(env *e, obj *args) {
     NARGCHECK(args, "quote", 1);
     obj *quote = obj_popcar(&args);
     obj_delete(args);
     return quote;
-}
-
-obj *eval_and(env *e, obj *args) {
-
-    while (args->nargs > 1) {
-        obj *pred = eval(e, obj_popcar(&args));
-        if (obj_isfalse(pred)) {
-            obj_delete(args);
-            return pred;
-        }
-        obj_delete(pred);
-    }
-
-    obj *pred = eval(e, obj_popcar(&args));
-    if (obj_isfalse(pred)) {
-        obj_delete(args);
-        return pred;
-    }
-
-    obj_delete(args);
-
-    return pred;
-}
-
-obj *eval_or(env *e, obj *args) {
-
-    while (args->nargs > 0) {
-        obj *pred = eval(e, obj_popcar(&args));
-        if (obj_istrue(pred)) {
-            obj_delete(args);
-            return pred;
-        }
-        obj_delete(pred);
-    }
-
-    obj_delete(args);
-
-    return obj_bool(BOOL_F);
 }
 
 obj *eval_set(env *e, obj *args) {
@@ -266,19 +132,6 @@ obj *eval_set(env *e, obj *args) {
     return NULL;
 }
 
-obj *eval_begin(env *e, obj *args) {
-
-    while (args->nargs > 1) {
-        obj *arg = eval(e, obj_popcar(&args));
-        obj_delete(arg);
-    }
-
-    obj *res = eval(e, obj_popcar(&args));
-    obj_delete(args);
-
-    return res;
-}
-
 obj *eval_keyword(env *e, obj *o) {
     obj *res;
     obj *k = obj_popcar(&o);
@@ -287,22 +140,12 @@ obj *eval_keyword(env *e, obj *o) {
         res = eval_quote(e, o);
     else if (strcmp(k->keyword, "lambda") == 0)
         res = eval_lambda(e, o);
-    else if (strcmp(k->keyword, "let") == 0)
-        res = eval_let(e, o);
-    else if (strcmp(k->keyword, "cond") == 0)
-        res = eval_cond(e, o);
     else if (strcmp(k->keyword, "if") == 0)
         res = eval_if(e, o);
     else if (strcmp(k->keyword, "define") == 0)
         res = eval_def(e, o);
-    else if (strcmp(k->keyword, "and") == 0)
-        res = eval_and(e, o);
-    else if (strcmp(k->keyword, "or") == 0)
-        res = eval_or(e, o);
     else if (strcmp(k->keyword, "set!") == 0)
         res = eval_set(e, o);
-    else if (strcmp(k->keyword, "begin") == 0)
-        res = eval_begin(e, o);
     else {
         res = obj_err("invalid syntax %s", k->keyword);
         obj_delete(o);

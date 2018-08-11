@@ -18,17 +18,11 @@ typedef enum {
     TOK_RPAREN,
     TOK_DOT,
     TOK_DEF,
-    TOK_COND,
     TOK_IF,
-    TOK_ELSE,
     TOK_QUOTE,
     TOK_TICK,
     TOK_LAMBDA,
-    TOK_LET,
-    TOK_AND,
-    TOK_OR,
     TOK_SET,
-    TOK_BEGIN,
     TOK_END,
     TOK_ERR
 } token_t;

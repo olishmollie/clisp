@@ -113,28 +113,16 @@ token lexsymbol(lexer *l) {
 
     if (strcmp(sym, "nil") == 0)
         return token_new(TOK_NIL, sym);
-    if (strcmp(sym, "define") == 0)
-        return token_new(TOK_DEF, sym);
     if (strcmp(sym, "quote") == 0)
         return token_new(TOK_QUOTE, sym);
-    if (strcmp(sym, "cond") == 0)
-        return token_new(TOK_COND, sym);
     if (strcmp(sym, "lambda") == 0)
         return token_new(TOK_LAMBDA, sym);
     if (strcmp(sym, "if") == 0)
         return token_new(TOK_IF, sym);
-    if (strcmp(sym, "else") == 0)
-        return token_new(TOK_ELSE, sym);
-    if (strcmp(sym, "let") == 0)
-        return token_new(TOK_LET, sym);
-    if (strcmp(sym, "and") == 0)
-        return token_new(TOK_AND, sym);
-    if (strcmp(sym, "or") == 0)
-        return token_new(TOK_OR, sym);
     if (strcmp(sym, "set!") == 0)
         return token_new(TOK_SET, sym);
-    if (strcmp(sym, "begin") == 0)
-        return token_new(TOK_BEGIN, sym);
+    if (strcmp(sym, "define") == 0)
+        return token_new(TOK_DEF, sym);
 
     return token_new(TOK_SYM, sym);
 }
