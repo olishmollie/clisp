@@ -162,25 +162,16 @@ obj *eval_call(env *e, obj *f, obj *args) {
     if (f->fun->proc)
         return f->fun->proc(e, args);
 
-    if (f->fun->params->nargs == 0) {
+    NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
+              f->fun->params->nargs);
 
-        /* variadic args */
-        printf("got here\n");
-        env_insert(f->fun->e, f->fun->params, args);
-
-    } else {
-
-        NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
-                  f->fun->params->nargs);
-
-        /* bind args to params */
-        while (f->fun->params->nargs > 0) {
-            obj *param = obj_popcar(&f->fun->params);
-            obj *arg = obj_popcar(&args);
-            env_insert(f->fun->e, param, arg);
-            obj_delete(param);
-            obj_delete(arg);
-        }
+    /* bind args to params */
+    while (f->fun->params->nargs > 0) {
+        obj *param = obj_popcar(&f->fun->params);
+        obj *arg = obj_popcar(&args);
+        env_insert(f->fun->e, param, arg);
+        obj_delete(param);
+        obj_delete(arg);
     }
     obj_delete(args);
 
