@@ -1,8 +1,6 @@
 (define lib "lib/lib.fig")
 
 ;; lists
-(define (list . args) args)
-
 (define (cadr x)
   (car (cdr x)))
 (define (caddr x)
@@ -22,4 +20,3 @@
         prod
         (fact-iter (* prod count) (+ count 1) max)))
   (fact-iter 1 1 n))
-

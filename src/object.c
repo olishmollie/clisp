@@ -491,7 +491,7 @@ obj *obj_cpy(obj *o) {
             res = obj_builtin(o->fun->name, o->fun->proc);
         else {
             res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
-            res->fun->e = env_cpy(o->fun->e);
+            res->fun->e = o->fun->e;
             if (o->fun->name) {
                 res->fun->name =
                     malloc(sizeof(char) * (strlen(o->fun->name) + 1));
@@ -676,7 +676,6 @@ void obj_delete(obj *o) {
             break;
         case OBJ_FUN:
             free(o->fun->name);
-            env_delete(o->fun->e);
             if (o->fun->params)
                 obj_delete(o->fun->params);
             if (o->fun->body)

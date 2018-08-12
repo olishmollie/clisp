@@ -21,7 +21,7 @@ obj *eval_lambda(env *e, obj *args) {
     }
 
     obj *res = obj_lambda(params, args);
-    res->fun->e = env_cpy(e);
+    res->fun->e = e;
 
     return res;
 }
