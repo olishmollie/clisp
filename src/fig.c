@@ -46,6 +46,7 @@ env *global_env(void) {
     register_builtin(e, builtin_lt, "<");
     register_builtin(e, builtin_lte, "<=");
 
+    register_builtin(e, builtin_list, "list");
     register_builtin(e, builtin_cons, "cons");
     register_builtin(e, builtin_car, "car");
     register_builtin(e, builtin_cdr, "cdr");

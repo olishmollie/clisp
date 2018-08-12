@@ -287,6 +287,8 @@ obj *builtin_eq(env *e, obj *args) {
     return res;
 }
 
+obj *builtin_list(env *e, obj *args) { return args; }
+
 obj *builtin_cons(env *e, obj *args) {
     NARGCHECK(args, "cons", 2);
 

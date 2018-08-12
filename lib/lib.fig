@@ -20,3 +20,9 @@
         prod
         (fact-iter (* prod count) (+ count 1) max)))
   (fact-iter 1 1 n))
+
+(define (map proc seq)
+  (if (pair? seq)
+      (cons (proc (car seq))
+            (map proc (cdr seq)))
+      ()))
