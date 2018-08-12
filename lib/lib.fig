@@ -26,3 +26,16 @@
       (cons (proc (car seq))
             (map proc (cdr seq)))
       ()))
+
+(define (cons x y)
+  (define (inner-cons m)
+    (m x y))
+  inner-cons)
+
+(define (car z)
+  (define (inner-car p q)
+    p)
+  (z inner-car))
+
+
+(define (cdr z) (z (lambda (p q) q)))
