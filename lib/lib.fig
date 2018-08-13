@@ -28,14 +28,31 @@
       ()))
 
 (define (cons x y)
-  (define (inner-cons m)
-    (m x y))
-  inner-cons)
+  (lambda (m) (m x y)))
 
-(define (car z)
-  (define (inner-car p q)
-    p)
-  (z inner-car))
-
+(define (car z) (z (lambda (p q) p)))
 
 (define (cdr z) (z (lambda (p q) q)))
+
+;; math
+(define (= x y)
+  (if (eq (type x) "number")
+      (if (eq (type y) "number")
+          (eq x y)
+          #f)
+      #f))
+(define (zero? x)
+  (= x 0))
+(define (negative? x)
+  (< x 0))
+(define (positive? x)
+  (>= x 0))
+(define (odd? x)
+  (= (mod x 2) 1))
+(define (even? x)
+  (= (mod x 2) 0))
+(define (max x y)
+  (if (> x y) x y))
+(define (min x y)
+  (if (< x y) x y))
+

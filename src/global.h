@@ -2,6 +2,10 @@
 #define GLOBAL_H
 
 #include "object.h"
+#include "gc.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #define STDLIB "lib/lib.fig"
 #define UNITTESTS "lib/tests.fig"
@@ -71,5 +75,6 @@
     }
 
 int numobj;
+stack *vm;
 
 #endif

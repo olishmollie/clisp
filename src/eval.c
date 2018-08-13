@@ -21,7 +21,8 @@ obj *eval_lambda(env *e, obj *args) {
     }
 
     obj *res = obj_lambda(params, args);
-    res->fun->e = e;
+    res->fun->e = env_new();
+    res->fun->e->parent = e;
 
     return res;
 }
@@ -164,14 +165,11 @@ obj *eval_call(env *e, obj *f, obj *args) {
     NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
               f->fun->params->nargs);
 
-    env *local_env = env_new();
-    local_env->parent = f->fun->e;
-
     /* bind args to params */
     while (f->fun->params->nargs > 0) {
         obj *param = obj_popcar(&f->fun->params);
         obj *arg = obj_popcar(&args);
-        env_insert(local_env, param, arg);
+        env_insert(f->fun->e, param, arg);
         obj_delete(param);
         obj_delete(arg);
     }
@@ -180,16 +178,13 @@ obj *eval_call(env *e, obj *f, obj *args) {
     /* evaluate each expression in lambda body but one */
     while (f->fun->body->nargs > 1) {
         obj *expr = obj_popcar(&f->fun->body);
-        obj *res = eval(local_env, expr);
+        obj *res = eval(f->fun->e, expr);
         obj_delete(res);
     }
 
     /* last expression evaluated is return value */
     obj *expr = obj_popcar(&f->fun->body);
-    obj *res = eval(local_env, expr);
-
-    printf("deleting env for %s\n", f->fun->name);
-    // env_delete(local_env);
+    obj *res = eval(f->fun->e, expr);
 
     return res;
 }

@@ -224,97 +224,78 @@ const_t *mk_const(char *c) {
 
 /* obj types --------------------------------------------------------------- */
 
-obj *obj_num(char *numstr, token_t ttype) {
+obj *obj_new(obj_t type) {
     obj *o = malloc(sizeof(obj));
-    o->type = OBJ_NUM;
+    o->type = type;
+    o->mark = 0;
+    o->nargs = 0;
+    INCR_OBJ(o);
+    return o;
+}
+
+obj *obj_num(char *numstr, token_t ttype) {
+    obj *o = obj_new(OBJ_NUM);
     o->num = mk_num(numstr, ttype);
     if (o->type == NUM_ERR) {
         obj *err = obj_err(o->num->err);
         obj_delete(o);
         return err;
     }
-    INCR_OBJ(o);
-    o->nargs = 0;
     return o;
 }
 
 obj *obj_int(mpz_t integ) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_NUM;
+    obj *o = obj_new(OBJ_NUM);
     o->num = mk_int(integ);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_rat(mpq_t rat) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_NUM;
+    obj *o = obj_new(OBJ_NUM);
     o->num = mk_rat(rat);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_dbl(mpf_t dbl) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_NUM;
+    obj *o = obj_new(OBJ_NUM);
     o->num = mk_dbl(dbl);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_sym(char *name) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_SYM;
+    obj *o = obj_new(OBJ_SYM);
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_str(char *str) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_STR;
+    obj *o = obj_new(OBJ_STR);
     o->str = malloc(sizeof(char) * (strlen(str) + 1));
     strcpy(o->str, str);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_cons(obj *car, obj *cdr) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_CONS;
+    obj *o = obj_new(OBJ_CONS);
     o->cons = mk_cons(car, cdr);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_builtin(char *name, builtin proc) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_FUN;
+    obj *o = obj_new(OBJ_FUN);
     o->fun = mk_fun(name, proc, NULL, NULL);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_lambda(obj *params, obj *body) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_FUN;
+    obj *o = obj_new(OBJ_FUN);
     o->fun = mk_fun(NULL, NULL, params, body);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_const(char *constant) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_CONST;
+    obj *o = obj_new(OBJ_CONST);
 
     o->constant = mk_const(constant);
     if (o->constant->type == CONST_ERR) {
@@ -324,8 +305,6 @@ obj *obj_const(char *constant) {
         return err;
     }
 
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
@@ -366,34 +345,25 @@ int obj_isfalse(obj *c) {
 int obj_istrue(obj *c) { return !obj_isfalse(c); }
 
 obj *obj_keyword(char *name) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_KEYWORD;
+    obj *o = obj_new(OBJ_KEYWORD);
     o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->keyword, name);
-    o->nargs = 0;
-    INCR_OBJ(o);
     return o;
 }
 
 obj *obj_nil(void) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_NIL;
-    o->nargs = 0;
-    INCR_OBJ(o);
+    obj *o = obj_new(OBJ_NIL);
     return o;
 }
 
 obj *obj_err(char *fmt, ...) {
-    obj *o = malloc(sizeof(obj));
-    o->type = OBJ_ERR;
+    obj *o = obj_new(OBJ_ERR);
 
     va_list args;
     va_start(args, fmt);
     o->err = malloc(sizeof(char) * 512);
     vsnprintf(o->err, 511, fmt, args);
     va_end(args);
-    o->nargs = 0;
-    INCR_OBJ(o);
 
     return o;
 }
@@ -492,6 +462,7 @@ obj *obj_cpy(obj *o) {
         else {
             res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
             res->fun->e = o->fun->e;
+            res->fun->e->parent = o->fun->e->parent;
             if (o->fun->name) {
                 res->fun->name =
                     malloc(sizeof(char) * (strlen(o->fun->name) + 1));
@@ -676,6 +647,8 @@ void obj_delete(obj *o) {
             break;
         case OBJ_FUN:
             free(o->fun->name);
+            // GC will make this work?
+            // env_delete(o->fun->e);
             if (o->fun->params)
                 obj_delete(o->fun->params);
             if (o->fun->body)

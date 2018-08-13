@@ -62,6 +62,7 @@ typedef enum {
 struct obj {
     obj_t type;
     int nargs;
+    unsigned char mark;
     union {
         num_t *num;
         char *sym;
