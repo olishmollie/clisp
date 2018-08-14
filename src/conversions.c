@@ -6,8 +6,7 @@ obj *itod(obj *i) {
     mpf_t dbl;
     mpf_init(dbl);
     mpf_set_z(dbl, i->num->integ);
-    obj_delete(i);
-    return obj_dbl(dbl);
+    return mk_dbl(dbl);
 }
 
 /* int to rat */
@@ -15,8 +14,7 @@ obj *itor(obj *i) {
     mpq_t rat;
     mpq_init(rat);
     mpq_set_z(rat, i->num->integ);
-    obj_delete(i);
-    return obj_rat(rat);
+    return mk_rat(rat);
 }
 
 /* rat to int */
@@ -24,8 +22,7 @@ obj *rtoi(obj *r) {
     mpz_t integ;
     mpz_init(integ);
     mpz_set_q(integ, r->num->rat);
-    obj_delete(r);
-    return obj_int(integ);
+    return mk_int(integ);
 }
 
 /* rat to double */
@@ -33,8 +30,7 @@ obj *rtod(obj *r) {
     mpf_t dbl;
     mpf_init(dbl);
     mpf_set_q(dbl, r->num->rat);
-    obj_delete(r);
-    return obj_dbl(dbl);
+    return mk_dbl(dbl);
 }
 
 /* double to int */
@@ -42,8 +38,7 @@ obj *dtoi(obj *d) {
     mpz_t integ;
     mpz_init(integ);
     mpz_set_f(integ, d->num->dbl);
-    obj_delete(d);
-    return obj_int(integ);
+    return mk_int(integ);
 }
 
 /* double to rat */
@@ -51,8 +46,7 @@ obj *dtor(obj *d) {
     mpq_t rat;
     mpq_init(rat);
     mpq_set_f(rat, d->num->dbl);
-    obj_delete(d);
-    return obj_rat(rat);
+    return mk_rat(rat);
 }
 
 obj *conv_int(obj *i, num_type type) {
@@ -64,8 +58,7 @@ obj *conv_int(obj *i, num_type type) {
     case NUM_DBL:
         return itod(i);
     default:
-        obj_delete(i);
-        return obj_err("unable to convert int to unknown num type");
+        return mk_err("unable to convert int to unknown num type");
     }
 }
 
@@ -78,8 +71,7 @@ obj *conv_rat(obj *r, num_type type) {
     case NUM_DBL:
         return rtod(r);
     default:
-        obj_delete(r);
-        return obj_err("unable to convert rat to unknown num type");
+        return mk_err("unable to convert rat to unknown num type");
     }
 }
 
@@ -92,8 +84,7 @@ obj *conv_dbl(obj *d, num_type type) {
     case NUM_RAT:
         return dtor(d);
     default:
-        obj_delete(d);
-        return obj_err("unable to convert double to unknown num type");
+        return mk_err("unable to convert double to unknown num type");
     }
 }
 

@@ -15,5 +15,6 @@ typedef struct {
 parser *parser_new(FILE *);
 void parser_delete(parser *);
 obj *read(parser *);
+token nexttok(parser *);
 
 #endif

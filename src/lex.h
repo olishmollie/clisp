@@ -13,16 +13,10 @@ typedef enum {
     TOK_STR,
     TOK_SYM,
     TOK_CONST,
-    TOK_NIL,
     TOK_LPAREN,
     TOK_RPAREN,
     TOK_DOT,
-    TOK_DEF,
-    TOK_IF,
-    TOK_QUOTE,
     TOK_TICK,
-    TOK_LAMBDA,
-    TOK_SET,
     TOK_END,
     TOK_ERR
 } token_t;

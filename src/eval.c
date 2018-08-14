@@ -1,242 +1,115 @@
 #include "eval.h"
 #include "object.h"
-#include "builtins.h"
 #include "global.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-obj *eval_lambda(env *e, obj *args) {
-
-    /* check param list for non-symbols */
-    obj *params = obj_popcar(&args);
-
-    obj *cur = params;
-    for (int i = 0; i < params->nargs; i++) {
-        obj *sym = obj_car(cur);
-        CASSERT(args, sym->type == OBJ_SYM,
-                "lambda param list must contain only symbols, got %s",
-                obj_typename(sym->type));
-        cur = obj_cdr(cur);
+int is_tagged_list(obj *expr, obj *tag) {
+    obj *car_obj;
+    if (is_pair(expr)) {
+        car_obj = car(expr);
+        return is_symbol(car_obj) && car_obj == tag;
     }
-
-    obj *res = obj_lambda(params, args);
-    res->fun->e = e;
-
-    return res;
+    return 0;
 }
 
-obj *eval_def(env *e, obj *args) {
-    obj *params = obj_car(args);
-    CASSERT(args, params->type == OBJ_SYM || params->type == OBJ_CONS,
-            "first arg to define must be symbol or cons, got %s",
-            obj_typename(params->type));
+int is_quotation(obj *expr) { return is_tagged_list(expr, quote_sym); }
 
-    if (params->type == OBJ_SYM) {
-        /* typical define, e.g. (define x 100) */
-        NARGCHECK(args, "define", 2);
+obj *text_of_quotation(obj *expr) {
+    if (cddr(expr) != the_empty_list)
+        return mk_err("invalid syntax");
+    return cadr(expr);
+}
 
-        obj *k = obj_popcar(&args);
-        obj *v = eval(e, obj_popcar(&args));
+int is_definition(obj *expr) { return is_tagged_list(expr, define_sym); }
 
-        if (v->type == OBJ_FUN) {
-            v->fun->name = malloc(sizeof(char) * (strlen(k->sym) + 1));
-            strcpy(v->fun->name, k->sym);
-        }
+obj *definition_sym(obj *expr) { return cadr(expr); }
 
-        env_insert(e, k, v);
+obj *definition_val(obj *expr) { return caddr(expr); }
 
-        obj_delete(k);
-        obj_delete(v);
-        obj_delete(args);
+int is_assignment(obj *expr) { return is_tagged_list(expr, set_sym); }
 
-    } else {
-        /* syntactic sugar, e.g. (define (square x) (* x x)) */
+obj *assignment_sym(obj *expr) { return cadr(expr); }
 
-        /* first arg to params should be symbol */
-        obj *name = obj_car(params);
-        CASSERT(args, name->type == OBJ_SYM, "invalid syntax define");
+obj *assignment_val(obj *expr) { return caddr(expr); }
 
-        /* build arguments to lambda */
-        params = obj_popcar(&args);
-        name = obj_popcar(&params);
+obj *eval_list(env *e, obj *expr) { return the_empty_list; }
 
-        /* join list and set nargs + 1 for param list */
-        obj *list = obj_cons(params, args);
-        list->nargs = args->nargs + 1;
+int is_self_evaluating(obj *expr) {
+    return is_char(expr) || is_boolean(expr) || is_string(expr) || is_num(expr);
+}
 
-        /* create and save lambda */
-        obj *lambda = eval_lambda(e, list);
+obj *eval_assignment(env *e, obj *expr) {
+    obj *k = assignment_sym(expr);
+    obj *v = eval(e, assignment_val(expr));
+    obj *err = env_set(e, k, v);
+    return !is_error(err) ? NULL : err;
+}
 
-        lambda->fun->name = malloc(sizeof(char) * (strlen(name->sym) + 1));
-        strcpy(lambda->fun->name, name->sym);
-
-        env_insert(e, name, lambda);
-
-        /* delete unused objects */
-        obj_delete(name);
-        obj_delete(lambda);
-    }
-
+obj *eval_definition(env *e, obj *expr) {
+    obj *k = definition_sym(expr);
+    obj *v = eval(e, definition_val(expr));
+    insert(e, k, v);
     return NULL;
 }
 
-obj *eval_if(env *e, obj *args) {
-    NARGCHECK(args, "if", 3);
+int is_if(obj *expr) { return is_tagged_list(expr, if_sym); }
 
-    obj *arg = obj_popcar(&args);
-    obj *pred = eval(e, arg);
+obj *if_condition(obj *expr) { return cadr(expr); }
 
-    obj *conseq = obj_popcar(&args);
-    obj *alt = obj_popcar(&args);
+obj *if_consequent(obj *expr) { return caddr(expr); }
 
-    if (pred->type == OBJ_ERR) {
-        obj_delete(conseq);
-        obj_delete(alt);
-        obj_delete(args);
-        return pred;
-    }
+obj *if_alternative(obj *expr) { return cadddr(expr); }
 
-    obj *res;
-    if (obj_istrue(pred)) {
-        obj_delete(alt);
-        res = eval(e, conseq);
+obj *builtin_proc(obj *expr) { return car(expr); }
+
+obj *builtin_args(obj *expr) { return cdr(expr); }
+
+obj *eval_arglist(env *e, obj *arglist) {
+    if (arglist == the_empty_list)
+        return arglist;
+    obj *arg = eval(e, car(arglist));
+    return !is_error(arg) ? mk_cons(arg, eval_arglist(e, cdr(arglist))) : arg;
+}
+
+obj *eval_procedure(env *e, obj *expr) {
+    obj *procedure = eval(e, car(expr));
+    if (is_error(procedure))
+        return procedure;
+    if (is_builtin(procedure)) {
+        obj *arguments = eval_arglist(e, cdr(expr));
+        if (is_error(arguments))
+            return arguments;
+        return procedure->bltin->proc(arguments);
     } else {
-        obj_delete(conseq);
-        res = eval(e, alt);
+        return the_empty_list;
     }
-
-    obj_delete(pred);
-    obj_delete(args);
-
-    return res;
 }
 
-obj *eval_quote(env *e, obj *args) {
-    NARGCHECK(args, "quote", 1);
-    obj *quote = obj_popcar(&args);
-    obj_delete(args);
-    return quote;
-}
+obj *eval(env *e, obj *expr) {
 
-obj *eval_set(env *e, obj *args) {
-    NARGCHECK(args, "set!", 2);
+tailcall:
 
-    obj *name = obj_popcar(&args);
-    obj *res = eval(e, obj_popcar(&args));
-    env_set(e, name, res);
+    FIG_ERRORCHECK(expr);
 
-    obj_delete(name);
-    obj_delete(res);
-    obj_delete(args);
-
-    return NULL;
-}
-
-obj *eval_keyword(env *e, obj *o) {
-    obj *res;
-    obj *k = obj_popcar(&o);
-    ERRCHECK(o);
-    if (strcmp(k->keyword, "quote") == 0)
-        res = eval_quote(e, o);
-    else if (strcmp(k->keyword, "lambda") == 0)
-        res = eval_lambda(e, o);
-    else if (strcmp(k->keyword, "if") == 0)
-        res = eval_if(e, o);
-    else if (strcmp(k->keyword, "define") == 0)
-        res = eval_def(e, o);
-    else if (strcmp(k->keyword, "set!") == 0)
-        res = eval_set(e, o);
-    else {
-        res = obj_err("invalid syntax %s", k->keyword);
-        obj_delete(o);
+    if (is_self_evaluating(expr)) {
+        return expr;
+    } else if (is_quotation(expr)) {
+        return text_of_quotation(expr);
+    } else if (is_definition(expr)) {
+        return eval_definition(e, expr);
+    } else if (is_assignment(expr)) {
+        return eval_assignment(e, expr);
+    } else if (is_if(expr)) {
+        expr = is_true(eval(e, if_condition(expr))) ? if_consequent(expr)
+                                                    : if_alternative(expr);
+        goto tailcall;
+    } else if (is_pair(expr)) {
+        return eval_procedure(e, expr);
+    } else if (expr->type == OBJ_SYM) {
+        return lookup(e, expr);
+    } else {
+        return mk_err("invalid syntax");
     }
-
-    obj_delete(k);
-    return res;
-}
-
-obj *eval_call(env *e, obj *f, obj *args) {
-    /* check builtin */
-    if (f->fun->proc)
-        return f->fun->proc(e, args);
-
-    /* check number of arguments and params match */
-    NARGCHECK(args, f->fun->name ? f->fun->name : "lambda",
-              f->fun->params->nargs);
-
-    env *local_env = env_new();
-    local_env->parent = f->fun->e;
-
-    /* bind args to params */
-    while (f->fun->params->nargs > 0) {
-        obj *param = obj_popcar(&f->fun->params);
-        obj *arg = obj_popcar(&args);
-        env_insert(local_env, param, arg);
-        obj_delete(param);
-        obj_delete(arg);
-    }
-    obj_delete(args);
-
-    /* evaluate each expression in lambda body but one */
-    while (f->fun->body->nargs > 1) {
-        obj *expr = obj_popcar(&f->fun->body);
-        obj *res = eval(local_env, expr);
-        obj_delete(res);
-    }
-
-    /* last expression evaluated is return value */
-    obj *expr = obj_popcar(&f->fun->body);
-    obj *res = eval(local_env, expr);
-
-    /* Causes segfault in certain situations */
-    // env_delete(local_env);
-
-    return res;
-}
-
-obj *eval_list(env *e, obj *o) {
-    /* check for keyword */
-    if (obj_car(o)->type == OBJ_KEYWORD) {
-        return eval_keyword(e, o);
-    }
-
-    /* evaluate all children and check for errors*/
-    obj *cur = o;
-    for (int i = 0; i < o->nargs; i++) {
-        obj *child = eval(e, cur->cons->car);
-        cur->cons->car = child;
-        cur = obj_cdr(cur);
-    }
-    ERRCHECK(o);
-
-    /* make sure first object is callable */
-    obj *f = obj_car(o);
-    CASSERT(o, f->type == OBJ_FUN, "object of type %s is not callable",
-            obj_typename(f->type));
-
-    /* pop first object and evaluate */
-    f = obj_popcar(&o);
-    obj *res = eval_call(e, f, o);
-
-    obj_delete(f);
-
-    return res;
-}
-
-obj *eval(env *e, obj *o) {
-    if (o->type == OBJ_SYM) {
-        obj *res = env_lookup(e, o);
-        obj_delete(o);
-        return res;
-    } else if (o->type == OBJ_CONS) {
-        obj *res = eval_list(e, o);
-        return res;
-    } else if (o->type == OBJ_KEYWORD) {
-        obj *res = obj_err("invalid syntax %s", o->keyword);
-        obj_delete(o);
-        return res;
-    }
-
-    return o;
 }

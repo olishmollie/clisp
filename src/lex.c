@@ -111,19 +111,6 @@ token lexsymbol(lexer *l) {
 
     ungetc(l->curchar, l->infile);
 
-    if (strcmp(sym, "nil") == 0)
-        return token_new(TOK_NIL, sym);
-    if (strcmp(sym, "quote") == 0)
-        return token_new(TOK_QUOTE, sym);
-    if (strcmp(sym, "lambda") == 0)
-        return token_new(TOK_LAMBDA, sym);
-    if (strcmp(sym, "if") == 0)
-        return token_new(TOK_IF, sym);
-    if (strcmp(sym, "set!") == 0)
-        return token_new(TOK_SET, sym);
-    if (strcmp(sym, "define") == 0)
-        return token_new(TOK_DEF, sym);
-
     return token_new(TOK_SYM, sym);
 }
 

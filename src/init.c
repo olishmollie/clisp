@@ -22,23 +22,11 @@ env *global_env(void) {
 
     register_builtin(e, builtin_is_null, "null?");
 
-    // register_builtin(e, builtin_list, "list");
-    // register_builtin(e, builtin_cons, "cons");
-    // register_builtin(e, builtin_car, "car");
-    // register_builtin(e, builtin_cdr, "cdr");
-    // register_builtin(e, builtin_eq, "eq");
-    // register_builtin(e, builtin_atom, "atom");
-    // register_builtin(e, builtin_eval, "eval");
+    register_builtin(e, builtin_cons, "cons");
+    register_builtin(e, builtin_car, "car");
+    register_builtin(e, builtin_cdr, "cdr");
 
-    // register_builtin(e, builtin_strtolist, "string->list");
-    // register_builtin(e, builtin_listtostr, "list->string");
-
-    // register_builtin(e, builtin_type, "type");
-    // register_builtin(e, builtin_print, "print");
-    // register_builtin(e, builtin_println, "display");
-    // register_builtin(e, builtin_error, "error");
-
-    // register_builtin(e, builtin_load, "load");
+    register_builtin(e, builtin_load, "load");
     register_builtin(e, builtin_exit, "exit");
     return e;
 }
@@ -52,4 +40,5 @@ void init() {
     set_sym = mk_sym("set!");
     if_sym = mk_sym("if");
     universe = global_env();
+    builtin_load(STDLIB);
 }

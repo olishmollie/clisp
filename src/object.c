@@ -15,45 +15,39 @@ env *env_new(void) {
     return e;
 }
 
-obj *env_lookup(env *e, obj *k) {
+obj *lookup(env *e, obj *k) {
     /* search local env */
     for (int i = 0; i < e->count; i++) {
         if (strcmp(e->syms[i], k->sym) == 0)
-            return obj_cpy(e->vals[i]);
+            return e->vals[i];
     }
 
     /* search parent env */
     if (e->parent)
-        return env_lookup(e->parent, k);
+        return lookup(e->parent, k);
 
-    return obj_err("unbound symbol '%s'", k->sym);
+    return mk_err("unbound symbol '%s'", k->sym);
 }
 
-void env_set(env *e, obj *k, obj *v) {
+obj *env_set(env *e, obj *k, obj *v) {
     /* if in current env, overwrite */
     for (int i = 0; i < e->count; i++) {
         if (strcmp(k->sym, e->syms[i]) == 0) {
-            obj_delete(e->vals[i]);
-            e->vals[i] = obj_cpy(v);
-            return;
+            e->vals[i] = v;
+            return e->vals[i];
         }
     }
 
-    /* search in parent env */
-    if (e->parent)
-        return env_set(e->parent, k, v);
-
-    /* add to current env */
-    env_insert(e, k, v);
+    /* return error if not found */
+    return mk_err("unbound symbol '%s'", k->sym);
 }
 
-void env_insert(env *e, obj *k, obj *v) {
+void insert(env *e, obj *k, obj *v) {
 
     /* Overwrite an exisiting symbol if exists */
     for (int i = 0; i < e->count; i++) {
         if (strcmp(e->syms[i], k->sym) == 0) {
-            obj_delete(e->vals[i]);
-            e->vals[i] = obj_cpy(v);
+            e->vals[i] = v;
             return;
         }
     }
@@ -63,18 +57,19 @@ void env_insert(env *e, obj *k, obj *v) {
     e->vals = realloc(e->vals, sizeof(obj *) * e->count);
     e->syms = realloc(e->syms, sizeof(char *) * e->count);
 
-    e->vals[e->count - 1] = obj_cpy(v);
-    e->syms[e->count - 1] = malloc(sizeof(char) * (strlen(k->sym) + 1));
-    strcpy(e->syms[e->count - 1], k->sym);
+    e->vals[e->count - 1] = v;
+    e->syms[e->count - 1] = k->sym;
+    // e->syms[e->count - 1] = malloc(sizeof(char) * (strlen(k->sym) + 1));
+    // strcpy(e->syms[e->count - 1], k->sym);
 }
 
 env *env_cpy(env *e) {
     env *res = env_new();
     res->parent = e->parent;
     for (int i = 0; i < e->count; i++) {
-        obj *k = obj_sym(e->syms[i]);
+        obj *k = mk_sym(e->syms[i]);
         obj *v = e->vals[i];
-        env_insert(res, k, v);
+        insert(res, k, v);
         obj_delete(k);
     }
     return res;
@@ -92,13 +87,13 @@ void env_delete(env *e) {
     }
 }
 
-void obj_println(obj *);
+void println(obj *);
 
 void env_print(env *e) {
     printf("{\n");
     for (int i = 0; i < e->count; i++) {
         printf("\t%s: ", e->syms[i]);
-        obj_println(e->vals[i]);
+        println(e->vals[i]);
     }
     printf("}\n");
 }
@@ -116,7 +111,7 @@ void init_rat(num_t *n, char *ratstr) {
     mpq_canonicalize(n->rat);
 }
 
-num_t *mk_num(char *numstr, token_t ttype) {
+num_t *mk_num_t(char *numstr, token_t ttype) {
     num_t *n = malloc(sizeof(num_t));
     switch (ttype) {
     case TOK_INT:
@@ -139,14 +134,14 @@ num_t *mk_num(char *numstr, token_t ttype) {
     return n;
 }
 
-num_t *mk_int(mpz_t integ) {
+num_t *mk_int_t(mpz_t integ) {
     num_t *n = malloc(sizeof(num_t));
     n->type = NUM_INT;
     mpz_init_set(n->integ, integ);
     return n;
 }
 
-num_t *mk_rat(mpq_t rat) {
+num_t *mk_rat_t(mpq_t rat) {
     num_t *n = malloc(sizeof(num_t));
     n->type = NUM_RAT;
     mpq_init(n->rat);
@@ -154,25 +149,29 @@ num_t *mk_rat(mpq_t rat) {
     return n;
 }
 
-num_t *mk_dbl(mpf_t dbl) {
+num_t *mk_dbl_t(mpf_t dbl) {
     num_t *n = malloc(sizeof(num_t));
     n->type = NUM_DBL;
     mpf_init_set(n->dbl, dbl);
     return n;
 }
 
-cons_t *mk_cons(obj *car, obj *cdr) {
+cons_t *mk_cons_t(obj *car, obj *cdr) {
     cons_t *c = malloc(sizeof(cons_t));
     c->car = car;
     c->cdr = cdr;
     return c;
 }
 
-obj *obj_nil(void);
+builtin_t *mk_builtin_t(char *name, builtin proc) {
+    builtin_t *bltin = malloc(sizeof(builtin_t));
+    bltin->name = name;
+    bltin->proc = proc;
+    return bltin;
+}
 
-fun_t *mk_fun(char *name, builtin bltin, obj *params, obj *body) {
+fun_t *mk_fun_t(char *name, obj *params, obj *body) {
     fun_t *fun = malloc(sizeof(fun_t));
-    fun->proc = bltin;
     fun->params = params;
     fun->body = body;
     fun->e = NULL;
@@ -187,7 +186,7 @@ fun_t *mk_fun(char *name, builtin bltin, obj *params, obj *body) {
     return fun;
 }
 
-const_t *mk_const(char *c) {
+const_t *mk_const_t(char *c) {
     const_t *constant = malloc(sizeof(const_t));
 
     constant->repr = malloc(sizeof(char) * (strlen(c) + 1));
@@ -229,77 +228,77 @@ obj *obj_new(obj_t type) {
     o->type = type;
     o->mark = 0;
     o->nargs = 0;
-    INCR_OBJ(o);
+    // INCR_OBJ(o);
     return o;
 }
 
-obj *obj_num(char *numstr, token_t ttype) {
+obj *mk_num(char *numstr, token_t ttype) {
     obj *o = obj_new(OBJ_NUM);
-    o->num = mk_num(numstr, ttype);
+    o->num = mk_num_t(numstr, ttype);
     if (o->type == NUM_ERR) {
-        obj *err = obj_err(o->num->err);
+        obj *err = mk_err(o->num->err);
         obj_delete(o);
         return err;
     }
     return o;
 }
 
-obj *obj_int(mpz_t integ) {
+obj *mk_int(mpz_t integ) {
     obj *o = obj_new(OBJ_NUM);
-    o->num = mk_int(integ);
+    o->num = mk_int_t(integ);
     return o;
 }
 
-obj *obj_rat(mpq_t rat) {
+obj *mk_rat(mpq_t rat) {
     obj *o = obj_new(OBJ_NUM);
-    o->num = mk_rat(rat);
+    o->num = mk_rat_t(rat);
     return o;
 }
 
-obj *obj_dbl(mpf_t dbl) {
+obj *mk_dbl(mpf_t dbl) {
     obj *o = obj_new(OBJ_NUM);
-    o->num = mk_dbl(dbl);
+    o->num = mk_dbl_t(dbl);
     return o;
 }
 
-obj *obj_sym(char *name) {
+obj *mk_sym(char *name) {
     obj *o = obj_new(OBJ_SYM);
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
     return o;
 }
 
-obj *obj_str(char *str) {
+obj *mk_string(char *str) {
     obj *o = obj_new(OBJ_STR);
     o->str = malloc(sizeof(char) * (strlen(str) + 1));
     strcpy(o->str, str);
     return o;
 }
 
-obj *obj_cons(obj *car, obj *cdr) {
+obj *mk_cons(obj *car, obj *cdr) {
     obj *o = obj_new(OBJ_CONS);
-    o->cons = mk_cons(car, cdr);
+    o->cons = mk_cons_t(car, cdr);
     return o;
 }
 
-obj *obj_builtin(char *name, builtin proc) {
+obj *mk_builtin(char *name, builtin proc) {
+    obj *o = obj_new(OBJ_BUILTIN);
+    o->bltin = mk_builtin_t(name, proc);
+    return o;
+}
+
+obj *mk_lambda(obj *params, obj *body) {
     obj *o = obj_new(OBJ_FUN);
-    o->fun = mk_fun(name, proc, NULL, NULL);
+    o->fun = mk_fun_t(NULL, params, body);
     return o;
 }
 
-obj *obj_lambda(obj *params, obj *body) {
-    obj *o = obj_new(OBJ_FUN);
-    o->fun = mk_fun(NULL, NULL, params, body);
-    return o;
-}
-
-obj *obj_const(char *constant) {
+obj *mk_const(char *constant) {
     obj *o = obj_new(OBJ_CONST);
 
-    o->constant = mk_const(constant);
+    o->constant = mk_const_t(constant);
     if (o->constant->type == CONST_ERR) {
-        obj *err = obj_err(o->constant->err);
+        obj *err = mk_err(o->constant->err);
         free(o->constant->err);
         obj_delete(o);
         return err;
@@ -308,55 +307,41 @@ obj *obj_const(char *constant) {
     return o;
 }
 
-obj *obj_char(char c) {
+obj *mk_char(char c) {
     char *repr = 0;
     obj *res;
     switch (c) {
     case '\n':
     case '\f':
-        res = obj_const("#\\newline");
+        res = mk_const("#\\newline");
         break;
     case ' ':
-        res = obj_const("#\\space");
+        res = mk_const("#\\space");
         break;
     case '\t':
-        res = obj_const("#\\tab");
+        res = mk_const("#\\tab");
         break;
     default:
         repr = malloc(sizeof(char) * 4);
         sprintf(repr, "#\\%c", c);
-        res = obj_const(repr);
+        res = mk_const(repr);
         free(repr);
     }
 
     return res;
 }
 
-obj *obj_bool(bool_t type) {
-    obj *res = type == BOOL_T ? obj_const("#t") : obj_const("#f");
+obj *mk_bool(bool_t type) {
+    obj *res = type == BOOL_T ? mk_const("#t") : mk_const("#f");
     return res;
 }
 
-int obj_isfalse(obj *c) {
-    return c->type == OBJ_CONST && c->constant->type == CONST_BOOL &&
-           c->constant->bool == BOOL_F;
-}
-
-int obj_istrue(obj *c) { return !obj_isfalse(c); }
-
-obj *obj_keyword(char *name) {
-    obj *o = obj_new(OBJ_KEYWORD);
-    o->keyword = malloc(sizeof(char) * (strlen(name) + 1));
-    strcpy(o->keyword, name);
-    return o;
-}
-
-obj *obj_nil(void) {
+obj *mk_nil(void) {
     obj *o = obj_new(OBJ_NIL);
     return o;
 }
 
-obj *obj_err(char *fmt, ...) {
+obj *mk_err(char *fmt, ...) {
     obj *o = obj_new(OBJ_ERR);
 
     va_list args;
@@ -368,14 +353,21 @@ obj *obj_err(char *fmt, ...) {
     return o;
 }
 
-int obj_isatom(obj *o) { return o->type != OBJ_CONS && o->type != OBJ_FUN; }
+int is_the_empty_list(obj *o) { return o == the_empty_list; }
+int is_false(obj *o) { return o == false; }
+int is_true(obj *o) { return !is_false(o); }
 
-int obj_ispair(obj *o) {
-    return o->type == OBJ_CONS && obj_isatom(obj_car(o)) &&
-           obj_isatom(obj_cdr(o));
-}
+int is_pair(obj *o) { return o->type == OBJ_CONS; }
+int is_num(obj *o) { return o->type == OBJ_NUM; }
+int is_symbol(obj *o) { return o->type == OBJ_SYM; }
+int is_boolean(obj *o) { return o == true || o == false; }
+int is_char(obj *o) { return o->type == OBJ_CONST && !is_boolean(o); }
+int is_string(obj *o) { return o->type == OBJ_STR; }
+int is_builtin(obj *o) { return o->type == OBJ_BUILTIN; }
+int is_fun(obj *o) { return o->type == OBJ_FUN; }
+int is_error(obj *o) { return o->type == OBJ_ERR; }
 
-char *obj_typename(obj_t type) {
+char *type_name(obj_t type) {
     switch (type) {
     case OBJ_NUM:
         return "number";
@@ -389,8 +381,6 @@ char *obj_typename(obj_t type) {
         return "constant";
     case OBJ_FUN:
         return "function";
-    case OBJ_KEYWORD:
-        return "keyword";
     case OBJ_NIL:
         return "nil";
     case OBJ_ERR:
@@ -402,28 +392,17 @@ char *obj_typename(obj_t type) {
 
 /* list fns ---------------------------------------------------------------- */
 
-obj *obj_car(obj *o) { return o->cons->car; }
-
-obj *obj_cdr(obj *o) { return o->cons->cdr; }
-
-obj *obj_cadr(obj *o) { return obj_car(obj_cdr(o)); }
-
-obj *obj_popcar(obj **o) {
-    obj *car = obj_cpy(obj_car(*o));
-    obj *cdr = obj_cpy(obj_cdr(*o));
-    int count = (*o)->nargs;
-    obj_delete(*o);
-    *o = cdr;
-    (*o)->nargs = obj_isatom(*o) ? 0 : count - 1;
-    return car;
-}
+obj *car(obj *o) { return o->cons->car; }
+obj *cdr(obj *o) { return o->cons->cdr; }
+void set_car(obj *o, obj *v) { o->cons->car = v; }
+void set_cdr(obj *o, obj *v) { o->cons->cdr = v; }
 
 /* copying ----------------------------------------------------------------- */
 
 obj *cpy_const(obj *o) {
     char *repr = malloc(sizeof(char) * (strlen(o->constant->repr) + 1));
     strcpy(repr, o->constant->repr);
-    obj *c = obj_const(repr);
+    obj *c = mk_const(repr);
     free(repr);
     return c;
 }
@@ -431,64 +410,58 @@ obj *cpy_const(obj *o) {
 obj *cpy_num(obj *o) {
     switch (o->num->type) {
     case NUM_INT:
-        return obj_int(o->num->integ);
+        return mk_int(o->num->integ);
     case NUM_RAT:
-        return obj_rat(o->num->rat);
+        return mk_rat(o->num->rat);
     case NUM_DBL:
-        return obj_dbl(o->num->dbl);
+        return mk_dbl(o->num->dbl);
     default:
         obj_delete(o);
-        return obj_err("cannot copy number of unknown type");
+        return mk_err("cannot copy number of unknown type");
     }
 }
 
-obj *obj_cpy(obj *o) {
-    obj *res;
-    switch (o->type) {
-    case OBJ_NUM:
-        return cpy_num(o);
-    case OBJ_SYM:
-        res = obj_sym(o->sym);
-        break;
-    case OBJ_STR:
-        res = obj_str(o->str);
-        break;
-    case OBJ_CONS:
-        res = obj_cons(obj_cpy(o->cons->car), obj_cpy(o->cons->cdr));
-        break;
-    case OBJ_FUN:
-        if (o->fun->proc)
-            res = obj_builtin(o->fun->name, o->fun->proc);
-        else {
-            res = obj_lambda(obj_cpy(o->fun->params), obj_cpy(o->fun->body));
-            res->fun->e = o->fun->e;
-            res->fun->e->parent = o->fun->e->parent;
-            if (o->fun->name) {
-                res->fun->name =
-                    malloc(sizeof(char) * (strlen(o->fun->name) + 1));
-                strcpy(res->fun->name, o->fun->name);
-            }
-        }
-        break;
-    case OBJ_ERR:
-        res = obj_err(o->err);
-        break;
-    case OBJ_NIL:
-        res = obj_nil();
-        break;
-    case OBJ_KEYWORD:
-        res = obj_keyword(o->keyword);
-        break;
-    case OBJ_CONST:
-        res = cpy_const(o);
-    }
-    res->nargs = o->nargs;
-    return res;
-}
+// obj *copy(obj *o) {
+//     obj *res;
+//     switch (o->type) {
+//     case OBJ_NUM:
+//         return cpy_num(o);
+//     case OBJ_SYM:
+//         res = mk_sym(o->sym);
+//         break;
+//     case OBJ_STR:
+//         res = mk_string(o->str);
+//         break;
+//     case OBJ_CONS:
+//         res = mk_cons(copy(o->cons->car), copy(o->cons->cdr));
+//         break;
+//     case OBJ_BUILTIN:
+//         break;
+//     case OBJ_FUN:
+//         res = mk_lambda(copy(o->fun->params), copy(o->fun->body));
+//         res->fun->e = o->fun->e;
+//         res->fun->e->parent = o->fun->e->parent;
+//         if (o->fun->name) {
+//             res->fun->name = malloc(sizeof(char) * (strlen(o->fun->name) +
+//             1)); strcpy(res->fun->name, o->fun->name);
+//         }
+//         break;
+//     case OBJ_ERR:
+//         res = mk_err(o->err);
+//         break;
+//     case OBJ_NIL:
+//         res = mk_nil();
+//         break;
+//     case OBJ_CONST:
+//         res = cpy_const(o);
+//     }
+//     res->nargs = o->nargs;
+//     return res;
+// }
 
 /* printing ---------------------------------------------------------------- */
 
-void obj_print(obj *o);
+void print(obj *o);
 
 void print_num(obj *o) {
     switch (o->num->type) {
@@ -532,9 +505,9 @@ void print_rawstr(char *str) {
 
 // void print_cons(obj *o) {
 //     printf("(");
-//     obj_print(o->cons->car);
+//     print(o->cons->car);
 //     printf(" . ");
-//     obj_print(o->cons->cdr);
+//     print(o->cons->cdr);
 //     printf(")");
 // }
 
@@ -542,22 +515,22 @@ void print_cons(obj *o) {
     putchar('(');
     obj *p = o;
     while (1) {
-        obj_print(obj_car(p));
-        obj *cdr = obj_cdr(p);
-        if (cdr->type != OBJ_CONS) {
-            if (cdr->type != OBJ_NIL) {
+        print(car(p));
+        obj *cdr_obj = cdr(p);
+        if (cdr_obj->type != OBJ_CONS) {
+            if (cdr_obj->type != OBJ_NIL) {
                 printf(" . ");
-                obj_print(cdr);
+                print(cdr_obj);
             }
             putchar(')');
             break;
         }
         putchar(' ');
-        p = obj_cdr(p);
+        p = cdr(p);
     }
 }
 
-void obj_print(obj *o) {
+void print(obj *o) {
     if (o) {
         switch (o->type) {
         case OBJ_NUM:
@@ -575,18 +548,18 @@ void obj_print(obj *o) {
         case OBJ_CONST:
             printf("%s", o->constant->repr);
             break;
+        case OBJ_BUILTIN:
+            printf("#<procedure '%s'>", o->bltin->name);
+            break;
         case OBJ_FUN:
             if (o->fun->name)
-                printf("<function '%s'>", o->fun->name);
+                printf("#<procedure '%s'>", o->fun->name);
             else {
-                printf("<function>");
+                printf("#<procedure>");
             }
             break;
         case OBJ_ERR:
             printf("error: %s", o->err);
-            break;
-        case OBJ_KEYWORD:
-            printf("%s", o->keyword);
             break;
         case OBJ_NIL:
             printf("()");
@@ -597,8 +570,8 @@ void obj_print(obj *o) {
     }
 }
 
-void obj_println(obj *o) {
-    obj_print(o);
+void println(obj *o) {
+    print(o);
     putchar('\n');
 }
 
@@ -626,7 +599,7 @@ void clear_num(obj *o) {
 
 void obj_delete(obj *o) {
     if (o) {
-        DECR_OBJ(o);
+        // DECR_OBJ(o);
         switch (o->type) {
         case OBJ_NUM:
             clear_num(o);
@@ -638,8 +611,8 @@ void obj_delete(obj *o) {
             free(o->str);
             break;
         case OBJ_CONS:
-            obj_delete(obj_car(o));
-            obj_delete(obj_cdr(o));
+            obj_delete(car(o));
+            obj_delete(cdr(o));
             free(o->cons);
             break;
         case OBJ_ERR:
@@ -655,14 +628,12 @@ void obj_delete(obj *o) {
                 obj_delete(o->fun->body);
             free(o->fun);
             break;
-        case OBJ_KEYWORD:
-            free(o->keyword);
-            break;
         case OBJ_CONST:
             free(o->constant->repr);
             free(o->constant);
             break;
         case OBJ_NIL:
+        case OBJ_BUILTIN:
             break;
         }
         free(o);

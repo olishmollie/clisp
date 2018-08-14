@@ -26,122 +26,111 @@ token nexttok(parser *p) {
 }
 
 obj *read_sym(parser *p) {
-    obj *o = obj_sym(p->curtok.val);
+    obj *res;
+
+    if (strcmp(p->curtok.val, "quote") == 0)
+        res = quote_sym;
+    else if (strcmp(p->curtok.val, "define") == 0)
+        res = define_sym;
+    else if (strcmp(p->curtok.val, "set!") == 0)
+        res = set_sym;
+    else if (strcmp(p->curtok.val, "if") == 0)
+        res = if_sym;
+    else {
+        res = mk_sym(p->curtok.val);
+    }
+
     token_delete(p->curtok);
-    return o;
+
+    return res;
+}
+
+obj *read_constant(parser *p) {
+    obj *res;
+    if (strcmp(p->curtok.val, "#t") == 0)
+        res = true;
+    else if (strcmp(p->curtok.val, "#f") == 0)
+        res = false;
+    else {
+        res = mk_const(p->curtok.val);
+    }
+    token_delete(p->curtok);
+
+    return res;
+}
+
+obj *read_num(parser *p) {
+    obj *res = mk_num(p->curtok.val, p->curtok.type);
+    token_delete(p->curtok);
+    return res;
+}
+
+obj *read_string(parser *p) {
+    obj *res = mk_string(p->curtok.val);
+    token_delete(p->curtok);
+    return res;
 }
 
 obj *read(parser *p);
 
 obj *read_list(parser *p) {
 
-    obj *list = obj_nil();
-    while (p->peektok.type != TOK_RPAREN) {
+    obj *car_obj;
+    obj *cdr_obj;
 
-        if (p->peektok.type == TOK_END) {
-            obj_delete(list);
-            return obj_err("expected ')'");
-        }
-
-        obj *car = read(p);
-
-        if (p->peektok.type == TOK_DOT) {
-            /* eat '.' */
-            nexttok(p);
-            token_delete(p->curtok);
-
-            obj *cdr = read(p);
-            if (p->peektok.type != TOK_RPAREN) {
-                obj_delete(cdr);
-                obj_delete(list);
-                return obj_err("expected ')'");
-            }
-
-            if (list->nargs) {
-                obj *cur = list;
-                for (int i = 0; i < list->nargs - 1; i++) {
-                    cur = obj_cdr(cur);
-                }
-                obj_delete(cur->cons->cdr); /* delete obj_nil() */
-                cur->cons->cdr = obj_cons(car, cdr);
-                list->nargs++;
-            } else {
-                obj_delete(list);
-                list = obj_cons(car, cdr);
-                list->nargs = 2;
-            }
-
-            nexttok(p);
-            token_delete(p->curtok);
-
-            return list;
-        }
-
-        if (list->nargs) {
-            obj *cur = list;
-            for (int i = 0; i < list->nargs - 1; i++) {
-                cur = obj_cdr(cur);
-            }
-            cur->cons->cdr = obj_cons(car, cur->cons->cdr);
-        } else {
-            list = obj_cons(car, list);
-        }
-
-        list->nargs++;
+    if (p->peektok.type == TOK_END) {
+        return mk_err("expected ')'");
     }
 
-    /* eat ')' */
-    nexttok(p);
-    token_delete(p->curtok);
+    if (p->peektok.type == TOK_RPAREN) {
+        /* eat ')' */
+        nexttok(p);
+        token_delete(p->curtok);
+        return the_empty_list;
+    }
 
-    return list;
+    car_obj = read(p);
+
+    if (p->peektok.type == TOK_DOT) {
+        /* eat '.' */
+        nexttok(p);
+        token_delete(p->curtok);
+
+        cdr_obj = read(p);
+        if (p->peektok.type != TOK_RPAREN) {
+            obj_delete(cdr_obj);
+            return mk_err("expected ')'");
+        }
+
+        nexttok(p);
+        token_delete(p->curtok);
+
+        return mk_cons(car_obj, cdr_obj);
+    }
+
+    cdr_obj = read_list(p);
+
+    return mk_cons(car_obj, cdr_obj);
 }
 
 obj *expand_quote(parser *p) {
-    obj *quote = obj_keyword("quote");
-    obj *res = obj_cons(quote, obj_cons(read(p), obj_nil()));
-    res->nargs = 2;
-    return res;
+    return mk_cons(quote_sym, mk_cons(read(p), the_empty_list));
 }
 
 obj *read(parser *p) {
     nexttok(p);
     token tok;
     switch (p->curtok.type) {
-    /* special forms */
-    case TOK_DEF:
-    case TOK_LAMBDA:
-    case TOK_QUOTE:
-    case TOK_IF:
-    case TOK_SET:
-        tok = p->curtok;
-        obj *k = obj_keyword(tok.val);
-        token_delete(tok);
-        return k;
-    /* atoms */
     case TOK_INT:
     case TOK_RAT:
     case TOK_FLOAT:
-        tok = p->curtok;
-        obj *n = obj_num(p->curtok.val, p->curtok.type);
-        token_delete(tok);
-        return n;
+        return read_num(p);
     case TOK_SYM:
         return read_sym(p);
-    case TOK_STR:
-        tok = p->curtok;
-        obj *s = obj_str(tok.val);
-        token_delete(tok);
-        return s;
-    case TOK_NIL:
-        token_delete(p->curtok);
-        return obj_nil();
     case TOK_CONST:
-        tok = p->curtok;
-        obj *c = obj_const(tok.val);
-        token_delete(tok);
-        return c;
-    /* lists */
+        return read_constant(p);
+    case TOK_STR:
+        return read_string(p);
     case TOK_LPAREN:
         token_delete(p->curtok);
         return read_list(p);
@@ -150,18 +139,18 @@ obj *read(parser *p) {
         return expand_quote(p);
     case TOK_RPAREN:
         token_delete(p->curtok);
-        return obj_err("unexpected ')'");
+        return mk_err("unexpected ')'");
     case TOK_DOT:
         token_delete(p->curtok);
-        return obj_err("unexpected '.'");
+        return mk_err("unexpected '.'");
     case TOK_ERR:
         tok = p->curtok;
-        obj *res = obj_err(tok.val);
+        obj *res = mk_err(tok.val);
         token_delete(tok);
         return res;
     default:
         tok = p->curtok;
-        obj *err = obj_err("unknown token '%s'", tok.val);
+        obj *err = mk_err("unknown token '%s'", tok.val);
         token_delete(tok);
         return err;
     }
