@@ -77,7 +77,6 @@ obj *obj_new(obj_t type) {
     obj *o = malloc(sizeof(obj));
     o->type = type;
     o->mark = 0;
-    o->nargs = 0;
     // INCR_OBJ(o);
     return o;
 }
@@ -337,6 +336,12 @@ obj *env_insert(obj *env, obj *key, obj *value) {
         set_cdr(frame, mk_cons(varlist, the_empty_list));
     }
 
+    /* save fn name */
+    if (is_fun(value)) {
+        value->fun->name = malloc(sizeof(char) * (strlen(key->sym) + 1));
+        strcpy(value->fun->name, key->sym);
+    }
+
     return NULL;
 }
 
@@ -366,11 +371,11 @@ obj *env_set(obj *env, obj *key, obj *value) {
     return env_set(cdr(env), key, value);
 }
 
-void env_print(obj *env) {
-    while (env != the_empty_list) {
-        println(car(env));
+void env_extend(obj *env, obj *parent) {
+    while (cdr(env) != the_empty_list) {
         env = cdr(env);
     }
+    set_cdr(env, parent);
 }
 
 /* printing ---------------------------------------------------------------- */

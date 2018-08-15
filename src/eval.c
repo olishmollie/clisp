@@ -77,16 +77,35 @@ obj *eval_arglist(obj *e, obj *arglist) {
     return !is_error(arg) ? mk_cons(arg, eval_arglist(e, cdr(arglist))) : arg;
 }
 
-obj *eval_procedure(obj *e, obj *expr) {
-    obj *procedure = eval(e, car(expr));
+obj *bind_arguments(obj *env, obj *params, obj *args) {
+    while (params != the_empty_list && args != the_empty_list) {
+        env_insert(env, car(params), car(args));
+        params = cdr(params);
+        args = cdr(args);
+    }
+    if (params != the_empty_list || args != the_empty_list)
+        return mk_err("incorrect argument count\n");
+
+    return the_empty_list;
+}
+
+obj *apply(obj *env, obj *procedure, obj *args) {
+    obj *local_env = env_new();
+    obj *res = bind_arguments(local_env, procedure->fun->params, args);
+    env_extend(local_env, procedure->fun->env);
+    return is_error(res) ? res : eval(local_env, procedure->fun->body);
+}
+
+obj *eval_procedure(obj *env, obj *expr) {
+    obj *procedure = eval(env, car(expr));
     FIG_ERRORCHECK(procedure);
-    obj *arguments = eval_arglist(e, cdr(expr));
-    FIG_ERRORCHECK(arguments);
+    obj *args = eval_arglist(env, cdr(expr));
+    FIG_ERRORCHECK(args);
 
     if (is_builtin(procedure)) {
-        return procedure->bltin->proc(arguments);
+        return procedure->bltin->proc(args);
     } else {
-        return expr;
+        return apply(env, procedure, args);
     }
 }
 

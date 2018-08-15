@@ -64,7 +64,6 @@ typedef enum {
 
 struct obj {
     obj_t type;
-    int nargs;
     unsigned char mark;
     union {
         num_t *num;
@@ -83,6 +82,7 @@ obj *env_new();
 obj *env_lookup(obj *env, obj *key);
 obj *env_insert(obj *env, obj *key, obj *value);
 obj *env_set(obj *env, obj *key, obj *value);
+void env_extend(obj *env, obj *parent);
 void env_print(obj *env);
 
 obj *mk_num(char *numstr);
