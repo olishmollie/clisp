@@ -168,26 +168,28 @@ token lexconst(lexer *l) {
     return token_new(TOK_CONST, sym);
 }
 
-void skipspaces(lexer *l) {
-    while (isspace(l->curchar)) {
-        nextchar(l);
+void skip_spaces_and_comments(lexer *l) {
+    while (!feof(l->infile)) {
+        if (isspace(l->curchar)) {
+            nextchar(l);
+            continue;
+        } else if (l->curchar == ';') {
+            while (!feof(l->infile) && l->curchar != '\n') {
+                nextchar(l);
+            }
+            continue;
+        }
+        break;
     }
-}
-
-void skipcomments(lexer *l) {
-    while (l->curchar != '\n') {
-        nextchar(l);
-    }
-    skipspaces(l);
 }
 
 token lex(lexer *l) {
 
     nextchar(l);
 
-    skipspaces(l);
-    if (l->curchar == ';')
-        skipcomments(l);
+    // skipspaces(l);
+    // if (l->curchar == ';')
+    skip_spaces_and_comments(l);
 
     if (feof(l->infile))
         return token_new(TOK_END, "end");
