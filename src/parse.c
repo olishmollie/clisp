@@ -60,7 +60,7 @@ obj *read_constant(parser *p) {
 }
 
 obj *read_num(parser *p) {
-    obj *res = mk_num(p->curtok.val, p->curtok.type);
+    obj *res = mk_num(p->curtok.val);
     token_delete(p->curtok);
     return res;
 }

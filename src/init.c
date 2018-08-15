@@ -21,10 +21,28 @@ env *global_env(void) {
     register_builtin(e, builtin_lte, "<=");
 
     register_builtin(e, builtin_is_null, "null?");
+    register_builtin(e, builtin_is_boolean, "boolean?");
+    register_builtin(e, builtin_is_symbol, "symbol?");
+    register_builtin(e, builtin_is_num, "number?");
+    register_builtin(e, builtin_is_char, "char?");
+    register_builtin(e, builtin_is_string, "string?");
+    register_builtin(e, builtin_is_pair, "pair?");
+    register_builtin(e, builtin_is_proc, "procedure?");
+    register_builtin(e, builtin_is_equal, "eq?");
+
+    register_builtin(e, builtin_char_to_int, "char->int");
+    register_builtin(e, builtin_int_to_char, "int->char");
+    register_builtin(e, builtin_number_to_string, "number->string");
+    register_builtin(e, builtin_string_to_number, "string->number");
+    register_builtin(e, builtin_symbol_to_string, "symbol->string");
+    register_builtin(e, builtin_string_to_symbol, "string->symbol");
 
     register_builtin(e, builtin_cons, "cons");
     register_builtin(e, builtin_car, "car");
     register_builtin(e, builtin_cdr, "cdr");
+    register_builtin(e, builtin_setcar, "set-car!");
+    register_builtin(e, builtin_setcdr, "set-cdr!");
+    register_builtin(e, builtin_list, "list");
 
     register_builtin(e, builtin_load, "load");
     register_builtin(e, builtin_exit, "exit");

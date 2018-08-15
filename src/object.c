@@ -98,64 +98,6 @@ void env_print(env *e) {
     printf("}\n");
 }
 
-void init_rat(num_t *n, char *ratstr) {
-    char *nstr, *dstr;
-
-    nstr = strtok(ratstr, "/");
-    dstr = strtok(NULL, "/");
-
-    mpq_init(n->rat);
-    mpz_init_set_str(mpq_numref(n->rat), nstr, 10);
-    mpz_init_set_str(mpq_denref(n->rat), dstr, 10);
-
-    mpq_canonicalize(n->rat);
-}
-
-num_t *mk_num_t(char *numstr, token_t ttype) {
-    num_t *n = malloc(sizeof(num_t));
-    switch (ttype) {
-    case TOK_INT:
-        n->type = NUM_INT;
-        mpz_init_set_str(n->integ, numstr, 10);
-        break;
-    case TOK_RAT:
-        n->type = NUM_RAT;
-        init_rat(n, numstr);
-        break;
-    case TOK_FLOAT:
-        n->type = NUM_DBL;
-        mpf_init_set_str(n->dbl, numstr, 10);
-        break;
-    default:
-        n->type = NUM_ERR;
-        n->err = "cannot make num_t with unknown token type";
-        break;
-    }
-    return n;
-}
-
-num_t *mk_int_t(mpz_t integ) {
-    num_t *n = malloc(sizeof(num_t));
-    n->type = NUM_INT;
-    mpz_init_set(n->integ, integ);
-    return n;
-}
-
-num_t *mk_rat_t(mpq_t rat) {
-    num_t *n = malloc(sizeof(num_t));
-    n->type = NUM_RAT;
-    mpq_init(n->rat);
-    mpq_set(n->rat, rat);
-    return n;
-}
-
-num_t *mk_dbl_t(mpf_t dbl) {
-    num_t *n = malloc(sizeof(num_t));
-    n->type = NUM_DBL;
-    mpf_init_set(n->dbl, dbl);
-    return n;
-}
-
 cons_t *mk_cons_t(obj *car, obj *cdr) {
     cons_t *c = malloc(sizeof(cons_t));
     c->car = car;
@@ -232,14 +174,60 @@ obj *obj_new(obj_t type) {
     return o;
 }
 
-obj *mk_num(char *numstr, token_t ttype) {
-    obj *o = obj_new(OBJ_NUM);
-    o->num = mk_num_t(numstr, ttype);
-    if (o->type == NUM_ERR) {
-        obj *err = mk_err(o->num->err);
-        obj_delete(o);
-        return err;
+void init_rat(num_t *n, char *ratstr) {
+    char *nstr, *dstr;
+
+    nstr = strtok(ratstr, "/");
+    dstr = strtok(NULL, "/");
+
+    mpq_init(n->rat);
+    mpz_init_set_str(mpq_numref(n->rat), nstr, 10);
+    mpz_init_set_str(mpq_denref(n->rat), dstr, 10);
+
+    mpq_canonicalize(n->rat);
+}
+
+num_t *mk_num_t(char *numstr) {
+    num_t *n = malloc(sizeof(num_t));
+    if (strchr(numstr, '.')) {
+        n->type = NUM_DBL;
+        mpf_init_set_str(n->dbl, numstr, 10);
+    } else if (strchr(numstr, '/')) {
+        n->type = NUM_RAT;
+        init_rat(n, numstr);
+    } else {
+        n->type = NUM_INT;
+        mpz_init_set_str(n->integ, numstr, 10);
     }
+
+    return n;
+}
+
+num_t *mk_int_t(mpz_t integ) {
+    num_t *n = malloc(sizeof(num_t));
+    n->type = NUM_INT;
+    mpz_init_set(n->integ, integ);
+    return n;
+}
+
+num_t *mk_rat_t(mpq_t rat) {
+    num_t *n = malloc(sizeof(num_t));
+    n->type = NUM_RAT;
+    mpq_init(n->rat);
+    mpq_set(n->rat, rat);
+    return n;
+}
+
+num_t *mk_dbl_t(mpf_t dbl) {
+    num_t *n = malloc(sizeof(num_t));
+    n->type = NUM_DBL;
+    mpf_init_set(n->dbl, dbl);
+    return n;
+}
+
+obj *mk_num(char *numstr) {
+    obj *o = obj_new(OBJ_NUM);
+    o->num = mk_num_t(numstr);
     return o;
 }
 
@@ -259,6 +247,23 @@ obj *mk_dbl(mpf_t dbl) {
     obj *o = obj_new(OBJ_NUM);
     o->num = mk_dbl_t(dbl);
     return o;
+}
+
+char *num_to_string(obj *o) {
+    // TODO: assign max string len somewhere
+    char *buf = malloc(sizeof(char) * 512);
+    switch (o->num->type) {
+    case NUM_INT:
+        return mpz_get_str(buf, 10, o->num->integ);
+    case NUM_RAT:
+        return mpq_get_str(buf, 10, o->num->rat);
+    case NUM_DBL:
+        gmp_snprintf(buf, 511, "%Fg", o->num->dbl);
+        return buf;
+    default:
+        fprintf(stderr, "warning: cannot convert unknown num type to string\n");
+        return NULL;
+    }
 }
 
 obj *mk_sym(char *name) {
@@ -358,7 +363,12 @@ int is_false(obj *o) { return o == false; }
 int is_true(obj *o) { return !is_false(o); }
 
 int is_pair(obj *o) { return o->type == OBJ_CONS; }
+
 int is_num(obj *o) { return o->type == OBJ_NUM; }
+int is_int(obj *o) { return is_num(o) && o->num->type == NUM_INT; }
+int is_rat(obj *o) { return is_num(o) && o->num->type == NUM_RAT; }
+int is_double(obj *o) { return is_num(o) && o->num->type == NUM_DBL; }
+
 int is_symbol(obj *o) { return o->type == OBJ_SYM; }
 int is_boolean(obj *o) { return o == true || o == false; }
 int is_char(obj *o) { return o->type == OBJ_CONST && !is_boolean(o); }

@@ -204,7 +204,43 @@ obj *builtin_lte(obj *args) {
 }
 
 obj *builtin_is_null(obj *args) {
+    ARG_NUMCHECK(args, "null?", 1);
     return car(args) == the_empty_list ? true : false;
+}
+
+obj *builtin_is_boolean(obj *args) {
+    ARG_NUMCHECK(args, "boolean?", 1);
+    return is_boolean(car(args)) ? true : false;
+}
+
+obj *builtin_is_symbol(obj *args) {
+    ARG_NUMCHECK(args, "symbol?", 1);
+    return is_symbol(car(args)) ? true : false;
+}
+
+obj *builtin_is_num(obj *args) {
+    ARG_NUMCHECK(args, "number?", 1);
+    return is_num(car(args)) ? true : false;
+}
+
+obj *builtin_is_char(obj *args) {
+    ARG_NUMCHECK(args, "char?", 1);
+    return is_char(car(args)) ? true : false;
+}
+
+obj *builtin_is_string(obj *args) {
+    ARG_NUMCHECK(args, "string?", 1);
+    return is_string(car(args)) ? true : false;
+}
+
+obj *builtin_is_pair(obj *args) {
+    ARG_NUMCHECK(args, "pair?", 1);
+    return is_pair(car(args)) ? true : false;
+}
+
+obj *builtin_is_proc(obj *args) {
+    ARG_NUMCHECK(args, "proc?", 1);
+    return is_builtin(car(args)) ? true : false;
 }
 
 obj *builtin_cons(obj *args) {
@@ -224,6 +260,110 @@ obj *builtin_cdr(obj *args) {
     ARG_NUMCHECK(args, "cdr", 1);
     ARG_TYPECHECK(args, "cdr", OBJ_CONS);
     return cdar(args);
+}
+
+obj *builtin_setcar(obj *args) {
+    ARG_NUMCHECK(args, "set-car!", 2);
+    FIG_ASSERT(args, is_pair(car(args)), "invalid argument passed to set-car!");
+    obj *arg = car(args);
+    arg->cons->car = cadr(args);
+    return NULL;
+}
+
+obj *builtin_setcdr(obj *args) {
+    ARG_NUMCHECK(args, "set-cdr!", 2);
+    FIG_ASSERT(args, is_pair(car(args)), "invalid argument passed to set-cdr!");
+    obj *arg = car(args);
+    arg->cons->cdr = cadr(args);
+    return NULL;
+}
+
+obj *builtin_list(obj *args) { return args; }
+
+obj *builtin_char_to_int(obj *args) {
+    ARG_NUMCHECK(args, "char->int", 1);
+    FIG_ASSERT(args, is_char(car(args)),
+               "invalid argument passed to char->int");
+    obj *arg = car(args);
+    mpz_t i;
+    mpz_init(i);
+    mpz_set_ui(i, arg->constant->c);
+    return mk_int(i);
+}
+
+obj *builtin_int_to_char(obj *args) {
+    ARG_NUMCHECK(args, "int->char", 1);
+    FIG_ASSERT(args, is_int(car(args)), "invalid argument passed to int->char");
+    unsigned long num = mpz_get_ui(car(args)->num->integ);
+    FIG_ASSERT(args, num >= 0 && num <= 9,
+               "invalid argument passed to int->char");
+    return mk_char(num);
+}
+
+obj *builtin_number_to_string(obj *args) {
+    ARG_NUMCHECK(args, "number->string", 1);
+    FIG_ASSERT(args, is_num(car(args)),
+               "invalid argument passed to number->string");
+    obj *arg = car(args);
+    return mk_string(num_to_string(arg));
+}
+
+obj *builtin_string_to_number(obj *args) {
+    ARG_NUMCHECK(args, "string->number", 1);
+    FIG_ASSERT(args, is_string(car(args)),
+               "invalid argument passed to string->number")
+    obj *arg = car(args);
+    return mk_num(arg->str);
+}
+
+obj *builtin_symbol_to_string(obj *args) {
+    ARG_NUMCHECK(args, "symbol->string", 1);
+    FIG_ASSERT(args, is_symbol(car(args)),
+               "invalid argument passed to symbol->string");
+    obj *arg = car(args);
+    return mk_string(arg->sym);
+}
+
+obj *builtin_string_to_symbol(obj *args) {
+    ARG_NUMCHECK(args, "symbol->string", 1);
+    FIG_ASSERT(args, is_string(car(args)),
+               "invalid argument passed to string->symbol");
+    obj *arg = car(args);
+    return mk_sym(arg->sym);
+}
+
+obj *builtin_is_equal(obj *args) {
+    ARG_NUMCHECK(args, "eq?", 2);
+
+    obj *x = car(args);
+    obj *y = cadr(args);
+
+    if (x->type != y->type)
+        return false;
+
+    switch (x->type) {
+    case OBJ_NUM:
+        if (cmp(x, y) == 0)
+            return true;
+        return false;
+    case OBJ_CONST:
+        if (x->constant->type == y->constant->type) {
+            switch (x->constant->type) {
+            case CONST_BOOL:
+                return x->constant->bool == y->constant->bool ? true : false;
+            case CONST_CHAR:
+                return x->constant->c == y->constant->c ? true : false;
+            default:
+                fprintf(stderr,
+                        "warning: cannot compare equality of unknown constant "
+                        "type");
+                return false;
+            }
+        }
+        return false;
+    default:
+        return x == y ? true : false;
+    }
 }
 
 obj *readfile(char *fname) {

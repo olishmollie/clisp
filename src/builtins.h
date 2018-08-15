@@ -15,19 +15,29 @@ obj *builtin_lt(obj *args);
 obj *builtin_lte(obj *args);
 
 obj *builtin_is_null(obj *args);
+obj *builtin_is_boolean(obj *args);
+obj *builtin_is_symbol(obj *args);
+obj *builtin_is_num(obj *args);
+obj *builtin_is_char(obj *args);
+obj *builtin_is_string(obj *args);
+obj *builtin_is_pair(obj *args);
+obj *builtin_is_proc(obj *args);
+obj *builtin_is_equal(obj *args);
+
+obj *builtin_char_to_int(obj *args);
+obj *builtin_int_to_char(obj *args);
+obj *builtin_number_to_string(obj *args);
+obj *builtin_string_to_number(obj *args);
+obj *builtin_symbol_to_string(obj *args);
+obj *builtin_string_to_symbol(obj *args);
 
 obj *builtin_cons(obj *args);
 obj *builtin_car(obj *args);
 obj *builtin_cdr(obj *args);
 obj *builtin_list(obj *args);
-obj *builtin_atom(obj *args);
-obj *builtin_strtolist(obj *args);
-obj *builtin_listtostr(obj *args);
-obj *builtin_type(obj *args);
-obj *builtin_print(obj *args);
-obj *builtin_println(obj *args);
-obj *builtin_error(obj *args);
-obj *builtin_eval(obj *args);
+
+obj *builtin_setcar(obj *args);
+obj *builtin_setcdr(obj *args);
 
 obj *builtin_exit(obj *args);
 obj *builtin_load(obj *args);

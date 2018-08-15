@@ -95,10 +95,11 @@ env *env_cpy(env *e);
 void env_delete(env *e);
 void env_print(env *e);
 
-obj *mk_num(char *numstr, token_t ttype);
+obj *mk_num(char *numstr);
 obj *mk_int(mpz_t integ);
 obj *mk_rat(mpq_t rat);
 obj *mk_dbl(mpf_t dbl);
+char *num_to_string(obj *o);
 
 obj *mk_sym(char *name);
 obj *mk_string(char *str);
@@ -119,7 +120,12 @@ int is_false(obj *c);
 int is_true(obj *c);
 
 int is_pair(obj *o);
+
 int is_num(obj *o);
+int is_int(obj *o);
+int is_rat(obj *o);
+int is_double(obj *o);
+
 int is_symbol(obj *o);
 int is_boolean(obj *o);
 int is_char(obj *o);
