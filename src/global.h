@@ -68,6 +68,7 @@ obj *quote_sym;
 obj *define_sym;
 obj *set_sym;
 obj *if_sym;
+obj *lambda_sym;
 
 env *universe;
 char *input;

@@ -43,6 +43,7 @@ int is_self_evaluating(obj *expr) {
 obj *eval_assignment(env *e, obj *expr) {
     obj *k = assignment_sym(expr);
     obj *v = eval(e, assignment_val(expr));
+    FIG_ERRORCHECK(v);
     obj *err = env_set(e, k, v);
     return !is_error(err) ? NULL : err;
 }
@@ -50,6 +51,7 @@ obj *eval_assignment(env *e, obj *expr) {
 obj *eval_definition(env *e, obj *expr) {
     obj *k = definition_sym(expr);
     obj *v = eval(e, definition_val(expr));
+    FIG_ERRORCHECK(v);
     insert(e, k, v);
     return NULL;
 }
@@ -62,6 +64,8 @@ obj *if_consequent(obj *expr) { return caddr(expr); }
 
 obj *if_alternative(obj *expr) { return cadddr(expr); }
 
+int is_lambda(obj *expr) { return is_tagged_list(expr, lambda_sym); }
+
 obj *builtin_proc(obj *expr) { return car(expr); }
 
 obj *builtin_args(obj *expr) { return cdr(expr); }
@@ -73,17 +77,39 @@ obj *eval_arglist(env *e, obj *arglist) {
     return !is_error(arg) ? mk_cons(arg, eval_arglist(e, cdr(arglist))) : arg;
 }
 
+int bind_params(env *e, obj *params, obj *arguments) {
+    while (params != the_empty_list && arguments != the_empty_list) {
+        insert(e, car(params), car(arguments));
+        params = cdr(params);
+        arguments = cdr(arguments);
+    }
+
+    return params == the_empty_list && arguments == the_empty_list ? 1 : 0;
+}
+
+obj *invoke(env *e, obj *lambda, obj *arguments) {
+    obj *params = lambda->fun->params;
+    obj *body = lambda->fun->body;
+
+    env *local = env_new();
+    local->parent = lambda->fun->e;
+
+    if (!bind_params(local, params, arguments))
+        return mk_err("incorrect number of arguments");
+
+    return eval(local, body);
+}
+
 obj *eval_procedure(env *e, obj *expr) {
     obj *procedure = eval(e, car(expr));
-    if (is_error(procedure))
-        return procedure;
+    FIG_ERRORCHECK(procedure);
+    obj *arguments = eval_arglist(e, cdr(expr));
+    FIG_ERRORCHECK(arguments);
+
     if (is_builtin(procedure)) {
-        obj *arguments = eval_arglist(e, cdr(expr));
-        if (is_error(arguments))
-            return arguments;
         return procedure->bltin->proc(arguments);
     } else {
-        return the_empty_list;
+        return invoke(e, procedure, arguments);
     }
 }
 
@@ -105,6 +131,10 @@ tailcall:
         expr = is_true(eval(e, if_condition(expr))) ? if_consequent(expr)
                                                     : if_alternative(expr);
         goto tailcall;
+    } else if (is_lambda(expr)) {
+        obj *lambda = mk_lambda(cadr(expr), caddr(expr));
+        lambda->fun->e = e;
+        return lambda;
     } else if (is_pair(expr)) {
         return eval_procedure(e, expr);
     } else if (expr->type == OBJ_SYM) {

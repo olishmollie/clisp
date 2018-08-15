@@ -36,6 +36,8 @@ obj *read_sym(parser *p) {
         res = set_sym;
     else if (strcmp(p->curtok.val, "if") == 0)
         res = if_sym;
+    else if (strcmp(p->curtok.val, "lambda") == 0)
+        res = lambda_sym;
     else {
         res = mk_sym(p->curtok.val);
     }
