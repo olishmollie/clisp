@@ -264,7 +264,7 @@ obj *builtin_cdr(obj *args) {
 
 obj *builtin_setcar(obj *args) {
     ARG_NUMCHECK(args, "set-car!", 2);
-    FIG_ASSERT(args, is_pair(car(args)), "invalid argument passed to set-car!");
+    FIG_ASSERT(is_pair(car(args)), "invalid argument passed to set-car!");
     obj *arg = car(args);
     arg->cons->car = cadr(args);
     return NULL;
@@ -272,7 +272,7 @@ obj *builtin_setcar(obj *args) {
 
 obj *builtin_setcdr(obj *args) {
     ARG_NUMCHECK(args, "set-cdr!", 2);
-    FIG_ASSERT(args, is_pair(car(args)), "invalid argument passed to set-cdr!");
+    FIG_ASSERT(is_pair(car(args)), "invalid argument passed to set-cdr!");
     obj *arg = car(args);
     arg->cons->cdr = cadr(args);
     return NULL;
@@ -282,8 +282,7 @@ obj *builtin_list(obj *args) { return args; }
 
 obj *builtin_char_to_int(obj *args) {
     ARG_NUMCHECK(args, "char->int", 1);
-    FIG_ASSERT(args, is_char(car(args)),
-               "invalid argument passed to char->int");
+    FIG_ASSERT(is_char(car(args)), "invalid argument passed to char->int");
     obj *arg = car(args);
     mpz_t i;
     mpz_init(i);
@@ -293,24 +292,22 @@ obj *builtin_char_to_int(obj *args) {
 
 obj *builtin_int_to_char(obj *args) {
     ARG_NUMCHECK(args, "int->char", 1);
-    FIG_ASSERT(args, is_int(car(args)), "invalid argument passed to int->char");
+    FIG_ASSERT(is_int(car(args)), "invalid argument passed to int->char");
     unsigned long num = mpz_get_ui(car(args)->num->integ);
-    FIG_ASSERT(args, num >= 0 && num <= 9,
-               "invalid argument passed to int->char");
+    FIG_ASSERT(num >= 0 && num <= 9, "invalid argument passed to int->char");
     return mk_char(num);
 }
 
 obj *builtin_number_to_string(obj *args) {
     ARG_NUMCHECK(args, "number->string", 1);
-    FIG_ASSERT(args, is_num(car(args)),
-               "invalid argument passed to number->string");
+    FIG_ASSERT(is_num(car(args)), "invalid argument passed to number->string");
     obj *arg = car(args);
     return mk_string(num_to_string(arg));
 }
 
 obj *builtin_string_to_number(obj *args) {
     ARG_NUMCHECK(args, "string->number", 1);
-    FIG_ASSERT(args, is_string(car(args)),
+    FIG_ASSERT(is_string(car(args)),
                "invalid argument passed to string->number")
     obj *arg = car(args);
     return mk_num(arg->str);
@@ -318,7 +315,7 @@ obj *builtin_string_to_number(obj *args) {
 
 obj *builtin_symbol_to_string(obj *args) {
     ARG_NUMCHECK(args, "symbol->string", 1);
-    FIG_ASSERT(args, is_symbol(car(args)),
+    FIG_ASSERT(is_symbol(car(args)),
                "invalid argument passed to symbol->string");
     obj *arg = car(args);
     return mk_string(arg->sym);
@@ -326,7 +323,7 @@ obj *builtin_symbol_to_string(obj *args) {
 
 obj *builtin_string_to_symbol(obj *args) {
     ARG_NUMCHECK(args, "symbol->string", 1);
-    FIG_ASSERT(args, is_string(car(args)),
+    FIG_ASSERT(is_string(car(args)),
                "invalid argument passed to string->symbol");
     obj *arg = car(args);
     return mk_sym(arg->sym);
@@ -398,7 +395,6 @@ obj *builtin_load(obj *args) {
 }
 
 obj *builtin_exit(obj *args) {
-    env_delete(universe);
     parser_delete(repl_parser);
     free(input);
     exit(0);

@@ -23,7 +23,6 @@ typedef struct {
     obj *cdr;
 } cons_t;
 
-typedef struct env env;
 typedef obj *(*builtin)(obj *);
 
 typedef struct {
@@ -33,7 +32,7 @@ typedef struct {
 
 typedef struct {
     char *name;
-    env *e;
+    obj *env;
     obj *params;
     obj *body;
 } fun_t;
@@ -80,20 +79,11 @@ struct obj {
     };
 };
 
-struct env {
-    struct env *parent;
-    int count;
-    char **syms;
-    obj **vals;
-};
-
-env *env_new(void);
-obj *lookup(env *e, obj *k);
-void insert(env *e, obj *k, obj *v);
-obj *env_set(env *e, obj *k, obj *v);
-env *env_cpy(env *e);
-void env_delete(env *e);
-void env_print(env *e);
+obj *env_new();
+obj *env_lookup(obj *env, obj *key);
+obj *env_insert(obj *env, obj *key, obj *value);
+obj *env_set(obj *env, obj *key, obj *value);
+void env_print(obj *env);
 
 obj *mk_num(char *numstr);
 obj *mk_int(mpz_t integ);
@@ -109,7 +99,7 @@ obj *mk_char(char c);
 obj *mk_bool(bool_t type);
 
 obj *mk_builtin(char *name, builtin proc);
-obj *mk_lambda(obj *params, obj *body);
+obj *mk_lambda(obj *env, obj *params, obj *body);
 obj *mk_cons(obj *car, obj *cdr);
 
 obj *mk_nil(void);

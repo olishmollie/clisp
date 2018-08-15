@@ -11,7 +11,7 @@
 #define STDLIB mk_cons(mk_string("lib/lib.fig"), the_empty_list)
 #define UNITTESTS mk_cons(mk_string("lib/tests.fig"), the_empty_list);
 
-#define FIG_ASSERT(args, cond, fmt, ...)                                       \
+#define FIG_ASSERT(cond, fmt, ...)                                             \
     {                                                                          \
         if (!(cond))                                                           \
             return mk_err(fmt, ##__VA_ARGS__);                                 \
@@ -70,7 +70,7 @@ obj *set_sym;
 obj *if_sym;
 obj *lambda_sym;
 
-env *universe;
+obj *universe;
 char *input;
 parser *repl_parser;
 

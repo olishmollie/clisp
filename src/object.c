@@ -6,98 +6,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-env *env_new(void) {
-    env *e = malloc(sizeof(env));
-    e->count = 0;
-    e->parent = NULL;
-    e->syms = NULL;
-    e->vals = NULL;
-    return e;
-}
-
-obj *lookup(env *e, obj *k) {
-    /* search local env */
-    for (int i = 0; i < e->count; i++) {
-        if (strcmp(e->syms[i], k->sym) == 0)
-            return e->vals[i];
-    }
-
-    /* search parent env */
-    if (e->parent)
-        return lookup(e->parent, k);
-
-    return mk_err("unbound symbol '%s'", k->sym);
-}
-
-obj *env_set(env *e, obj *k, obj *v) {
-    /* if in current env, overwrite */
-    for (int i = 0; i < e->count; i++) {
-        if (strcmp(k->sym, e->syms[i]) == 0) {
-            e->vals[i] = v;
-            return e->vals[i];
-        }
-    }
-
-    /* return error if not found */
-    return mk_err("unbound symbol '%s'", k->sym);
-}
-
-void insert(env *e, obj *k, obj *v) {
-
-    /* Overwrite an exisiting symbol if exists */
-    for (int i = 0; i < e->count; i++) {
-        if (strcmp(e->syms[i], k->sym) == 0) {
-            e->vals[i] = v;
-            return;
-        }
-    }
-
-    /* Insert new object */
-    ++e->count;
-    e->vals = realloc(e->vals, sizeof(obj *) * e->count);
-    e->syms = realloc(e->syms, sizeof(char *) * e->count);
-
-    e->vals[e->count - 1] = v;
-    e->syms[e->count - 1] = k->sym;
-    // e->syms[e->count - 1] = malloc(sizeof(char) * (strlen(k->sym) + 1));
-    // strcpy(e->syms[e->count - 1], k->sym);
-}
-
-env *env_cpy(env *e) {
-    env *res = env_new();
-    res->parent = e->parent;
-    for (int i = 0; i < e->count; i++) {
-        obj *k = mk_sym(e->syms[i]);
-        obj *v = e->vals[i];
-        insert(res, k, v);
-        obj_delete(k);
-    }
-    return res;
-}
-
-void env_delete(env *e) {
-    if (e) {
-        for (int i = 0; i < e->count; i++) {
-            free(e->syms[i]);
-            obj_delete(e->vals[i]);
-        }
-        free(e->syms);
-        free(e->vals);
-        free(e);
-    }
-}
-
-void println(obj *);
-
-void env_print(env *e) {
-    printf("{\n");
-    for (int i = 0; i < e->count; i++) {
-        printf("\t%s: ", e->syms[i]);
-        println(e->vals[i]);
-    }
-    printf("}\n");
-}
-
 cons_t *mk_cons_t(obj *car, obj *cdr) {
     cons_t *c = malloc(sizeof(cons_t));
     c->car = car;
@@ -116,7 +24,7 @@ fun_t *mk_fun_t(char *name, obj *params, obj *body) {
     fun_t *fun = malloc(sizeof(fun_t));
     fun->params = params;
     fun->body = body;
-    fun->e = NULL;
+    fun->env = NULL;
 
     if (name) {
         fun->name = malloc(sizeof(char) * (strlen(name) + 1));
@@ -292,9 +200,10 @@ obj *mk_builtin(char *name, builtin proc) {
     return o;
 }
 
-obj *mk_lambda(obj *params, obj *body) {
+obj *mk_lambda(obj *env, obj *params, obj *body) {
     obj *o = obj_new(OBJ_FUN);
     o->fun = mk_fun_t(NULL, params, body);
+    o->fun->env = env;
     return o;
 }
 
@@ -402,72 +311,67 @@ char *type_name(obj_t type) {
 
 /* list fns ---------------------------------------------------------------- */
 
-obj *car(obj *o) { return o->cons->car; }
-obj *cdr(obj *o) { return o->cons->cdr; }
-void set_car(obj *o, obj *v) { o->cons->car = v; }
-void set_cdr(obj *o, obj *v) { o->cons->cdr = v; }
+obj *car(obj *pair) { return pair->cons->car; }
+obj *cdr(obj *pair) { return pair->cons->cdr; }
+void set_car(obj *pair, obj *value) { pair->cons->car = value; }
+void set_cdr(obj *pair, obj *value) { pair->cons->cdr = value; }
 
-/* copying ----------------------------------------------------------------- */
+/* environments ------------------------------------------------------------ */
 
-obj *cpy_const(obj *o) {
-    char *repr = malloc(sizeof(char) * (strlen(o->constant->repr) + 1));
-    strcpy(repr, o->constant->repr);
-    obj *c = mk_const(repr);
-    free(repr);
-    return c;
+// initial env is ( '()  )
+obj *env_new() {
+    obj *empty_frame = mk_cons(the_empty_list, the_empty_list);
+    return mk_cons(empty_frame, the_empty_list);
 }
 
-obj *cpy_num(obj *o) {
-    switch (o->num->type) {
-    case NUM_INT:
-        return mk_int(o->num->integ);
-    case NUM_RAT:
-        return mk_rat(o->num->rat);
-    case NUM_DBL:
-        return mk_dbl(o->num->dbl);
-    default:
-        obj_delete(o);
-        return mk_err("cannot copy number of unknown type");
+obj *env_insert(obj *env, obj *key, obj *value) {
+    obj *frame = car(env);
+    obj *varlist = mk_cons(key, mk_cons(value, the_empty_list));
+
+    if (is_the_empty_list(car(frame))) {
+        set_car(frame, varlist);
+    } else {
+        while (!is_the_empty_list(cdr(frame))) {
+            frame = cdr(frame);
+        }
+        set_cdr(frame, mk_cons(varlist, the_empty_list));
+    }
+
+    return NULL;
+}
+
+obj *env_lookup(obj *env, obj *key) {
+    if (is_the_empty_list(env))
+        return mk_err("unbound symbol '%s'", key->sym);
+    obj *frame = car(env);
+    while (frame != the_empty_list) {
+        if (strcmp(caar(frame)->sym, key->sym) == 0)
+            return cadar(frame);
+        frame = cdr(frame);
+    }
+    return env_lookup(cdr(env), key);
+}
+
+obj *env_set(obj *env, obj *key, obj *value) {
+    if (is_the_empty_list(env))
+        return mk_err("unbound symbol '%s'", key->sym);
+    obj *frame = car(env);
+    while (frame != the_empty_list) {
+        if (caar(frame) == key) {
+            set_car(cdr(frame), value);
+            return NULL;
+        }
+        frame = cdr(frame);
+    }
+    return env_set(cdr(env), key, value);
+}
+
+void env_print(obj *env) {
+    while (env != the_empty_list) {
+        println(car(env));
+        env = cdr(env);
     }
 }
-
-// obj *copy(obj *o) {
-//     obj *res;
-//     switch (o->type) {
-//     case OBJ_NUM:
-//         return cpy_num(o);
-//     case OBJ_SYM:
-//         res = mk_sym(o->sym);
-//         break;
-//     case OBJ_STR:
-//         res = mk_string(o->str);
-//         break;
-//     case OBJ_CONS:
-//         res = mk_cons(copy(o->cons->car), copy(o->cons->cdr));
-//         break;
-//     case OBJ_BUILTIN:
-//         break;
-//     case OBJ_FUN:
-//         res = mk_lambda(copy(o->fun->params), copy(o->fun->body));
-//         res->fun->e = o->fun->e;
-//         res->fun->e->parent = o->fun->e->parent;
-//         if (o->fun->name) {
-//             res->fun->name = malloc(sizeof(char) * (strlen(o->fun->name) +
-//             1)); strcpy(res->fun->name, o->fun->name);
-//         }
-//         break;
-//     case OBJ_ERR:
-//         res = mk_err(o->err);
-//         break;
-//     case OBJ_NIL:
-//         res = mk_nil();
-//         break;
-//     case OBJ_CONST:
-//         res = cpy_const(o);
-//     }
-//     res->nargs = o->nargs;
-//     return res;
-// }
 
 /* printing ---------------------------------------------------------------- */
 
@@ -512,14 +416,6 @@ void print_rawstr(char *str) {
     }
     printf("\"");
 }
-
-// void print_cons(obj *o) {
-//     printf("(");
-//     print(o->cons->car);
-//     printf(" . ");
-//     print(o->cons->cdr);
-//     printf(")");
-// }
 
 void print_cons(obj *o) {
     putchar('(');
@@ -630,8 +526,6 @@ void obj_delete(obj *o) {
             break;
         case OBJ_FUN:
             free(o->fun->name);
-            // GC will make this work?
-            // env_delete(o->fun->e);
             if (o->fun->params)
                 obj_delete(o->fun->params);
             if (o->fun->body)

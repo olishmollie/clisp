@@ -3,7 +3,6 @@
 
 #include "object.h"
 
-obj *eval_list(env *, obj *);
-obj *eval(env *, obj *);
+obj *eval(obj *, obj *);
 
 #endif
