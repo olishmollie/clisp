@@ -37,10 +37,12 @@ obj *assignment_val(obj *expr) { return caddr(expr); }
 obj *eval_list(obj *e, obj *expr) { return the_empty_list; }
 
 int is_self_evaluating(obj *expr) {
-    return is_char(expr) || is_boolean(expr) || is_string(expr) || is_num(expr);
+    return is_char(expr) || is_boolean(expr) || is_string(expr) ||
+           is_num(expr) || is_error(expr);
 }
 
 obj *eval_assignment(obj *e, obj *expr) {
+    ARG_NUMCHECK(cdr(expr), "set!", 2);
     obj *k = assignment_sym(expr);
     obj *v = eval(e, assignment_val(expr));
     FIG_ERRORCHECK(v);
@@ -49,6 +51,7 @@ obj *eval_assignment(obj *e, obj *expr) {
 }
 
 obj *eval_definition(obj *env, obj *expr) {
+    ARG_NUMCHECK(cdr(expr), "define", 2);
     obj *key = definition_sym(expr);
     obj *value = eval(env, definition_val(expr));
     FIG_ERRORCHECK(value);
@@ -77,35 +80,11 @@ obj *eval_arglist(obj *e, obj *arglist) {
     return !is_error(arg) ? mk_cons(arg, eval_arglist(e, cdr(arglist))) : arg;
 }
 
-obj *bind_arguments(obj *env, obj *params, obj *args) {
+void bind_arguments(obj *env, obj *params, obj *args) {
     while (params != the_empty_list && args != the_empty_list) {
         env_insert(env, car(params), car(args));
         params = cdr(params);
         args = cdr(args);
-    }
-    if (params != the_empty_list || args != the_empty_list)
-        return mk_err("incorrect argument count\n");
-
-    return the_empty_list;
-}
-
-obj *apply(obj *env, obj *procedure, obj *args) {
-    obj *local_env = env_new();
-    obj *res = bind_arguments(local_env, procedure->fun->params, args);
-    env_extend(local_env, procedure->fun->env);
-    return is_error(res) ? res : eval(local_env, procedure->fun->body);
-}
-
-obj *eval_procedure(obj *env, obj *expr) {
-    obj *procedure = eval(env, car(expr));
-    FIG_ERRORCHECK(procedure);
-    obj *args = eval_arglist(env, cdr(expr));
-    FIG_ERRORCHECK(args);
-
-    if (is_builtin(procedure)) {
-        return procedure->bltin->proc(args);
-    } else {
-        return apply(env, procedure, args);
     }
 }
 
@@ -124,14 +103,30 @@ tailcall:
     } else if (is_assignment(expr)) {
         return eval_assignment(env, expr);
     } else if (is_if(expr)) {
-        expr = is_true(eval(env, if_condition(expr))) ? if_consequent(expr)
-                                                      : if_alternative(expr);
+        obj *cond = eval(env, if_condition(expr));
+        FIG_ERRORCHECK(cond);
+        expr = is_true(cond) ? if_consequent(expr) : if_alternative(expr);
         goto tailcall;
     } else if (is_lambda(expr)) {
-        obj *lambda = mk_lambda(env, cadr(expr), caddr(expr));
-        return lambda;
+        return mk_lambda(env, cadr(expr), caddr(expr));
     } else if (is_pair(expr)) {
-        return eval_procedure(env, expr);
+        obj *procedure = eval(env, car(expr));
+        FIG_ERRORCHECK(procedure);
+        obj *args = eval_arglist(env, cdr(expr));
+        FIG_ERRORCHECK(args);
+
+        if (is_builtin(procedure)) {
+            return procedure->bltin->proc(args);
+        } else {
+            FIG_ASSERT(length(procedure->fun->params) == length(args),
+                       "incorrect number of arguments to %s",
+                       procedure->fun->name);
+            obj *local_env = env_new();
+            bind_arguments(local_env, procedure->fun->params, args);
+            env_extend(local_env, procedure->fun->env);
+            expr = eval(local_env, procedure->fun->body);
+            goto tailcall;
+        }
     } else if (expr->type == OBJ_SYM) {
         return env_lookup(env, expr);
     } else {

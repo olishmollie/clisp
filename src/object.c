@@ -308,6 +308,15 @@ char *type_name(obj_t type) {
     }
 }
 
+int length(obj *o) {
+    int l = 0;
+    while (!is_the_empty_list(o)) {
+        l++;
+        o = cdr(o);
+    }
+    return l;
+}
+
 /* list fns ---------------------------------------------------------------- */
 
 obj *car(obj *pair) { return pair->cons->car; }
@@ -330,7 +339,17 @@ obj *env_insert(obj *env, obj *key, obj *value) {
     if (is_the_empty_list(car(frame))) {
         set_car(frame, varlist);
     } else {
+        /* overwrite if exists */
+        if (strcmp(caar(frame)->sym, key->sym) == 0) {
+            set_car(cdar(frame), value);
+            return NULL;
+        }
         while (!is_the_empty_list(cdr(frame))) {
+            /* overwrite if exists */
+            if (strcmp(caar(frame)->sym, key->sym) == 0) {
+                set_cdr(cdar(frame), value);
+                return NULL;
+            }
             frame = cdr(frame);
         }
         set_cdr(frame, mk_cons(varlist, the_empty_list));
@@ -349,7 +368,7 @@ obj *env_lookup(obj *env, obj *key) {
     if (is_the_empty_list(env))
         return mk_err("unbound symbol '%s'", key->sym);
     obj *frame = car(env);
-    while (frame != the_empty_list) {
+    while (frame != the_empty_list && car(frame) != the_empty_list) {
         if (strcmp(caar(frame)->sym, key->sym) == 0)
             return cadar(frame);
         frame = cdr(frame);
@@ -361,10 +380,10 @@ obj *env_set(obj *env, obj *key, obj *value) {
     if (is_the_empty_list(env))
         return mk_err("unbound symbol '%s'", key->sym);
     obj *frame = car(env);
-    while (frame != the_empty_list) {
-        if (caar(frame) == key) {
-            set_car(cdr(frame), value);
-            return NULL;
+    while (frame != the_empty_list && car(frame) != the_empty_list) {
+        if (strcmp(caar(frame)->sym, key->sym) == 0) {
+            set_car(cdar(frame), value);
+            return the_empty_list;
         }
         frame = cdr(frame);
     }

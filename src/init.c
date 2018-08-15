@@ -47,8 +47,6 @@ obj *global_env(void) {
     register_builtin(env, builtin_load, "load");
     register_builtin(env, builtin_exit, "exit");
 
-    println(env);
-
     return env;
 }
 

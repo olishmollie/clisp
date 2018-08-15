@@ -126,6 +126,8 @@ int is_error(obj *o);
 
 char *type_name(obj_t type);
 
+int length(obj *o);
+
 obj *car(obj *o);
 obj *cdr(obj *o);
 
@@ -158,8 +160,6 @@ obj *cdr(obj *o);
 #define cdddar(obj) cdr(cdr(cdr(car(obj))))
 #define cddddr(obj) cdr(cdr(cdr(cdr(obj))))
 
-obj *cpy_const(obj *o);
-obj *copy(obj *o);
 void print(obj *o);
 void println(obj *o);
 void obj_delete(obj *o);
