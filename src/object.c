@@ -272,6 +272,10 @@ obj *frame_vals(obj *frame) { return cdr(frame); }
 void add_binding_to_frame(obj *var, obj *val, obj *frame) {
     set_car(frame, mk_cons(var, car(frame)));
     set_cdr(frame, mk_cons(val, cdr(frame)));
+    if (is_fun(val)) {
+        val->fun->name = malloc(sizeof(char) * (strlen(var->sym) + 1));
+        strcpy(val->fun->name, var->sym);
+    }
 }
 
 obj *env_extend(obj *env, obj *vars, obj *vals) {

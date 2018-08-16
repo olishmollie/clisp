@@ -41,19 +41,29 @@ int is_self_evaluating(obj *expr) {
            is_num(expr) || is_error(expr);
 }
 
-obj *eval_assignment(obj *e, obj *expr) {
+obj *eval_assignment(obj *env, obj *expr) {
     ARG_NUMCHECK(cdr(expr), "set!", 2);
     obj *var = assignment_sym(expr);
-    obj *val = eval(e, assignment_val(expr));
+    obj *val = eval(env, assignment_val(expr));
     FIG_ERRORCHECK(var);
-    return env_set(e, var, val);
+    return env_set(env, var, val);
 }
 
 obj *eval_definition(obj *env, obj *expr) {
     ARG_NUMCHECK(cdr(expr), "define", 2);
-    obj *var = definition_sym(expr);
-    obj *val = eval(env, definition_val(expr));
-    FIG_ERRORCHECK(val);
+    obj *var, *val;
+
+    if (is_pair(cadr(expr))) {
+        var = caadr(expr);
+        obj *params = cdadr(expr);
+        obj *body = cddr(expr);
+        val = mk_fun(env, params, body);
+    } else {
+        var = definition_sym(expr);
+        val = eval(env, definition_val(expr));
+        FIG_ERRORCHECK(val);
+    }
+
     return env_define(env, var, val);
 }
 
@@ -95,6 +105,8 @@ tailcall:
     } else if (is_assignment(expr)) {
         return eval_assignment(env, expr);
     } else if (is_lambda(expr)) {
+        println(cadr(expr));
+        println(cddr(expr));
         return mk_fun(env, cadr(expr), cddr(expr));
     } else if (is_if(expr)) {
 
@@ -108,7 +120,6 @@ tailcall:
     } else if (is_pair(expr)) {
 
         obj *procedure = eval(env, car(expr));
-
         FIG_ERRORCHECK(procedure);
 
         obj *args = eval_arglist(env, cdr(expr));
