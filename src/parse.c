@@ -62,7 +62,7 @@ obj *read_constant(parser *p) {
 }
 
 obj *read_num(parser *p) {
-    obj *res = mk_num(p->curtok.val);
+    obj *res = mk_num_from_str(p->curtok.val);
     token_delete(p->curtok);
     return res;
 }
@@ -124,8 +124,6 @@ obj *read(parser *p) {
     token tok;
     switch (p->curtok.type) {
     case TOK_INT:
-    case TOK_RAT:
-    case TOK_FLOAT:
         return read_num(p);
     case TOK_SYM:
         return read_sym(p);

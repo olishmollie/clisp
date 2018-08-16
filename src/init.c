@@ -9,16 +9,16 @@ void register_builtin(obj *env, builtin fun, char *name) {
 
 obj *global_env(void) {
     obj *env = env_new();
-    // register_builtin(env, builtin_plus, "+");
-    // register_builtin(env, builtin_minus, "-");
-    // register_builtin(env, builtin_times, "*");
-    // register_builtin(env, builtin_divide, "/");
-    // register_builtin(env, builtin_remainder, "mod");
+    register_builtin(env, builtin_plus, "+");
+    register_builtin(env, builtin_minus, "-");
+    register_builtin(env, builtin_times, "*");
+    register_builtin(env, builtin_divide, "/");
+    register_builtin(env, builtin_remainder, "mod");
 
-    // register_builtin(env, builtin_gt, ">");
-    // register_builtin(env, builtin_gte, ">=");
-    // register_builtin(env, builtin_lt, "<");
-    // register_builtin(env, builtin_lte, "<=");
+    register_builtin(env, builtin_gt, ">");
+    register_builtin(env, builtin_gte, ">=");
+    register_builtin(env, builtin_lt, "<");
+    register_builtin(env, builtin_lte, "<=");
 
     register_builtin(env, builtin_is_null, "null?");
     register_builtin(env, builtin_is_boolean, "boolean?");

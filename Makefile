@@ -1,6 +1,6 @@
 CC=cc
 CFLAGS=-c -g -Wall
-LDFLAGS=-ledit -lgmp
+LDFLAGS=-ledit
 SOURCES:=$(wildcard src/*.c)
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=bin/fig

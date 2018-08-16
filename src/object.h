@@ -9,16 +9,6 @@ typedef struct obj obj;
 typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
 
 typedef struct {
-    num_type type;
-    union {
-        mpz_t integ;
-        mpq_t rat;
-        mpf_t dbl;
-        char *err;
-    };
-} num_t;
-
-typedef struct {
     obj *car;
     obj *cdr;
 } cons_t;
@@ -66,7 +56,7 @@ struct obj {
     obj_t type;
     unsigned char mark;
     union {
-        num_t *num;
+        long num;
         char *sym;
         char *str;
         cons_t *cons;
@@ -85,7 +75,8 @@ obj *env_set(obj *env, obj *var, obj *vals);
 obj *env_define(obj *env, obj *var, obj *vals);
 obj *env_extend(obj *env, obj *vars, obj *vals);
 
-obj *mk_num(char *numstr);
+obj *mk_num_from_str(char *numstr);
+obj *mk_num_from_long(long num);
 obj *mk_int(mpz_t integ);
 obj *mk_rat(mpq_t rat);
 obj *mk_dbl(mpf_t dbl);
@@ -112,7 +103,6 @@ int is_true(obj *c);
 int is_pair(obj *o);
 
 int is_num(obj *o);
-int is_int(obj *o);
 int is_rat(obj *o);
 int is_double(obj *o);
 

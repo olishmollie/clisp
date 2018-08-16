@@ -40,7 +40,6 @@ int nextchar(lexer *l) {
 }
 
 token lexnum(lexer *l) {
-    int rat = 0, frac = 0;
     char num[BUFSIZE];
 
     int i = 0;
@@ -53,36 +52,9 @@ token lexnum(lexer *l) {
         num[i++] = l->curchar;
         nextchar(l);
     }
-
-    if (l->curchar == '/') {
-        rat = 1;
-        num[i++] = l->curchar;
-        nextchar(l);
-        if (l->curchar == '-') {
-            num[i++] = l->curchar;
-            nextchar(l);
-        }
-        while (!feof(l->infile) && isdigit(l->curchar)) {
-            num[i++] = l->curchar;
-            nextchar(l);
-        }
-    } else if (l->curchar == '.') {
-        frac = 1;
-        num[i++] = l->curchar;
-        nextchar(l);
-        while (!feof(l->infile) && isdigit(l->curchar)) {
-            num[i++] = l->curchar;
-            nextchar(l);
-        }
-    }
     num[i] = EOS;
 
     ungetc(l->curchar, l->infile);
-
-    if (rat)
-        return token_new(TOK_RAT, num);
-    if (frac)
-        return token_new(TOK_FLOAT, num);
 
     return token_new(TOK_INT, num);
 }

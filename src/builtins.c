@@ -9,190 +9,120 @@
 #include <stdlib.h>
 #include <string.h>
 
-// #define binop(res, x, y, op)                                                   \
-//     {                                                                          \
-//         switch (x->num->type) {                                                \
-//         case NUM_INT:                                                          \
-//             mpz_##op(x->num->integ, x->num->integ, y->num->integ);             \
-//             break;                                                             \
-//         case NUM_RAT:                                                          \
-//             mpq_##op(x->num->rat, x->num->rat, y->num->rat);                   \
-//             break;                                                             \
-//         case NUM_DBL:                                                          \
-//             mpf_##op(x->num->dbl, x->num->dbl, y->num->dbl);                   \
-//             break;                                                             \
-//         case NUM_ERR:                                                          \
-//             fprintf(                                                           \
-//                 stderr,                                                        \
-//                 "warning: trying to perform arithmetic on unknown num type");  \
-//         }                                                                      \
-//     }
+obj *builtin_plus(obj *args) {
+    ARG_TYPECHECK(args, "plus", OBJ_NUM);
+    long res = 0;
+    while (!is_the_empty_list(args)) {
+        res += car(args)->num;
+        args = cdr(args);
+    }
+    return mk_num_from_long(res);
+}
 
-// obj *builtin_plus(obj *args) {
-//     ARG_TYPECHECK(args, "plus", OBJ_NUM);
-//     if (args == the_empty_list)
-//         return mk_err("plus passed no arguments");
-// }
+obj *builtin_minus(obj *args) {
+    ARG_TYPECHECK(args, "minus", OBJ_NUM);
+    if (args == the_empty_list)
+        return mk_err("minus passed no arguments");
 
-// void unary_minus(obj *x) {
-//     switch (x->num->type) {
-//     case NUM_INT:
-//         mpz_neg(x->num->integ, x->num->integ);
-//         return;
-//     case NUM_RAT:
-//         mpq_neg(x->num->rat, x->num->rat);
-//         return;
-//     case NUM_DBL:
-//         mpf_neg(x->num->dbl, x->num->dbl);
-//         return;
-//     case NUM_ERR:
-//         fprintf(stderr, "cannot apply unary minus to error number type");
-//         return;
-//     }
-// }
+    /* unary minus */
+    if (is_the_empty_list(cdr(args)))
+        return mk_num_from_long(-1 * car(args)->num);
 
-// obj *builtin_minus(obj *args) {
-//     ARG_TYPECHECK(args, "minus", OBJ_NUM);
-//     if (args == the_empty_list)
-//         return mk_err("minus passed no arguments");
+    long res = car(args)->num;
+    args = cdr(args);
+    while (!is_the_empty_list(args)) {
+        res -= car(args)->num;
+        args = cdr(args);
+    }
 
-//     obj *x = car(args);
-//     args = cdr(args);
+    return mk_num_from_long(res);
+}
 
-//     /* unary minus */
-//     if (args == the_empty_list) {
-//         printf("unary minus\n");
-//         unary_minus(x);
-//         return x;
-//     }
+obj *builtin_times(obj *args) {
+    ARG_TYPECHECK(args, "times", OBJ_NUM);
+    if (args == the_empty_list)
+        return mk_err("times passed no arguments");
+    long res = car(args)->num;
+    args = cdr(args);
+    while (!is_the_empty_list(args)) {
+        res *= car(args)->num;
+        args = cdr(args);
+    }
 
-//     while (args != the_empty_list) {
-//         obj *y = car(args);
-//         binop(x, y, sub);
-//         args = cdr(args);
-//     }
+    return mk_num_from_long(res);
+}
 
-//     return x;
-// }
+obj *builtin_divide(obj *args) {
+    ARG_TYPECHECK(args, "divide", OBJ_NUM);
+    if (args == the_empty_list)
+        return mk_err("divide passed no arguments");
+    long res = car(args)->num;
+    args = cdr(args);
+    while (!is_the_empty_list(args)) {
+        if (car(args)->num == 0)
+            return mk_err("division by zero");
+        res /= car(args)->num;
+        args = cdr(args);
+    }
 
-// obj *builtin_times(obj *args) {
-//     ARG_TYPECHECK(args, "times", OBJ_NUM);
-//     if (args == the_empty_list)
-//         return mk_err("times passed no arguments");
-//     obj *x = car(args);
-//     args = cdr(args);
-//     while (args != the_empty_list) {
-//         obj *y = car(args);
-//         binop(x, y, mul);
-//         args = cdr(args);
-//     }
-//     return x;
-// }
+    return mk_num_from_long(res);
+}
 
-// obj *builtin_divide(obj *args) {
-//     ARG_TYPECHECK(args, "divide", OBJ_NUM);
-//     if (args == the_empty_list)
-//         return mk_err("divide passed no arguments");
-//     obj *x = car(args);
-//     args = cdr(args);
-//     while (args != the_empty_list) {
-//         obj *y = car(args);
-//         if (mpz_sgn(y->num->integ) == 0)
-//             return mk_err("division by zero");
-//         binop(x, y, div);
-//         args = cdr(args);
-//     }
-//     return x;
-// }
+obj *builtin_remainder(obj *args) {
+    ARG_TYPECHECK(args, "remainder", OBJ_NUM);
+    if (args == the_empty_list)
+        return mk_err("remainder passed no arguments");
+    long res = car(args)->num;
+    args = cdr(args);
+    while (!is_the_empty_list(args)) {
+        if (car(args)->num == 0)
+            return mk_err("division by zero");
+        res %= car(args)->num;
+        args = cdr(args);
+    }
 
-// obj *builtin_remainder(obj *args) {
-//     ARG_TYPECHECK(args, "remainder", OBJ_NUM);
-//     if (args == the_empty_list)
-//         return mk_err("remainder passed no arguments");
+    return mk_num_from_long(res);
+}
 
-//     obj *x = car(args);
-//     if (x->num->type != NUM_INT)
-//         return mk_err("cannot perform mod on non-integers");
+obj *builtin_gt(obj *args) {
+    ARG_TYPECHECK(args, "gt", OBJ_NUM);
+    ARG_NUMCHECK(args, "gt", 2);
 
-//     args = cdr(args);
-//     while (args != the_empty_list) {
+    obj *x = car(args);
+    obj *y = cadr(args);
 
-//         obj *y = car(args);
+    return x->num > y->num ? true : false;
+}
 
-//         if (y->num->type != NUM_INT)
-//             return mk_err("cannot perorm mod on non-integers");
+obj *builtin_gte(obj *args) {
+    ARG_TYPECHECK(args, "gte", OBJ_NUM);
+    ARG_NUMCHECK(args, "gte", 2);
 
-//         if (mpz_sgn(y->num->integ) == 0)
-//             return mk_err("division by zero");
+    obj *x = car(args);
+    obj *y = cadr(args);
 
-//         mpz_mod(x->num->integ, x->num->integ, y->num->integ);
-//         args = cdr(args);
-//     }
-//     return x;
-// }
+    return x->num >= y->num ? true : false;
+}
 
-// int cmp(obj *x, obj *y) {
-//     conv(&x, &y);
-//     switch (x->num->type) {
-//     case NUM_INT:
-//         return mpz_cmp(x->num->integ, y->num->integ);
-//     case NUM_RAT:
-//         return mpq_cmp(x->num->rat, y->num->rat);
-//     case NUM_DBL:
-//         return mpf_cmp(x->num->dbl, y->num->dbl);
-//     case NUM_ERR:
-//         fprintf(stderr, "warning: cannot compare numbers of unknown type");
-//         return 0;
-//     }
-// }
+obj *builtin_lt(obj *args) {
+    ARG_TYPECHECK(args, "lt", OBJ_NUM);
+    ARG_NUMCHECK(args, "lt", 2);
 
-// obj *builtin_gt(obj *args) {
-//     ARG_TYPECHECK(args, "gt", OBJ_NUM);
-//     ARG_NUMCHECK(args, "gt", 2);
+    obj *x = car(args);
+    obj *y = cadr(args);
 
-//     obj *x = car(args);
-//     obj *y = cadr(args);
+    return x->num < y->num ? true : false;
+}
 
-//     int res = cmp(x, y);
+obj *builtin_lte(obj *args) {
+    ARG_TYPECHECK(args, "lte", OBJ_NUM);
+    ARG_NUMCHECK(args, "lte", 2);
 
-//     return res > 0 ? true : false;
-// }
+    obj *x = car(args);
+    obj *y = cadr(args);
 
-// obj *builtin_gte(obj *args) {
-//     ARG_TYPECHECK(args, "gte", OBJ_NUM);
-//     ARG_NUMCHECK(args, "gte", 2);
-
-//     obj *x = car(args);
-//     obj *y = cadr(args);
-
-//     int res = cmp(x, y);
-
-//     return res >= 0 ? true : false;
-// }
-
-// obj *builtin_lt(obj *args) {
-//     ARG_TYPECHECK(args, "lt", OBJ_NUM);
-//     ARG_NUMCHECK(args, "lt", 2);
-
-//     obj *x = car(args);
-//     obj *y = cadr(args);
-
-//     int res = cmp(x, y);
-
-//     return res < 0 ? true : false;
-// }
-
-// obj *builtin_lte(obj *args) {
-//     ARG_TYPECHECK(args, "lte", OBJ_NUM);
-//     ARG_NUMCHECK(args, "lte", 2);
-
-//     obj *x = car(args);
-//     obj *y = cadr(args);
-
-//     int res = cmp(x, y);
-
-//     return res <= 0 ? true : false;
-// }
+    return x->num <= y->num ? true : false;
+}
 
 obj *builtin_is_null(obj *args) {
     ARG_NUMCHECK(args, "null?", 1);
@@ -275,18 +205,16 @@ obj *builtin_char_to_int(obj *args) {
     ARG_NUMCHECK(args, "char->int", 1);
     FIG_ASSERT(is_char(car(args)), "invalid argument passed to char->int");
     obj *arg = car(args);
-    mpz_t i;
-    mpz_init(i);
-    mpz_set_ui(i, arg->constant->c);
-    return mk_int(i);
+    return mk_num_from_long(arg->constant->c);
 }
 
 obj *builtin_int_to_char(obj *args) {
     ARG_NUMCHECK(args, "int->char", 1);
-    FIG_ASSERT(is_int(car(args)), "invalid argument passed to int->char");
-    unsigned long num = mpz_get_ui(car(args)->num->integ);
-    FIG_ASSERT(num >= 0 && num <= 9, "invalid argument passed to int->char");
-    return mk_char(num);
+    FIG_ASSERT(is_num(car(args)), "invalid argument passed to int->char");
+    obj *arg = car(args);
+    FIG_ASSERT(arg->num >= 0 && arg->num <= 9,
+               "invalid argument passed to int->char");
+    return mk_char(arg->num);
 }
 
 obj *builtin_number_to_string(obj *args) {
@@ -301,7 +229,7 @@ obj *builtin_string_to_number(obj *args) {
     FIG_ASSERT(is_string(car(args)),
                "invalid argument passed to string->number")
     obj *arg = car(args);
-    return mk_num(arg->str);
+    return mk_num_from_str(arg->str);
 }
 
 obj *builtin_symbol_to_string(obj *args) {
@@ -330,6 +258,8 @@ obj *builtin_is_equal(obj *args) {
         return false;
 
     switch (x->type) {
+    case OBJ_NUM:
+        return x->num == y->num ? true : false;
     case OBJ_CONST:
         if (x->constant->type == y->constant->type) {
             switch (x->constant->type) {

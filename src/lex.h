@@ -8,8 +8,6 @@
 
 typedef enum {
     TOK_INT,
-    TOK_FLOAT,
-    TOK_RAT,
     TOK_STR,
     TOK_SYM,
     TOK_CONST,
