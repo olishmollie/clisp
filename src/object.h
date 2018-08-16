@@ -78,12 +78,12 @@ struct obj {
     };
 };
 
-obj *env_new();
-obj *env_lookup(obj *env, obj *key);
-obj *env_insert(obj *env, obj *key, obj *value);
-obj *env_set(obj *env, obj *key, obj *value);
-void env_extend(obj *env, obj *parent);
-void env_print(obj *env);
+obj *env_new(void);
+obj *env_lookup(obj *env, obj *var);
+obj *env_insert(obj *env, obj *var, obj *vals);
+obj *env_set(obj *env, obj *var, obj *vals);
+obj *env_define(obj *env, obj *var, obj *vals);
+obj *env_extend(obj *env, obj *vars, obj *vals);
 
 obj *mk_num(char *numstr);
 obj *mk_int(mpz_t integ);
@@ -99,7 +99,7 @@ obj *mk_char(char c);
 obj *mk_bool(bool_t type);
 
 obj *mk_builtin(char *name, builtin proc);
-obj *mk_lambda(obj *env, obj *params, obj *body);
+obj *mk_fun(obj *env, obj *params, obj *body);
 obj *mk_cons(obj *car, obj *cdr);
 
 obj *mk_nil(void);
@@ -126,10 +126,12 @@ int is_error(obj *o);
 
 char *type_name(obj_t type);
 
-int length(obj *o);
+int length(obj *list);
 
-obj *car(obj *o);
-obj *cdr(obj *o);
+obj *car(obj *pair);
+obj *cdr(obj *pair);
+void set_car(obj *pair, obj *item);
+void set_cdr(obj *pair, obj *item);
 
 #define caar(obj) car(car(obj))
 #define cadr(obj) car(cdr(obj))

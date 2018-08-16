@@ -61,6 +61,7 @@
         }                                                                      \
     }
 
+obj *symbol_table;
 obj *the_empty_list;
 obj * true;
 obj * false;

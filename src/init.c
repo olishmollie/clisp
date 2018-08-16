@@ -4,21 +4,21 @@
 void register_builtin(obj *env, builtin fun, char *name) {
     obj *var = mk_sym(name);
     obj *fn = mk_builtin(name, fun);
-    env_insert(env, var, fn);
+    env_define(env, var, fn);
 }
 
 obj *global_env(void) {
     obj *env = env_new();
-    register_builtin(env, builtin_plus, "+");
-    register_builtin(env, builtin_minus, "-");
-    register_builtin(env, builtin_times, "*");
-    register_builtin(env, builtin_divide, "/");
-    register_builtin(env, builtin_remainder, "mod");
+    // register_builtin(env, builtin_plus, "+");
+    // register_builtin(env, builtin_minus, "-");
+    // register_builtin(env, builtin_times, "*");
+    // register_builtin(env, builtin_divide, "/");
+    // register_builtin(env, builtin_remainder, "mod");
 
-    register_builtin(env, builtin_gt, ">");
-    register_builtin(env, builtin_gte, ">=");
-    register_builtin(env, builtin_lt, "<");
-    register_builtin(env, builtin_lte, "<=");
+    // register_builtin(env, builtin_gt, ">");
+    // register_builtin(env, builtin_gte, ">=");
+    // register_builtin(env, builtin_lt, "<");
+    // register_builtin(env, builtin_lte, "<=");
 
     register_builtin(env, builtin_is_null, "null?");
     register_builtin(env, builtin_is_boolean, "boolean?");
@@ -54,6 +54,7 @@ void init() {
     true = mk_bool(BOOL_T);
     false = mk_bool(BOOL_F);
     the_empty_list = mk_nil();
+    symbol_table = the_empty_list;
     quote_sym = mk_sym("quote");
     define_sym = mk_sym("define");
     set_sym = mk_sym("set!");
