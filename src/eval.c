@@ -50,8 +50,8 @@ obj *eval_assignment(obj *env, obj *expr) {
 }
 
 obj *eval_definition(obj *env, obj *expr) {
-    ARG_NUMCHECK(cdr(expr), "define", 2);
     obj *var, *val;
+    FIG_ASSERT(length(cdr(expr)) >= 2, "invalid syntax define");
 
     if (is_pair(cadr(expr))) {
         var = caadr(expr);
@@ -105,8 +105,6 @@ tailcall:
     } else if (is_assignment(expr)) {
         return eval_assignment(env, expr);
     } else if (is_lambda(expr)) {
-        println(cadr(expr));
-        println(cddr(expr));
         return mk_fun(env, cadr(expr), cddr(expr));
     } else if (is_if(expr)) {
 

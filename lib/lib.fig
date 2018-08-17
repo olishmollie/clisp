@@ -1,1 +1,63 @@
 (define lib "lib/lib.fig")
+
+;; math
+(define (identity x) x)
+
+(define (abs x) (if (< x 0) (- x) x))
+
+(define (fact n)
+  (define (iter prod count max)
+    (if (> count max)
+        prod
+        (iter (* count prod)
+              (+ count 1)
+              max)))
+  (iter 1 1 n))
+
+(define (** base exp)
+  (define (iter prod count max)
+    (if (eq? count max)
+        prod
+        (iter (* base prod)
+              (+ count 1)
+              max)))
+  (iter base 1 exp))
+
+;; lists
+(define (list-ref seq n)
+  (if (eq? n 0)
+      (car seq)
+      (list-ref (cdr seq) (- n 1))))
+
+(define (length seq)
+  (if (null? seq)
+      0
+      (+ 1 (length (cdr seq)))))
+
+(define (append l1 l2)
+  (if (null? l1)
+      l2
+      (cons (car l1) (append (cdr l1) l2))))
+
+(define (last-pair seq)
+  (if (null? (cdr seq))
+      seq
+      (last-pair (cdr seq))))
+
+(define (reverse seq)
+  (if (null? seq)
+      seq
+      (append (reverse (cdr seq)) (list (car seq)))))
+
+(define (map proc seq)
+  (if (null? seq)
+      seq
+      (cons (proc (car seq))
+            (map proc (cdr seq)))))
+
+(define count
+  ((lambda (total)
+    (lambda (increment)
+      (set! total (+ total increment))
+      total))
+  0))
