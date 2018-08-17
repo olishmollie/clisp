@@ -60,6 +60,7 @@ void init() {
     set_sym = mk_sym("set!");
     if_sym = mk_sym("if");
     lambda_sym = mk_sym("lambda");
+    begin_sym = mk_sym("begin");
     universe = global_env();
     builtin_load(STDLIB);
 }

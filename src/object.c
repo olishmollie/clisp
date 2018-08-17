@@ -327,7 +327,7 @@ obj *env_define(obj *env, obj *var, obj *val) {
 
     while (!is_the_empty_list(vars)) {
         if (car(vars) == var) {
-            set_car(vars, val);
+            set_car(vals, val);
             return NULL;
         }
         vars = cdr(vars);

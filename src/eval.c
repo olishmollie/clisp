@@ -77,9 +77,7 @@ obj *if_alternative(obj *expr) { return cadddr(expr); }
 
 int is_lambda(obj *expr) { return is_tagged_list(expr, lambda_sym); }
 
-obj *builtin_proc(obj *expr) { return car(expr); }
-
-obj *builtin_args(obj *expr) { return cdr(expr); }
+int is_begin(obj *expr) { return is_tagged_list(expr, begin_sym); }
 
 obj *eval_arglist(obj *env, obj *arglist) {
     if (arglist == the_empty_list)
@@ -106,6 +104,18 @@ tailcall:
         return eval_assignment(env, expr);
     } else if (is_lambda(expr)) {
         return mk_fun(env, cadr(expr), cddr(expr));
+    } else if (is_begin(expr)) {
+
+        expr = cdr(expr);
+        while (!is_the_empty_list(cdr(expr))) {
+            obj *cur = eval(env, car(expr));
+            FIG_ERRORCHECK(cur);
+            expr = cdr(expr);
+        }
+
+        expr = car(expr);
+        goto tailcall;
+
     } else if (is_if(expr)) {
 
         ARG_NUMCHECK(cdr(expr), "if", 3);
@@ -131,14 +141,8 @@ tailcall:
                        procedure->fun->name);
 
             env = env_extend(procedure->fun->env, procedure->fun->params, args);
-            expr = procedure->fun->body;
 
-            while (!is_the_empty_list(cdr(expr))) {
-                eval(env, car(expr));
-                expr = cdr(expr);
-            }
-
-            expr = car(expr);
+            expr = mk_cons(begin_sym, procedure->fun->body);
             goto tailcall;
         }
     } else {

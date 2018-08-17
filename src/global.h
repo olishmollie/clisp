@@ -46,17 +46,19 @@
 
 #define FIG_ERRORCHECK(args)                                                   \
     {                                                                          \
-        obj *tmp = args;                                                       \
-        if (!is_pair(args)) {                                                  \
-            if (is_error(args))                                                \
-                return args;                                                   \
-        } else {                                                               \
-            while (!is_the_empty_list(tmp)) {                                  \
-                if (is_error(tmp))                                             \
-                    return tmp;                                                \
-                if (is_error(car(tmp)))                                        \
-                    return car(tmp);                                           \
-                tmp = cdr(tmp);                                                \
+        if (args) {                                                            \
+            if (!is_pair(args)) {                                              \
+                if (is_error(args))                                            \
+                    return args;                                               \
+            } else {                                                           \
+                obj *tmp = args;                                               \
+                while (!is_the_empty_list(tmp)) {                              \
+                    if (is_error(tmp))                                         \
+                        return tmp;                                            \
+                    if (is_error(car(tmp)))                                    \
+                        return car(tmp);                                       \
+                    tmp = cdr(tmp);                                            \
+                }                                                              \
             }                                                                  \
         }                                                                      \
     }
@@ -70,6 +72,7 @@ obj *define_sym;
 obj *set_sym;
 obj *if_sym;
 obj *lambda_sym;
+obj *begin_sym;
 
 obj *universe;
 char *input;
