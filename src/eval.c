@@ -37,8 +37,8 @@ obj *assignment_val(obj *expr) { return caddr(expr); }
 obj *eval_list(obj *e, obj *expr) { return the_empty_list; }
 
 int is_self_evaluating(obj *expr) {
-    return is_char(expr) || is_boolean(expr) || is_string(expr) ||
-           is_num(expr) || is_error(expr);
+    return expr == NULL || is_char(expr) || is_boolean(expr) ||
+           is_string(expr) || is_num(expr) || is_error(expr);
 }
 
 obj *eval_assignment(obj *env, obj *expr) {
@@ -69,12 +69,6 @@ obj *eval_definition(obj *env, obj *expr) {
 
 int is_if(obj *expr) { return is_tagged_list(expr, if_sym); }
 
-obj *if_condition(obj *expr) { return cadr(expr); }
-
-obj *if_consequent(obj *expr) { return caddr(expr); }
-
-obj *if_alternative(obj *expr) { return cadddr(expr); }
-
 int is_lambda(obj *expr) { return is_tagged_list(expr, lambda_sym); }
 
 int is_begin(obj *expr) { return is_tagged_list(expr, begin_sym); }
@@ -83,7 +77,7 @@ obj *eval_arglist(obj *env, obj *arglist) {
     if (arglist == the_empty_list)
         return arglist;
     obj *arg = eval(env, car(arglist));
-    return mk_cons(arg, eval_arglist(env, cdr(arglist)));
+    return cons(arg, eval_arglist(env, cdr(arglist)));
 }
 
 obj *eval(obj *env, obj *expr) {
@@ -118,11 +112,17 @@ tailcall:
 
     } else if (is_if(expr)) {
 
-        ARG_NUMCHECK(cdr(expr), "if", 3);
-        obj *cond = eval(env, if_condition(expr));
+        FIG_ASSERT(length(cdr(expr)) == 2 || length(cdr(expr)) == 3,
+                   "invalid syntax if");
+        obj *cond = eval(env, cadr(expr));
         FIG_ERRORCHECK(cond);
 
-        expr = is_true(cond) ? if_consequent(expr) : if_alternative(expr);
+        if (is_true(cond)) {
+            expr = caddr(expr);
+        } else {
+            expr = !is_the_empty_list(cdddr(expr)) ? cadddr(expr) : NULL;
+        }
+
         goto tailcall;
 
     } else if (is_pair(expr)) {
@@ -142,7 +142,7 @@ tailcall:
 
             env = env_extend(procedure->fun->env, procedure->fun->params, args);
 
-            expr = mk_cons(begin_sym, procedure->fun->body);
+            expr = cons(begin_sym, procedure->fun->body);
             goto tailcall;
         }
     } else {

@@ -107,16 +107,16 @@ obj *read_list(parser *p) {
         nexttok(p);
         token_delete(p->curtok);
 
-        return mk_cons(car_obj, cdr_obj);
+        return cons(car_obj, cdr_obj);
     }
 
     cdr_obj = read_list(p);
 
-    return mk_cons(car_obj, cdr_obj);
+    return cons(car_obj, cdr_obj);
 }
 
 obj *expand_quote(parser *p) {
-    return mk_cons(quote_sym, mk_cons(read(p), the_empty_list));
+    return cons(quote_sym, cons(read(p), the_empty_list));
 }
 
 obj *read(parser *p) {

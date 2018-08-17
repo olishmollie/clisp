@@ -91,7 +91,7 @@ obj *mk_bool(bool_t type);
 
 obj *mk_builtin(char *name, builtin proc);
 obj *mk_fun(obj *env, obj *params, obj *body);
-obj *mk_cons(obj *car, obj *cdr);
+obj *cons(obj *car, obj *cdr);
 
 obj *mk_nil(void);
 obj *mk_err(char *fmt, ...);

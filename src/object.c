@@ -6,73 +6,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-cons_t *mk_cons_t(obj *car, obj *cdr) {
-    cons_t *c = malloc(sizeof(cons_t));
-    c->car = car;
-    c->cdr = cdr;
-    return c;
-}
-
-builtin_t *mk_builtin_t(char *name, builtin proc) {
-    builtin_t *bltin = malloc(sizeof(builtin_t));
-    bltin->name = name;
-    bltin->proc = proc;
-    return bltin;
-}
-
-fun_t *mk_fun_t(char *name, obj *params, obj *body) {
-    fun_t *fun = malloc(sizeof(fun_t));
-    fun->params = params;
-    fun->body = body;
-    fun->env = NULL;
-
-    if (name) {
-        fun->name = malloc(sizeof(char) * (strlen(name) + 1));
-        strcpy(fun->name, name);
-    } else {
-        fun->name = NULL;
-    }
-
-    return fun;
-}
-
-const_t *mk_const_t(char *c) {
-    const_t *constant = malloc(sizeof(const_t));
-
-    constant->repr = malloc(sizeof(char) * (strlen(c) + 1));
-    strcpy(constant->repr, c);
-
-    if (strcmp("#t", constant->repr) == 0) {
-        constant->type = CONST_BOOL;
-        constant->bool = BOOL_T;
-    } else if (strcmp("#f", constant->repr) == 0) {
-        constant->type = CONST_BOOL;
-        constant->bool = BOOL_F;
-    } else if (strcmp(constant->repr, "#\\space") == 0) {
-        constant->type = CONST_CHAR;
-        constant->c = ' ';
-    } else if (strcmp(constant->repr, "#\\newline") == 0 ||
-               strcmp(constant->repr, "#\\linefeed") == 0) {
-        constant->type = CONST_CHAR;
-        constant->c = '\n';
-    } else if (strcmp(constant->repr, "#\\tab") == 0) {
-        constant->type = CONST_CHAR;
-        constant->c = '\t';
-    } else if (constant->repr[1] == '\\' && strlen(constant->repr) == 3) {
-        constant->type = CONST_CHAR;
-        constant->c = constant->repr[2];
-    } else {
-        constant->type = CONST_ERR;
-        /* add length of "invalid constant", 16 */
-        constant->err = malloc(sizeof(char) * (strlen(c) + 1 + 17));
-        snprintf(constant->err, 17, "invalid constant %s", c);
-    }
-
-    return constant;
-}
-
-/* obj types --------------------------------------------------------------- */
-
 obj *obj_new(obj_t type) {
     obj *o = malloc(sizeof(obj));
     o->type = type;
@@ -115,7 +48,7 @@ obj *mk_sym(char *name) {
     o = obj_new(OBJ_SYM);
     o->sym = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(o->sym, name);
-    symbol_table = mk_cons(o, symbol_table);
+    symbol_table = cons(o, symbol_table);
     return o;
 }
 
@@ -126,10 +59,24 @@ obj *mk_string(char *str) {
     return o;
 }
 
-obj *mk_cons(obj *car, obj *cdr) {
+cons_t *mk_cons_t(obj *car, obj *cdr) {
+    cons_t *c = malloc(sizeof(cons_t));
+    c->car = car;
+    c->cdr = cdr;
+    return c;
+}
+
+obj *cons(obj *car, obj *cdr) {
     obj *o = obj_new(OBJ_CONS);
     o->cons = mk_cons_t(car, cdr);
     return o;
+}
+
+builtin_t *mk_builtin_t(char *name, builtin proc) {
+    builtin_t *bltin = malloc(sizeof(builtin_t));
+    bltin->name = name;
+    bltin->proc = proc;
+    return bltin;
 }
 
 obj *mk_builtin(char *name, builtin proc) {
@@ -138,11 +85,62 @@ obj *mk_builtin(char *name, builtin proc) {
     return o;
 }
 
+fun_t *mk_fun_t(char *name, obj *params, obj *body) {
+    fun_t *fun = malloc(sizeof(fun_t));
+    fun->params = params;
+    fun->body = body;
+    fun->env = NULL;
+
+    if (name) {
+        fun->name = malloc(sizeof(char) * (strlen(name) + 1));
+        strcpy(fun->name, name);
+    } else {
+        fun->name = NULL;
+    }
+
+    return fun;
+}
+
 obj *mk_fun(obj *env, obj *params, obj *body) {
     obj *o = obj_new(OBJ_FUN);
     o->fun = mk_fun_t(NULL, params, body);
     o->fun->env = env;
     return o;
+}
+
+const_t *mk_const_t(char *c) {
+    const_t *constant = malloc(sizeof(const_t));
+
+    constant->repr = malloc(sizeof(char) * (strlen(c) + 1));
+    strcpy(constant->repr, c);
+
+    if (strcmp("#t", constant->repr) == 0) {
+        constant->type = CONST_BOOL;
+        constant->bool = BOOL_T;
+    } else if (strcmp("#f", constant->repr) == 0) {
+        constant->type = CONST_BOOL;
+        constant->bool = BOOL_F;
+    } else if (strcmp(constant->repr, "#\\space") == 0) {
+        constant->type = CONST_CHAR;
+        constant->c = ' ';
+    } else if (strcmp(constant->repr, "#\\newline") == 0 ||
+               strcmp(constant->repr, "#\\linefeed") == 0) {
+        constant->type = CONST_CHAR;
+        constant->c = '\n';
+    } else if (strcmp(constant->repr, "#\\tab") == 0) {
+        constant->type = CONST_CHAR;
+        constant->c = '\t';
+    } else if (constant->repr[1] == '\\' && strlen(constant->repr) == 3) {
+        constant->type = CONST_CHAR;
+        constant->c = constant->repr[2];
+    } else {
+        constant->type = CONST_ERR;
+        /* add length of "invalid constant", 16 */
+        constant->err = malloc(sizeof(char) * (strlen(c) + 1 + 17));
+        snprintf(constant->err, 17, "invalid constant %s", c);
+    }
+
+    return constant;
 }
 
 obj *mk_const(char *constant) {
@@ -263,15 +261,15 @@ void set_cdr(obj *pair, obj *value) { pair->cons->cdr = value; }
 /* environments ------------------------------------------------------------ */
 
 // initial env is ( '()  )
-obj *mk_frame(obj *vars, obj *vals) { return mk_cons(vars, vals); }
+obj *mk_frame(obj *vars, obj *vals) { return cons(vars, vals); }
 
 obj *frame_vars(obj *frame) { return car(frame); }
 
 obj *frame_vals(obj *frame) { return cdr(frame); }
 
 void add_binding_to_frame(obj *var, obj *val, obj *frame) {
-    set_car(frame, mk_cons(var, car(frame)));
-    set_cdr(frame, mk_cons(val, cdr(frame)));
+    set_car(frame, cons(var, car(frame)));
+    set_cdr(frame, cons(val, cdr(frame)));
     if (is_fun(val)) {
         val->fun->name = malloc(sizeof(char) * (strlen(var->sym) + 1));
         strcpy(val->fun->name, var->sym);
@@ -279,7 +277,7 @@ void add_binding_to_frame(obj *var, obj *val, obj *frame) {
 }
 
 obj *env_extend(obj *env, obj *vars, obj *vals) {
-    return mk_cons(mk_frame(vars, vals), env);
+    return cons(mk_frame(vars, vals), env);
 }
 
 obj *env_lookup(obj *env, obj *var) {

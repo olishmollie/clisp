@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define STDLIB mk_cons(mk_string("lib/lib.fig"), the_empty_list)
-#define UNITTESTS mk_cons(mk_string("lib/tests.fig"), the_empty_list);
+#define STDLIB cons(mk_string("lib/lib.fig"), the_empty_list)
+#define UNITTESTS cons(mk_string("lib/tests.fig"), the_empty_list);
 
 #define FIG_ASSERT(cond, fmt, ...)                                             \
     {                                                                          \

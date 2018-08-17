@@ -168,7 +168,7 @@ obj *builtin_cons(obj *args) {
     ARG_NUMCHECK(args, "cons", 2);
     obj *car_obj = car(args);
     obj *cdr_obj = cadr(args);
-    return mk_cons(car_obj, cdr_obj);
+    return cons(car_obj, cdr_obj);
 }
 
 obj *builtin_car(obj *args) {
