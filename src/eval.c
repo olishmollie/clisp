@@ -73,11 +73,18 @@ int is_lambda(obj *expr) { return is_tagged_list(expr, lambda_sym); }
 
 int is_begin(obj *expr) { return is_tagged_list(expr, begin_sym); }
 
+int is_top_level_only(obj *expr) {
+    return is_definition(expr) || is_assignment(expr);
+}
+
 obj *eval_arglist(obj *env, obj *arglist) {
     if (arglist == the_empty_list)
         return arglist;
-    obj *arg = eval(env, car(arglist));
-    return cons(arg, eval_arglist(env, cdr(arglist)));
+    obj *expr = car(arglist);
+    if (is_top_level_only(expr))
+        return mk_err("invalid syntax");
+    expr = eval(env, expr);
+    return cons(expr, eval_arglist(env, cdr(arglist)));
 }
 
 obj *eval(obj *env, obj *expr) {
@@ -114,7 +121,11 @@ tailcall:
 
         FIG_ASSERT(length(cdr(expr)) == 2 || length(cdr(expr)) == 3,
                    "invalid syntax if");
-        obj *cond = eval(env, cadr(expr));
+        obj *cond = cadr(expr);
+        if (is_top_level_only(cond))
+            return mk_err("invalid syntax");
+
+        cond = eval(env, cond);
         FIG_ERRORCHECK(cond);
 
         if (is_true(cond)) {
