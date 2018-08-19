@@ -147,23 +147,30 @@ obj *read_list(reader *rdr) {
     obj *car_obj;
     obj *cdr_obj;
 
+    skipwhitespace(rdr);
+
     if (rdr->cur == EOF)
         return mk_err("expected ')'");
 
+    rdr->cur = getc(rdr->in);
     if (rdr->cur == ')') {
-        rdr->cur = getc(rdr->in);
         return the_empty_list;
     }
+    ungetc(rdr->cur, rdr->in);
 
     car_obj = read(rdr);
+
     skipwhitespace(rdr);
 
     if (rdr->cur == '.') {
         rdr->cur = getc(rdr->in);
         cdr_obj = read(rdr);
+
         if (rdr->cur != ')') {
             return mk_err("expected ')'");
         }
+
+        rdr->cur = getc(rdr->in);
 
         return cons(car_obj, cdr_obj);
     }
