@@ -1,12 +1,14 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include "parse.h"
 #include "object.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
+
+#define MAXSTRLEN 512
 
 #define STDLIB cons(mk_string("lib/lib.fig"), the_empty_list)
 #define UNITTESTS cons(mk_string("lib/tests.fig"), the_empty_list);
@@ -76,6 +78,5 @@ obj *begin_sym;
 
 obj *universe;
 char *input;
-parser *repl_parser;
 
 #endif

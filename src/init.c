@@ -51,8 +51,8 @@ obj *global_env(void) {
 }
 
 void init() {
-    true = mk_bool(BOOL_T);
-    false = mk_bool(BOOL_F);
+    true = mk_bool(1);
+    false = mk_bool(0);
     the_empty_list = mk_nil();
     symbol_table = the_empty_list;
     quote_sym = mk_sym("quote");

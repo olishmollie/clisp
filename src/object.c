@@ -10,7 +10,6 @@ obj *obj_new(obj_t type) {
     obj *o = malloc(sizeof(obj));
     o->type = type;
     o->mark = 0;
-    // INCR_OBJ(o);
     return o;
 }
 
@@ -27,9 +26,8 @@ obj *mk_num_from_long(long num) {
 }
 
 char *num_to_string(obj *o) {
-    // TODO: assign max string len somewhere
-    char *buf = malloc(sizeof(char) * 512);
-    snprintf(buf, 511, "%li", o->num);
+    char *buf = malloc(sizeof(char) * MAXSTRLEN);
+    snprintf(buf, MAXSTRLEN - 1, "%li", o->num);
     return buf;
 }
 
@@ -108,82 +106,16 @@ obj *mk_fun(obj *env, obj *params, obj *body) {
     return o;
 }
 
-const_t *mk_const_t(char *c) {
-    const_t *constant = malloc(sizeof(const_t));
-
-    constant->repr = malloc(sizeof(char) * (strlen(c) + 1));
-    strcpy(constant->repr, c);
-
-    if (strcmp("#t", constant->repr) == 0) {
-        constant->type = CONST_BOOL;
-        constant->bool = BOOL_T;
-    } else if (strcmp("#f", constant->repr) == 0) {
-        constant->type = CONST_BOOL;
-        constant->bool = BOOL_F;
-    } else if (strcmp(constant->repr, "#\\space") == 0) {
-        constant->type = CONST_CHAR;
-        constant->c = ' ';
-    } else if (strcmp(constant->repr, "#\\newline") == 0 ||
-               strcmp(constant->repr, "#\\linefeed") == 0) {
-        constant->type = CONST_CHAR;
-        constant->c = '\n';
-    } else if (strcmp(constant->repr, "#\\tab") == 0) {
-        constant->type = CONST_CHAR;
-        constant->c = '\t';
-    } else if (constant->repr[1] == '\\' && strlen(constant->repr) == 3) {
-        constant->type = CONST_CHAR;
-        constant->c = constant->repr[2];
-    } else {
-        constant->type = CONST_ERR;
-        /* add length of "invalid constant", 16 */
-        constant->err = malloc(sizeof(char) * (strlen(c) + 1 + 17));
-        snprintf(constant->err, 17, "invalid constant %s", c);
-    }
-
-    return constant;
-}
-
-obj *mk_const(char *constant) {
-    obj *o = obj_new(OBJ_CONST);
-
-    o->constant = mk_const_t(constant);
-    if (o->constant->type == CONST_ERR) {
-        obj *err = mk_err(o->constant->err);
-        free(o->constant->err);
-        obj_delete(o);
-        return err;
-    }
-
+obj *mk_char(char c) {
+    obj *o = obj_new(OBJ_CHAR);
+    o->character = c;
     return o;
 }
 
-obj *mk_char(char c) {
-    char *repr = 0;
-    obj *res;
-    switch (c) {
-    case '\n':
-    case '\f':
-        res = mk_const("#\\newline");
-        break;
-    case ' ':
-        res = mk_const("#\\space");
-        break;
-    case '\t':
-        res = mk_const("#\\tab");
-        break;
-    default:
-        repr = malloc(sizeof(char) * 4);
-        sprintf(repr, "#\\%c", c);
-        res = mk_const(repr);
-        free(repr);
-    }
-
-    return res;
-}
-
-obj *mk_bool(bool_t type) {
-    obj *res = type == BOOL_T ? mk_const("#t") : mk_const("#f");
-    return res;
+obj *mk_bool(int value) {
+    obj *o = obj_new(OBJ_BOOL);
+    o->boolean = value;
+    return o;
 }
 
 obj *mk_nil(void) {
@@ -213,7 +145,7 @@ int is_num(obj *o) { return o->type == OBJ_NUM; }
 
 int is_symbol(obj *o) { return o->type == OBJ_SYM; }
 int is_boolean(obj *o) { return o == true || o == false; }
-int is_char(obj *o) { return o->type == OBJ_CONST && !is_boolean(o); }
+int is_char(obj *o) { return o->type == OBJ_CHAR; }
 int is_string(obj *o) { return o->type == OBJ_STR; }
 int is_builtin(obj *o) { return o->type == OBJ_BUILTIN; }
 int is_fun(obj *o) { return o->type == OBJ_FUN; }
@@ -229,8 +161,10 @@ char *type_name(obj_t type) {
         return "string";
     case OBJ_CONS:
         return "cons";
-    case OBJ_CONST:
-        return "constant";
+    case OBJ_BOOL:
+        return "boolean";
+    case OBJ_CHAR:
+        return "character";
     case OBJ_FUN:
         return "function";
     case OBJ_NIL:
@@ -403,8 +337,17 @@ void print(obj *o) {
         case OBJ_CONS:
             print_cons(o);
             break;
-        case OBJ_CONST:
-            printf("%s", o->constant->repr);
+        case OBJ_BOOL:
+            printf("%s", o->boolean ? "#t" : "#f");
+            break;
+        case OBJ_CHAR:
+            if (o->character == '\n')
+                printf("#\\newline");
+            else if (o->character == '\t')
+                printf("#\\tab");
+            else {
+                printf("#\\%c", o->character);
+            }
             break;
         case OBJ_BUILTIN:
             printf("#<procedure '%s'>", o->bltin->name);
@@ -439,7 +382,6 @@ void obj_delete(obj *o);
 
 void obj_delete(obj *o) {
     if (o) {
-        // DECR_OBJ(o);
         switch (o->type) {
         case OBJ_SYM:
             free(o->sym);
@@ -463,10 +405,8 @@ void obj_delete(obj *o) {
                 obj_delete(o->fun->body);
             free(o->fun);
             break;
-        case OBJ_CONST:
-            free(o->constant->repr);
-            free(o->constant);
-            break;
+        case OBJ_BOOL:
+        case OBJ_CHAR:
         case OBJ_NUM:
         case OBJ_NIL:
         case OBJ_BUILTIN:

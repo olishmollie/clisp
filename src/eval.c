@@ -82,7 +82,7 @@ obj *eval_arglist(obj *env, obj *arglist) {
         return arglist;
     obj *expr = car(arglist);
     if (is_top_level_only(expr))
-        return mk_err("invalid syntax");
+        return mk_err("invalid syntax %s", car(arglist));
     expr = eval(env, expr);
     return cons(expr, eval_arglist(env, cdr(arglist)));
 }
@@ -123,7 +123,7 @@ tailcall:
                    "invalid syntax if");
         obj *cond = cadr(expr);
         if (is_top_level_only(cond))
-            return mk_err("invalid syntax");
+            return mk_err("invalid syntax %s", car(cond));
 
         cond = eval(env, cond);
         FIG_ERRORCHECK(cond);

@@ -1,9 +1,7 @@
 #include "builtins.h"
-#include "parse.h"
-#include "object.h"
-#include "eval.h"
-#include "gmp.h"
 #include "global.h"
+#include "eval.h"
+#include "read.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -205,7 +203,7 @@ obj *builtin_char_to_int(obj *args) {
     ARG_NUMCHECK(args, "char->int", 1);
     FIG_ASSERT(is_char(car(args)), "invalid argument passed to char->int");
     obj *arg = car(args);
-    return mk_num_from_long(arg->constant->c);
+    return mk_num_from_long(arg->character);
 }
 
 obj *builtin_int_to_char(obj *args) {
@@ -260,21 +258,8 @@ obj *builtin_is_equal(obj *args) {
     switch (x->type) {
     case OBJ_NUM:
         return x->num == y->num ? true : false;
-    case OBJ_CONST:
-        if (x->constant->type == y->constant->type) {
-            switch (x->constant->type) {
-            case CONST_BOOL:
-                return x->constant->bool == y->constant->bool ? true : false;
-            case CONST_CHAR:
-                return x->constant->c == y->constant->c ? true : false;
-            default:
-                fprintf(stderr,
-                        "warning: cannot compare equality of unknown constant "
-                        "type");
-                return false;
-            }
-        }
-        return false;
+    case OBJ_CHAR:
+        return x->character == y->character ? true : false;
     default:
         return x == y ? true : false;
     }
@@ -288,18 +273,17 @@ obj *readfile(char *fname) {
     if (!infile)
         return mk_err("could not open %s", fname);
 
-    parser *p = parser_new(infile);
+    reader *rdr = reader_new(infile);
 
     while (!feof(infile)) {
-        obj *o = eval(universe, read(p));
+        obj *o = eval(universe, read(rdr));
         if (o && o->type == OBJ_ERR) {
             println(o);
             break;
         }
     }
 
-    parser_delete(p);
-    fclose(infile);
+    reader_delete(rdr);
 
     return NULL;
 }
@@ -312,8 +296,6 @@ obj *builtin_load(obj *args) {
 }
 
 obj *builtin_exit(obj *args) {
-    parser_delete(repl_parser);
-    free(input);
     exit(0);
     return NULL;
 }

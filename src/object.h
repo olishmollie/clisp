@@ -1,9 +1,6 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "lex.h"
-#include "gmp.h"
-
 typedef struct obj obj;
 
 typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
@@ -27,25 +24,13 @@ typedef struct {
     obj *body;
 } fun_t;
 
-typedef enum { CONST_CHAR, CONST_BOOL, CONST_ERR } const_type;
-typedef enum { BOOL_T, BOOL_F } bool_t;
-
-typedef struct {
-    const_type type;
-    char *repr;
-    union {
-        char c;
-        bool_t bool;
-        char *err;
-    };
-} const_t;
-
 typedef enum {
     OBJ_NUM,
     OBJ_SYM,
     OBJ_STR,
     OBJ_CONS,
-    OBJ_CONST,
+    OBJ_BOOL,
+    OBJ_CHAR,
     OBJ_BUILTIN,
     OBJ_FUN,
     OBJ_NIL,
@@ -60,7 +45,8 @@ struct obj {
         char *sym;
         char *str;
         cons_t *cons;
-        const_t *constant;
+        int boolean;
+        char character;
         builtin_t *bltin;
         fun_t *fun;
         char *keyword;
@@ -77,17 +63,13 @@ obj *env_extend(obj *env, obj *vars, obj *vals);
 
 obj *mk_num_from_str(char *numstr);
 obj *mk_num_from_long(long num);
-obj *mk_int(mpz_t integ);
-obj *mk_rat(mpq_t rat);
-obj *mk_dbl(mpf_t dbl);
 char *num_to_string(obj *o);
 
 obj *mk_sym(char *name);
 obj *mk_string(char *str);
 
-obj *mk_const(char *constant);
 obj *mk_char(char c);
-obj *mk_bool(bool_t type);
+obj *mk_bool(int value);
 
 obj *mk_builtin(char *name, builtin proc);
 obj *mk_fun(obj *env, obj *params, obj *body);

@@ -1,23 +1,13 @@
 #include "global.h"
-#include "lex.h"
-#include "object.h"
-#include "builtins.h"
-#include "parse.h"
 #include "eval.h"
+#include "builtins.h"
 #include "init.h"
-
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
+#include "read.h"
 
 #include <editline/readline.h>
 
 /*
  * TODO:
- * - multiline repl input
  * - compile to bytecode
  */
 
@@ -30,27 +20,14 @@ void repl_println(obj *o) {
 
 void repl() {
 
-    FILE *stream;
-
     printf("fig version 0.1\n\n");
 
     while (1) {
-        input = readline("> ");
-
-        if (strlen(input) == 0)
-            continue;
-
-        add_history(input);
-        stream = fmemopen(input, strlen(input), "r");
-
-        repl_parser = parser_new(stream);
-
-        obj *o = read(repl_parser);
-        o = eval(universe, o);
+        printf("> ");
+        reader *rdr = reader_new(stdin);
+        obj *o = eval(universe, read(rdr));
         repl_println(o);
-
-        free(input);
-        parser_delete(repl_parser);
+        reader_delete(rdr);
     }
 }
 
