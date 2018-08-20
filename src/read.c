@@ -160,11 +160,16 @@ obj *read_list(reader *rdr) {
 
     car_obj = read(rdr);
 
+    if (is_error(car_obj))
+        return car_obj;
+
     skipwhitespace(rdr);
 
     if (rdr->cur == '.') {
         rdr->cur = getc(rdr->in);
         cdr_obj = read(rdr);
+        if (is_error(cdr_obj))
+            return car_obj;
 
         if (rdr->cur != ')') {
             return mk_err("expected ')'");
@@ -176,6 +181,8 @@ obj *read_list(reader *rdr) {
     }
 
     cdr_obj = read_list(rdr);
+    if (is_error(cdr_obj))
+        return cdr_obj;
 
     return cons(car_obj, cdr_obj);
 }
