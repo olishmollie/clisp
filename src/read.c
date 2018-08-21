@@ -48,37 +48,61 @@ void skipwhitespace(reader *rdr) {
     }
 }
 
+int expected_string(reader *rdr, char *str) {
+    while (*str != '\0') {
+        rdr->cur = getc(rdr->in);
+        if (*str++ != rdr->cur)
+            return 0;
+    }
+    if (!is_delim(peek(rdr)))
+        return 0;
+    return 1;
+}
+
 obj *read_character(reader *rdr) {
-    char buf[MAXSTRLEN];
-    int i = 0;
     rdr->cur = getc(rdr->in);
 
-    while (isalnum(rdr->cur)) {
-        buf[i++] = rdr->cur;
-        rdr->cur = getc(rdr->in);
-    }
-    buf[i] = '\0';
-
-    if (i == 1)
-        return mk_char(buf[0]);
-    else {
-        if (strcmp(buf, "newline") == 0)
+    obj *res;
+    switch (rdr->cur) {
+    case 'n':
+        if (expected_string(rdr, "ewline"))
             return mk_char('\n');
-        if (strcmp(buf, "tab") == 0)
-            return mk_char('\t');
-
+        res = mk_char('n');
         ungetc(rdr->cur, rdr->in);
-        return mk_err("invalid character constant");
+        break;
+    case 't':
+        if (expected_string(rdr, "ab"))
+            return mk_char('\t');
+        res = mk_char('t');
+        ungetc(rdr->cur, rdr->in);
+        break;
+    case 's':
+        if (expected_string(rdr, "pace"))
+            return mk_char(' ');
+        res = mk_char('s');
+        ungetc(rdr->cur, rdr->in);
+        break;
+    default:
+        res = mk_char(rdr->cur);
     }
+
+    if (!is_delim(peek(rdr)))
+        return mk_err("invalid constant");
+
+    return res;
 }
 
 obj *read_constant(reader *rdr) {
     rdr->cur = getc(rdr->in);
     if (rdr->cur == '\\') {
         return read_character(rdr);
-    } else if (rdr->cur == 't')
+    } else if (rdr->cur == 't') {
         return true;
-    return false;
+    } else if (rdr->cur == 'f') {
+        return false;
+    }
+
+    return mk_err("invalid constant");
 }
 
 obj *read_symbol(reader *rdr) {

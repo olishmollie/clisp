@@ -77,6 +77,10 @@ int is_top_level_only(obj *expr) {
     return is_definition(expr) || is_assignment(expr);
 }
 
+int is_callable(obj *expr) {
+    return expr->type == OBJ_FUN || expr->type == OBJ_BUILTIN;
+}
+
 obj *eval_arglist(obj *env, obj *arglist) {
     if (arglist == the_empty_list)
         return arglist;
@@ -139,6 +143,7 @@ tailcall:
     } else if (is_pair(expr)) {
 
         obj *procedure = eval(env, car(expr));
+        FIG_ASSERT(is_callable(procedure), "invalid procedure");
         FIG_ERRORCHECK(procedure);
 
         obj *args = eval_arglist(env, cdr(expr));

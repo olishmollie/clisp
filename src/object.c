@@ -345,6 +345,8 @@ void print(obj *o) {
                 printf("#\\newline");
             else if (o->character == '\t')
                 printf("#\\tab");
+            else if (o->character == ' ')
+                printf("#\\space");
             else {
                 printf("#\\%c", o->character);
             }
