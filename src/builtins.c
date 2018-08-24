@@ -164,13 +164,13 @@ obj *builtin_cons(obj *args) {
 
 obj *builtin_car(obj *args) {
     ARG_NUMCHECK(args, "car", 1);
-    ARG_TYPECHECK(args, "car", OBJ_CONS);
+    ARG_TYPECHECK(args, "car", OBJ_PAIR);
     return caar(args);
 }
 
 obj *builtin_cdr(obj *args) {
     ARG_NUMCHECK(args, "cdr", 1);
-    ARG_TYPECHECK(args, "cdr", OBJ_CONS);
+    ARG_TYPECHECK(args, "cdr", OBJ_PAIR);
     return cdar(args);
 }
 
@@ -178,7 +178,7 @@ obj *builtin_setcar(obj *args) {
     ARG_NUMCHECK(args, "set-car!", 2);
     FIG_ASSERT(is_pair(car(args)), "invalid argument passed to set-car!");
     obj *arg = car(args);
-    arg->cons->car = cadr(args);
+    arg->car = cadr(args);
     return NULL;
 }
 
@@ -186,7 +186,7 @@ obj *builtin_setcdr(obj *args) {
     ARG_NUMCHECK(args, "set-cdr!", 2);
     FIG_ASSERT(is_pair(car(args)), "invalid argument passed to set-cdr!");
     obj *arg = car(args);
-    arg->cons->cdr = cadr(args);
+    arg->cdr = cadr(args);
     return NULL;
 }
 
@@ -269,9 +269,9 @@ obj *readfile(char *fname) {
     reader *rdr = reader_new(infile);
 
     while (!feof(infile)) {
-        obj *o = eval(universe, read(rdr));
-        if (o && o->type == OBJ_ERR) {
-            println(o);
+        obj *object = eval(universe, read(rdr));
+        if (object && object->type == OBJ_ERR) {
+            println(object);
             break;
         }
     }

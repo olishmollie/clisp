@@ -1,32 +1,39 @@
 #include "object.h"
 
 obj *obj_new(obj_t type) {
-    obj *o = malloc(sizeof(obj));
-    o->type = type;
-    o->mark = 0;
-    return o;
+    obj *object = malloc(sizeof(obj));
+    object->type = type;
+    object->mark = 0;
+    return object;
+}
+
+obj *cons(obj *car, obj *cdr) {
+    obj *object = obj_new(OBJ_PAIR);
+    object->car = car;
+    object->cdr = cdr;
+    return object;
 }
 
 obj *mk_num_from_str(char *numstr) {
-    obj *o = obj_new(OBJ_NUM);
-    o->num = strtol(numstr, NULL, 10);
-    return o;
+    obj *object = obj_new(OBJ_NUM);
+    object->num = strtol(numstr, NULL, 10);
+    return object;
 }
 
 obj *mk_num_from_long(long num) {
-    obj *o = obj_new(OBJ_NUM);
-    o->num = num;
-    return o;
+    obj *object = obj_new(OBJ_NUM);
+    object->num = num;
+    return object;
 }
 
-char *num_to_string(obj *o) {
+char *num_to_string(obj *object) {
     char *buf = malloc(sizeof(char) * MAXSTRLEN);
-    snprintf(buf, MAXSTRLEN - 1, "%li", o->num);
+    snprintf(buf, MAXSTRLEN - 1, "%li", object->num);
     return buf;
 }
 
 obj *mk_sym(char *name) {
-    obj *o;
+    obj *object;
     obj *el;
 
     el = symbol_table;
@@ -37,113 +44,80 @@ obj *mk_sym(char *name) {
         el = cdr(el);
     }
 
-    o = obj_new(OBJ_SYM);
-    o->sym = malloc(sizeof(char) * (strlen(name) + 1));
-    strcpy(o->sym, name);
-    symbol_table = cons(o, symbol_table);
-    return o;
+    object = obj_new(OBJ_SYM);
+    object->sym = malloc(sizeof(char) * (strlen(name) + 1));
+    strcpy(object->sym, name);
+    symbol_table = cons(object, symbol_table);
+    return object;
 }
 
 obj *mk_string(char *str) {
-    obj *o = obj_new(OBJ_STR);
-    o->str = malloc(sizeof(char) * (strlen(str) + 1));
-    strcpy(o->str, str);
-    return o;
-}
-
-cons_t *mk_cons_t(obj *car, obj *cdr) {
-    cons_t *c = malloc(sizeof(cons_t));
-    c->car = car;
-    c->cdr = cdr;
-    return c;
-}
-
-obj *cons(obj *car, obj *cdr) {
-    obj *o = obj_new(OBJ_CONS);
-    o->cons = mk_cons_t(car, cdr);
-    return o;
-}
-
-builtin_t *mk_builtin_t(char *name, builtin proc) {
-    builtin_t *bltin = malloc(sizeof(builtin_t));
-    bltin->name = name;
-    bltin->proc = proc;
-    return bltin;
+    obj *object = obj_new(OBJ_STR);
+    object->str = malloc(sizeof(char) * (strlen(str) + 1));
+    strcpy(object->str, str);
+    return object;
 }
 
 obj *mk_builtin(char *name, builtin proc) {
-    obj *o = obj_new(OBJ_BUILTIN);
-    o->bltin = mk_builtin_t(name, proc);
-    return o;
-}
-
-fun_t *mk_fun_t(char *name, obj *params, obj *body) {
-    fun_t *fun = malloc(sizeof(fun_t));
-    fun->params = params;
-    fun->body = body;
-    fun->env = NULL;
-
-    if (name) {
-        fun->name = malloc(sizeof(char) * (strlen(name) + 1));
-        strcpy(fun->name, name);
-    } else {
-        fun->name = NULL;
-    }
-
-    return fun;
+    obj *object = obj_new(OBJ_BUILTIN);
+    object->name = malloc(sizeof(char) * (strlen(name) + 1));
+    strcpy(object->name, name);
+    object->proc = proc;
+    return object;
 }
 
 obj *mk_fun(obj *env, obj *params, obj *body) {
-    obj *o = obj_new(OBJ_FUN);
-    o->fun = mk_fun_t(NULL, params, body);
-    o->fun->env = env;
-    return o;
+    obj *object = obj_new(OBJ_FUN);
+    object->env = env;
+    object->params = params;
+    object->body = body;
+    return object;
 }
 
 obj *mk_char(char c) {
-    obj *o = obj_new(OBJ_CHAR);
-    o->character = c;
-    return o;
+    obj *object = obj_new(OBJ_CHAR);
+    object->character = c;
+    return object;
 }
 
 obj *mk_bool(int value) {
-    obj *o = obj_new(OBJ_BOOL);
-    o->boolean = value;
-    return o;
+    obj *object = obj_new(OBJ_BOOL);
+    object->boolean = value;
+    return object;
 }
 
 obj *mk_nil(void) {
-    obj *o = obj_new(OBJ_NIL);
-    return o;
+    obj *object = obj_new(OBJ_NIL);
+    return object;
 }
 
 obj *mk_err(char *fmt, ...) {
-    obj *o = obj_new(OBJ_ERR);
+    obj *object = obj_new(OBJ_ERR);
 
     va_list args;
     va_start(args, fmt);
-    o->err = malloc(sizeof(char) * 512);
-    vsnprintf(o->err, 511, fmt, args);
+    object->err = malloc(sizeof(char) * 512);
+    vsnprintf(object->err, 511, fmt, args);
     va_end(args);
 
-    return o;
+    return object;
 }
 
-int is_the_empty_list(obj *o) { return o == the_empty_list; }
-int is_false(obj *o) { return o == false; }
-int is_true(obj *o) { return !is_false(o); }
+int is_the_empty_list(obj *object) { return object == the_empty_list; }
+int is_false(obj *object) { return object == false; }
+int is_true(obj *object) { return !is_false(object); }
 
-int is_pair(obj *o) { return o->type == OBJ_CONS; }
+int is_pair(obj *object) { return object->type == OBJ_PAIR; }
 
-int is_num(obj *o) { return o->type == OBJ_NUM; }
+int is_num(obj *object) { return object->type == OBJ_NUM; }
 
-int is_symbol(obj *o) { return o->type == OBJ_SYM; }
-int is_boolean(obj *o) { return o == true || o == false; }
-int is_char(obj *o) { return o->type == OBJ_CHAR; }
-int is_string(obj *o) { return o->type == OBJ_STR; }
-int is_builtin(obj *o) { return o->type == OBJ_BUILTIN; }
-int is_fun(obj *o) { return o->type == OBJ_FUN; }
-int is_error(obj *o) { return o->type == OBJ_ERR; }
+int is_symbol(obj *object) { return object->type == OBJ_SYM; }
+int is_boolean(obj *object) { return object == true || object == false; }
+int is_char(obj *object) { return object->type == OBJ_CHAR; }
+int is_string(obj *object) { return object->type == OBJ_STR; }
+int is_builtin(obj *object) { return object->type == OBJ_BUILTIN; }
+int is_fun(obj *object) { return object->type == OBJ_FUN; }
+int is_error(obj *object) { return object->type == OBJ_ERR; }
 
 char *type_name(obj_t type) {
     switch (type) {
@@ -153,7 +127,7 @@ char *type_name(obj_t type) {
         return "symbol";
     case OBJ_STR:
         return "string";
-    case OBJ_CONS:
+    case OBJ_PAIR:
         return "cons";
     case OBJ_BOOL:
         return "boolean";
@@ -170,21 +144,21 @@ char *type_name(obj_t type) {
     }
 }
 
-int length(obj *o) {
+int length(obj *object) {
     int l = 0;
-    while (!is_the_empty_list(o)) {
+    while (!is_the_empty_list(object)) {
         l++;
-        o = cdr(o);
+        object = cdr(object);
     }
     return l;
 }
 
 /* list fns ---------------------------------------------------------------- */
 
-obj *car(obj *pair) { return pair->cons->car; }
-obj *cdr(obj *pair) { return pair->cons->cdr; }
-void set_car(obj *pair, obj *value) { pair->cons->car = value; }
-void set_cdr(obj *pair, obj *value) { pair->cons->cdr = value; }
+obj *car(obj *pair) { return pair->car; }
+obj *cdr(obj *pair) { return pair->cdr; }
+void set_car(obj *pair, obj *value) { pair->car = value; }
+void set_cdr(obj *pair, obj *value) { pair->cdr = value; }
 
 /* environments ------------------------------------------------------------ */
 
@@ -198,10 +172,6 @@ obj *frame_vals(obj *frame) { return cdr(frame); }
 void add_binding_to_frame(obj *var, obj *val, obj *frame) {
     set_car(frame, cons(var, car(frame)));
     set_cdr(frame, cons(val, cdr(frame)));
-    if (is_fun(val)) {
-        val->fun->name = malloc(sizeof(char) * (strlen(var->sym) + 1));
-        strcpy(val->fun->name, var->sym);
-    }
 }
 
 obj *env_extend(obj *env, obj *vars, obj *vals) {
@@ -271,7 +241,7 @@ obj *env_new(void) {
 
 /* printing ---------------------------------------------------------------- */
 
-void print(obj *o);
+void print(obj *object);
 
 void print_rawstr(char *str) {
     printf("\"");
@@ -297,13 +267,13 @@ void print_rawstr(char *str) {
     printf("\"");
 }
 
-void print_cons(obj *o) {
+void print_cons(obj *object) {
     putchar('(');
-    obj *p = o;
+    obj *p = object;
     while (1) {
         print(car(p));
         obj *cdr_obj = cdr(p);
-        if (cdr_obj->type != OBJ_CONS) {
+        if (cdr_obj->type != OBJ_PAIR) {
             if (cdr_obj->type != OBJ_NIL) {
                 printf(" . ");
                 print(cdr_obj);
@@ -316,47 +286,43 @@ void print_cons(obj *o) {
     }
 }
 
-void print(obj *o) {
-    if (o) {
-        switch (o->type) {
+void print(obj *object) {
+    if (object) {
+        switch (object->type) {
         case OBJ_NUM:
-            printf("%li", o->num);
+            printf("%li", object->num);
             break;
         case OBJ_SYM:
-            printf("%s", o->sym);
+            printf("%s", object->sym);
             break;
         case OBJ_STR:
-            print_rawstr(o->str);
+            print_rawstr(object->str);
             break;
-        case OBJ_CONS:
-            print_cons(o);
+        case OBJ_PAIR:
+            print_cons(object);
             break;
         case OBJ_BOOL:
-            printf("%s", o->boolean ? "#t" : "#f");
+            printf("%s", object->boolean ? "#t" : "#f");
             break;
         case OBJ_CHAR:
-            if (o->character == '\n')
+            if (object->character == '\n')
                 printf("#\\newline");
-            else if (o->character == '\t')
+            else if (object->character == '\t')
                 printf("#\\tab");
-            else if (o->character == ' ')
+            else if (object->character == ' ')
                 printf("#\\space");
             else {
-                printf("#\\%c", o->character);
+                printf("#\\%c", object->character);
             }
             break;
         case OBJ_BUILTIN:
-            printf("#<procedure '%s'>", o->bltin->name);
+            printf("#<procedure '%s'>", object->name);
             break;
         case OBJ_FUN:
-            if (o->fun->name)
-                printf("#<procedure '%s'>", o->fun->name);
-            else {
-                printf("#<procedure>");
-            }
+            printf("#<procedure>");
             break;
         case OBJ_ERR:
-            printf("error: %s", o->err);
+            printf("error: %s", object->err);
             break;
         case OBJ_NIL:
             printf("()");
@@ -367,7 +333,7 @@ void print(obj *o) {
     }
 }
 
-void println(obj *o) {
-    print(o);
+void println(obj *object) {
+    print(object);
     putchar('\n');
 }

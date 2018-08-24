@@ -135,15 +135,14 @@ tailcall:
         FIG_ERRORCHECK(args);
 
         if (is_builtin(procedure)) {
-            return procedure->bltin->proc(args);
+            return procedure->proc(args);
         } else {
-            FIG_ASSERT(length(procedure->fun->params) == length(args),
-                       "incorrect number of arguments to %s",
-                       procedure->fun->name);
+            FIG_ASSERT(length(procedure->params) == length(args),
+                       "incorrect number of arguments to function");
 
-            env = env_extend(procedure->fun->env, procedure->fun->params, args);
+            env = env_extend(procedure->env, procedure->params, args);
 
-            expr = cons(begin_sym, procedure->fun->body);
+            expr = cons(begin_sym, procedure->body);
             goto tailcall;
         }
     } else {

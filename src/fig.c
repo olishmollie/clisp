@@ -3,10 +3,10 @@
 #include "init.h"
 #include "read.h"
 
-void repl_println(obj *o) {
-    if (o) {
+void repl_println(obj *object) {
+    if (object) {
         printf("=> ");
-        println(o);
+        println(object);
     }
 }
 
@@ -24,8 +24,8 @@ void repl() {
             continue;
         ungetc(c, stdin);
 
-        obj *o = eval(universe, read(rdr));
-        repl_println(o);
+        obj *object = eval(universe, read(rdr));
+        repl_println(object);
         reader_delete(rdr);
     }
 }

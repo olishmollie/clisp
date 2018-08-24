@@ -27,30 +27,11 @@ obj *begin_sym;
 
 typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
 
-typedef struct {
-    obj *car;
-    obj *cdr;
-} cons_t;
-
-typedef obj *(*builtin)(obj *);
-
-typedef struct {
-    char *name;
-    builtin proc;
-} builtin_t;
-
-typedef struct {
-    char *name;
-    obj *env;
-    obj *params;
-    obj *body;
-} fun_t;
-
 typedef enum {
     OBJ_NUM,
     OBJ_SYM,
     OBJ_STR,
-    OBJ_CONS,
+    OBJ_PAIR,
     OBJ_BOOL,
     OBJ_CHAR,
     OBJ_BUILTIN,
@@ -59,6 +40,8 @@ typedef enum {
     OBJ_ERR
 } obj_t;
 
+typedef obj *(*builtin)(obj *);
+
 struct obj {
     obj_t type;
     unsigned char mark;
@@ -66,12 +49,26 @@ struct obj {
         long num;
         char *sym;
         char *str;
-        cons_t *cons;
+
         int boolean;
         char character;
-        builtin_t *bltin;
-        fun_t *fun;
-        char *keyword;
+
+        struct {
+            obj *car;
+            obj *cdr;
+        };
+
+        struct {
+            char *name;
+            builtin proc;
+        };
+
+        struct {
+            obj *env;
+            obj *params;
+            obj *body;
+        };
+
         char *err;
     };
 };
@@ -83,9 +80,11 @@ obj *env_set(obj *env, obj *var, obj *vals);
 obj *env_define(obj *env, obj *var, obj *vals);
 obj *env_extend(obj *env, obj *vars, obj *vals);
 
+obj *cons(obj *car, obj *cdr);
+
 obj *mk_num_from_str(char *numstr);
 obj *mk_num_from_long(long num);
-char *num_to_string(obj *o);
+char *num_to_string(obj *object);
 
 obj *mk_sym(char *name);
 obj *mk_string(char *str);
@@ -95,28 +94,27 @@ obj *mk_bool(int value);
 
 obj *mk_builtin(char *name, builtin proc);
 obj *mk_fun(obj *env, obj *params, obj *body);
-obj *cons(obj *car, obj *cdr);
 
 obj *mk_nil(void);
 obj *mk_err(char *fmt, ...);
 
-int is_the_empty_list(obj *o);
+int is_the_empty_list(obj *object);
 int is_false(obj *c);
 int is_true(obj *c);
 
-int is_pair(obj *o);
+int is_pair(obj *object);
 
-int is_num(obj *o);
-int is_rat(obj *o);
-int is_double(obj *o);
+int is_num(obj *object);
+int is_rat(obj *object);
+int is_double(obj *object);
 
-int is_symbol(obj *o);
-int is_boolean(obj *o);
-int is_char(obj *o);
-int is_string(obj *o);
-int is_builtin(obj *o);
-int is_fun(obj *o);
-int is_error(obj *o);
+int is_symbol(obj *object);
+int is_boolean(obj *object);
+int is_char(obj *object);
+int is_string(obj *object);
+int is_builtin(obj *object);
+int is_fun(obj *object);
+int is_error(obj *object);
 
 char *type_name(obj_t type);
 
@@ -156,7 +154,7 @@ void set_cdr(obj *pair, obj *item);
 #define cdddar(obj) cdr(cdr(cdr(car(obj))))
 #define cddddr(obj) cdr(cdr(cdr(cdr(obj))))
 
-void print(obj *o);
-void println(obj *o);
+void print(obj *object);
+void println(obj *object);
 
 #endif
