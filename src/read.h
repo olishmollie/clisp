@@ -1,7 +1,12 @@
 #ifndef READ_H
 #define READ_H
 
-#include "global.h"
+#include "object.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 typedef struct {
     int cur;

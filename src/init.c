@@ -1,5 +1,4 @@
-#include "global.h"
-#include "builtins.h"
+#include "init.h"
 
 void register_builtin(obj *env, builtin fun, char *name) {
     obj *var = mk_sym(name);
@@ -62,5 +61,4 @@ void init() {
     lambda_sym = mk_sym("lambda");
     begin_sym = mk_sym("begin");
     universe = global_env();
-    builtin_load(STDLIB);
 }

@@ -1,15 +1,7 @@
-#include "global.h"
 #include "eval.h"
 #include "builtins.h"
 #include "init.h"
 #include "read.h"
-
-#include <editline/readline.h>
-
-/*
- * TODO:
- * - compile to bytecode
- */
 
 void repl_println(obj *o) {
     if (o) {

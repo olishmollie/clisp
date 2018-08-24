@@ -1,7 +1,29 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+
+#define MAXSTRLEN 512
+
 typedef struct obj obj;
+
+obj *the_empty_list;
+obj *symbol_table;
+
+obj *universe;
+
+obj * true;
+obj * false;
+
+obj *quote_sym;
+obj *define_sym;
+obj *set_sym;
+obj *if_sym;
+obj *lambda_sym;
+obj *begin_sym;
 
 typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
 
@@ -136,6 +158,5 @@ void set_cdr(obj *pair, obj *item);
 
 void print(obj *o);
 void println(obj *o);
-void obj_delete(obj *o);
 
 #endif

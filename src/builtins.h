@@ -2,6 +2,13 @@
 #define BUILTINS_H
 
 #include "object.h"
+#include "eval.h"
+#include "read.h"
+#include "assert.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 obj *builtin_plus(obj *args);
 obj *builtin_minus(obj *args);

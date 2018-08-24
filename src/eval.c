@@ -1,9 +1,4 @@
 #include "eval.h"
-#include "object.h"
-#include "global.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 int is_tagged_list(obj *expr, obj *tag) {
     obj *car_obj;
@@ -22,32 +17,22 @@ obj *text_of_quotation(obj *expr) {
     return cadr(expr);
 }
 
-int is_definition(obj *expr) { return is_tagged_list(expr, define_sym); }
-
-obj *definition_sym(obj *expr) { return cadr(expr); }
-
-obj *definition_val(obj *expr) { return caddr(expr); }
-
-int is_assignment(obj *expr) { return is_tagged_list(expr, set_sym); }
-
-obj *assignment_sym(obj *expr) { return cadr(expr); }
-
-obj *assignment_val(obj *expr) { return caddr(expr); }
-
-obj *eval_list(obj *e, obj *expr) { return the_empty_list; }
-
 int is_self_evaluating(obj *expr) {
     return expr == NULL || is_char(expr) || is_boolean(expr) ||
            is_string(expr) || is_num(expr) || is_error(expr);
 }
 
+int is_assignment(obj *expr) { return is_tagged_list(expr, set_sym); }
+
 obj *eval_assignment(obj *env, obj *expr) {
     ARG_NUMCHECK(cdr(expr), "set!", 2);
-    obj *var = assignment_sym(expr);
-    obj *val = eval(env, assignment_val(expr));
+    obj *var = cadr(expr);
+    obj *val = eval(env, caddr(expr));
     FIG_ERRORCHECK(var);
     return env_set(env, var, val);
 }
+
+int is_definition(obj *expr) { return is_tagged_list(expr, define_sym); }
 
 obj *eval_definition(obj *env, obj *expr) {
     obj *var, *val;
@@ -59,8 +44,8 @@ obj *eval_definition(obj *env, obj *expr) {
         obj *body = cddr(expr);
         val = mk_fun(env, params, body);
     } else {
-        var = definition_sym(expr);
-        val = eval(env, definition_val(expr));
+        var = cadr(expr);
+        val = eval(env, caddr(expr));
         FIG_ERRORCHECK(val);
     }
 
@@ -143,8 +128,8 @@ tailcall:
     } else if (is_pair(expr)) {
 
         obj *procedure = eval(env, car(expr));
-        FIG_ASSERT(is_callable(procedure), "invalid procedure");
         FIG_ERRORCHECK(procedure);
+        FIG_ASSERT(is_callable(procedure), "invalid procedure");
 
         obj *args = eval_arglist(env, cdr(expr));
         FIG_ERRORCHECK(args);

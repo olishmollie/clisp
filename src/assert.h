@@ -1,17 +1,5 @@
-#ifndef GLOBAL_H
-#define GLOBAL_H
-
-#include "object.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-
-#define MAXSTRLEN 512
-
-#define STDLIB cons(mk_string("lib/lib.fig"), the_empty_list)
-#define UNITTESTS cons(mk_string("lib/tests.fig"), the_empty_list);
+#ifndef ASSERT_H
+#define ASSERT_H
 
 #define FIG_ASSERT(cond, fmt, ...)                                             \
     {                                                                          \
@@ -64,19 +52,5 @@
             }                                                                  \
         }                                                                      \
     }
-
-obj *symbol_table;
-obj *the_empty_list;
-obj * true;
-obj * false;
-obj *quote_sym;
-obj *define_sym;
-obj *set_sym;
-obj *if_sym;
-obj *lambda_sym;
-obj *begin_sym;
-
-obj *universe;
-char *input;
 
 #endif

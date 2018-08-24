@@ -2,6 +2,10 @@
 #define EVAL_H
 
 #include "object.h"
+#include "assert.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 obj *eval(obj *, obj *);
 

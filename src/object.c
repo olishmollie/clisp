@@ -1,10 +1,4 @@
 #include "object.h"
-#include "global.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
 
 obj *obj_new(obj_t type) {
     obj *o = malloc(sizeof(obj));
@@ -376,44 +370,4 @@ void print(obj *o) {
 void println(obj *o) {
     print(o);
     putchar('\n');
-}
-
-/* deleting ---------------------------------------------------------------- */
-
-void obj_delete(obj *o);
-
-void obj_delete(obj *o) {
-    if (o) {
-        switch (o->type) {
-        case OBJ_SYM:
-            free(o->sym);
-            break;
-        case OBJ_STR:
-            free(o->str);
-            break;
-        case OBJ_CONS:
-            obj_delete(car(o));
-            obj_delete(cdr(o));
-            free(o->cons);
-            break;
-        case OBJ_ERR:
-            free(o->err);
-            break;
-        case OBJ_FUN:
-            free(o->fun->name);
-            if (o->fun->params)
-                obj_delete(o->fun->params);
-            if (o->fun->body)
-                obj_delete(o->fun->body);
-            free(o->fun);
-            break;
-        case OBJ_BOOL:
-        case OBJ_CHAR:
-        case OBJ_NUM:
-        case OBJ_NIL:
-        case OBJ_BUILTIN:
-            break;
-        }
-        free(o);
-    }
 }

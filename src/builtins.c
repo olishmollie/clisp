@@ -1,11 +1,4 @@
 #include "builtins.h"
-#include "global.h"
-#include "eval.h"
-#include "read.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 obj *builtin_plus(obj *args) {
     ARG_TYPECHECK(args, "plus", OBJ_NUM);
@@ -225,7 +218,7 @@ obj *builtin_number_to_string(obj *args) {
 obj *builtin_string_to_number(obj *args) {
     ARG_NUMCHECK(args, "string->number", 1);
     FIG_ASSERT(is_string(car(args)),
-               "invalid argument passed to string->number")
+               "invalid argument passed to string->number");
     obj *arg = car(args);
     return mk_num_from_str(arg->str);
 }
