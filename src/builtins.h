@@ -10,43 +10,43 @@
 #include <stdlib.h>
 #include <string.h>
 
-obj *builtin_plus(obj *args);
-obj *builtin_minus(obj *args);
-obj *builtin_times(obj *args);
-obj *builtin_divide(obj *args);
-obj *builtin_remainder(obj *args);
+obj_t *builtin_plus(VM *vm, obj_t *args);
+obj_t *builtin_minus(VM *vm, obj_t *args);
+obj_t *builtin_times(VM *vm, obj_t *args);
+obj_t *builtin_divide(VM *vm, obj_t *args);
+obj_t *builtin_remainder(VM *vm, obj_t *args);
 
-obj *builtin_gt(obj *args);
-obj *builtin_gte(obj *args);
-obj *builtin_lt(obj *args);
-obj *builtin_lte(obj *args);
+obj_t *builtin_gt(VM *vm, obj_t *args);
+obj_t *builtin_gte(VM *vm, obj_t *args);
+obj_t *builtin_lt(VM *vm, obj_t *args);
+obj_t *builtin_lte(VM *vm, obj_t *args);
 
-obj *builtin_is_null(obj *args);
-obj *builtin_is_boolean(obj *args);
-obj *builtin_is_symbol(obj *args);
-obj *builtin_is_num(obj *args);
-obj *builtin_is_char(obj *args);
-obj *builtin_is_string(obj *args);
-obj *builtin_is_pair(obj *args);
-obj *builtin_is_proc(obj *args);
-obj *builtin_is_equal(obj *args);
+obj_t *builtin_is_null(VM *vm, obj_t *args);
+obj_t *builtin_is_boolean(VM *vm, obj_t *args);
+obj_t *builtin_is_symbol(VM *vm, obj_t *args);
+obj_t *builtin_is_num(VM *vm, obj_t *args);
+obj_t *builtin_is_char(VM *vm, obj_t *args);
+obj_t *builtin_is_string(VM *vm, obj_t *args);
+obj_t *builtin_is_pair(VM *vm, obj_t *args);
+obj_t *builtin_is_proc(VM *vm, obj_t *args);
+obj_t *builtin_is_equal(VM *vm, obj_t *args);
 
-obj *builtin_char_to_int(obj *args);
-obj *builtin_int_to_char(obj *args);
-obj *builtin_number_to_string(obj *args);
-obj *builtin_string_to_number(obj *args);
-obj *builtin_symbol_to_string(obj *args);
-obj *builtin_string_to_symbol(obj *args);
+obj_t *builtin_char_to_int(VM *vm, obj_t *args);
+obj_t *builtin_int_to_char(VM *vm, obj_t *args);
+obj_t *builtin_number_to_string(VM *vm, obj_t *args);
+obj_t *builtin_string_to_number(VM *vm, obj_t *args);
+obj_t *builtin_symbol_to_string(VM *vm, obj_t *args);
+obj_t *builtin_string_to_symbol(VM *vm, obj_t *args);
 
-obj *builtin_cons(obj *args);
-obj *builtin_car(obj *args);
-obj *builtin_cdr(obj *args);
-obj *builtin_list(obj *args);
+obj_t *builtin_cons(VM *vm, obj_t *args);
+obj_t *builtin_car(VM *vm, obj_t *args);
+obj_t *builtin_cdr(VM *vm, obj_t *args);
+obj_t *builtin_list(VM *vm, obj_t *args);
 
-obj *builtin_setcar(obj *args);
-obj *builtin_setcdr(obj *args);
+obj_t *builtin_setcar(VM *vm, obj_t *args);
+obj_t *builtin_setcdr(VM *vm, obj_t *args);
 
-obj *builtin_exit(obj *args);
-obj *builtin_load(obj *args);
+obj_t *builtin_exit(VM *vm, obj_t *args);
+obj_t *builtin_load(VM *vm, obj_t *args);
 
 #endif

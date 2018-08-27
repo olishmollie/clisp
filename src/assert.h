@@ -10,7 +10,7 @@
 #define ARG_NUMCHECK(args, name, num)                                          \
     {                                                                          \
         int count = 0;                                                         \
-        obj *tmp = args;                                                       \
+        obj_t *tmp = args;                                                     \
         while (tmp != the_empty_list) {                                        \
             count++;                                                           \
             tmp = cdr(tmp);                                                    \
@@ -24,7 +24,7 @@
 
 #define ARG_TYPECHECK(args, name, typ)                                         \
     {                                                                          \
-        obj *tmp = args;                                                       \
+        obj_t *tmp = args;                                                     \
         while (tmp != the_empty_list) {                                        \
             if (car(tmp)->type != typ) {                                       \
                 return mk_err("%s can only operate on type %s", name,          \
@@ -41,7 +41,7 @@
                 if (is_error(args))                                            \
                     return args;                                               \
             } else {                                                           \
-                obj *tmp = args;                                               \
+                obj_t *tmp = args;                                             \
                 while (!is_the_empty_list(tmp)) {                              \
                     if (is_error(tmp))                                         \
                         return tmp;                                            \

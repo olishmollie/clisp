@@ -1,23 +1,23 @@
 #include "builtins.h"
 
-obj *builtin_plus(obj *args) {
+obj_t *builtin_plus(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "plus", OBJ_NUM);
     long res = 0;
     while (!is_the_empty_list(args)) {
         res += car(args)->num;
         args = cdr(args);
     }
-    return mk_num_from_long(res);
+    return mk_num_from_long(vm, res);
 }
 
-obj *builtin_minus(obj *args) {
+obj_t *builtin_minus(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "minus", OBJ_NUM);
     if (args == the_empty_list)
         return mk_err("minus passed no arguments");
 
     /* unary minus */
     if (is_the_empty_list(cdr(args)))
-        return mk_num_from_long(-1 * car(args)->num);
+        return mk_num_from_long(vm, -1 * car(args)->num);
 
     long res = car(args)->num;
     args = cdr(args);
@@ -26,10 +26,10 @@ obj *builtin_minus(obj *args) {
         args = cdr(args);
     }
 
-    return mk_num_from_long(res);
+    return mk_num_from_long(vm, res);
 }
 
-obj *builtin_times(obj *args) {
+obj_t *builtin_times(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "times", OBJ_NUM);
     if (args == the_empty_list)
         return mk_err("times passed no arguments");
@@ -40,10 +40,10 @@ obj *builtin_times(obj *args) {
         args = cdr(args);
     }
 
-    return mk_num_from_long(res);
+    return mk_num_from_long(vm, res);
 }
 
-obj *builtin_divide(obj *args) {
+obj_t *builtin_divide(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "divide", OBJ_NUM);
     if (args == the_empty_list)
         return mk_err("divide passed no arguments");
@@ -56,10 +56,10 @@ obj *builtin_divide(obj *args) {
         args = cdr(args);
     }
 
-    return mk_num_from_long(res);
+    return mk_num_from_long(vm, res);
 }
 
-obj *builtin_remainder(obj *args) {
+obj_t *builtin_remainder(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "remainder", OBJ_NUM);
     if (args == the_empty_list)
         return mk_err("remainder passed no arguments");
@@ -72,178 +72,178 @@ obj *builtin_remainder(obj *args) {
         args = cdr(args);
     }
 
-    return mk_num_from_long(res);
+    return mk_num_from_long(vm, res);
 }
 
-obj *builtin_gt(obj *args) {
+obj_t *builtin_gt(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "gt", OBJ_NUM);
     ARG_NUMCHECK(args, "gt", 2);
 
-    obj *x = car(args);
-    obj *y = cadr(args);
+    obj_t *x = car(args);
+    obj_t *y = cadr(args);
 
     return x->num > y->num ? true : false;
 }
 
-obj *builtin_gte(obj *args) {
+obj_t *builtin_gte(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "gte", OBJ_NUM);
     ARG_NUMCHECK(args, "gte", 2);
 
-    obj *x = car(args);
-    obj *y = cadr(args);
+    obj_t *x = car(args);
+    obj_t *y = cadr(args);
 
     return x->num >= y->num ? true : false;
 }
 
-obj *builtin_lt(obj *args) {
+obj_t *builtin_lt(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "lt", OBJ_NUM);
     ARG_NUMCHECK(args, "lt", 2);
 
-    obj *x = car(args);
-    obj *y = cadr(args);
+    obj_t *x = car(args);
+    obj_t *y = cadr(args);
 
     return x->num < y->num ? true : false;
 }
 
-obj *builtin_lte(obj *args) {
+obj_t *builtin_lte(VM *vm, obj_t *args) {
     ARG_TYPECHECK(args, "lte", OBJ_NUM);
     ARG_NUMCHECK(args, "lte", 2);
 
-    obj *x = car(args);
-    obj *y = cadr(args);
+    obj_t *x = car(args);
+    obj_t *y = cadr(args);
 
     return x->num <= y->num ? true : false;
 }
 
-obj *builtin_is_null(obj *args) {
+obj_t *builtin_is_null(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "null?", 1);
     return car(args) == the_empty_list ? true : false;
 }
 
-obj *builtin_is_boolean(obj *args) {
+obj_t *builtin_is_boolean(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "boolean?", 1);
     return is_boolean(car(args)) ? true : false;
 }
 
-obj *builtin_is_symbol(obj *args) {
+obj_t *builtin_is_symbol(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "symbol?", 1);
     return is_symbol(car(args)) ? true : false;
 }
 
-obj *builtin_is_num(obj *args) {
+obj_t *builtin_is_num(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "number?", 1);
     return is_num(car(args)) ? true : false;
 }
 
-obj *builtin_is_char(obj *args) {
+obj_t *builtin_is_char(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "char?", 1);
     return is_char(car(args)) ? true : false;
 }
 
-obj *builtin_is_string(obj *args) {
+obj_t *builtin_is_string(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "string?", 1);
     return is_string(car(args)) ? true : false;
 }
 
-obj *builtin_is_pair(obj *args) {
+obj_t *builtin_is_pair(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "pair?", 1);
     return is_pair(car(args)) ? true : false;
 }
 
-obj *builtin_is_proc(obj *args) {
+obj_t *builtin_is_proc(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "proc?", 1);
     return is_builtin(car(args)) ? true : false;
 }
 
-obj *builtin_cons(obj *args) {
+obj_t *builtin_cons(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "cons", 2);
-    obj *car_obj = car(args);
-    obj *cdr_obj = cadr(args);
-    return cons(car_obj, cdr_obj);
+    obj_t *car_obj = car(args);
+    obj_t *cdr_obj = cadr(args);
+    return mk_cons(vm, car_obj, cdr_obj);
 }
 
-obj *builtin_car(obj *args) {
+obj_t *builtin_car(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "car", 1);
     ARG_TYPECHECK(args, "car", OBJ_PAIR);
     return caar(args);
 }
 
-obj *builtin_cdr(obj *args) {
+obj_t *builtin_cdr(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "cdr", 1);
     ARG_TYPECHECK(args, "cdr", OBJ_PAIR);
     return cdar(args);
 }
 
-obj *builtin_setcar(obj *args) {
+obj_t *builtin_setcar(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "set-car!", 2);
     FIG_ASSERT(is_pair(car(args)), "invalid argument passed to set-car!");
-    obj *arg = car(args);
+    obj_t *arg = car(args);
     arg->car = cadr(args);
     return NULL;
 }
 
-obj *builtin_setcdr(obj *args) {
+obj_t *builtin_setcdr(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "set-cdr!", 2);
     FIG_ASSERT(is_pair(car(args)), "invalid argument passed to set-cdr!");
-    obj *arg = car(args);
+    obj_t *arg = car(args);
     arg->cdr = cadr(args);
     return NULL;
 }
 
-obj *builtin_list(obj *args) { return args; }
+obj_t *builtin_list(VM *vm, obj_t *args) { return args; }
 
-obj *builtin_char_to_int(obj *args) {
+obj_t *builtin_char_to_int(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "char->int", 1);
     FIG_ASSERT(is_char(car(args)), "invalid argument passed to char->int");
-    obj *arg = car(args);
-    return mk_num_from_long(arg->character);
+    obj_t *arg = car(args);
+    return mk_num_from_long(vm, arg->character);
 }
 
-obj *builtin_int_to_char(obj *args) {
+obj_t *builtin_int_to_char(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "int->char", 1);
     FIG_ASSERT(is_num(car(args)), "invalid argument passed to int->char");
-    obj *arg = car(args);
+    obj_t *arg = car(args);
     FIG_ASSERT(arg->num >= 0 && arg->num <= 9,
                "invalid argument passed to int->char");
-    return mk_char(arg->num);
+    return mk_char(vm, arg->num);
 }
 
-obj *builtin_number_to_string(obj *args) {
+obj_t *builtin_number_to_string(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "number->string", 1);
     FIG_ASSERT(is_num(car(args)), "invalid argument passed to number->string");
-    obj *arg = car(args);
-    return mk_string(num_to_string(arg));
+    obj_t *arg = car(args);
+    return mk_string(vm, num_to_string(arg));
 }
 
-obj *builtin_string_to_number(obj *args) {
+obj_t *builtin_string_to_number(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "string->number", 1);
     FIG_ASSERT(is_string(car(args)),
                "invalid argument passed to string->number");
-    obj *arg = car(args);
-    return mk_num_from_str(arg->str);
+    obj_t *arg = car(args);
+    return mk_num_from_str(vm, arg->str);
 }
 
-obj *builtin_symbol_to_string(obj *args) {
+obj_t *builtin_symbol_to_string(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "symbol->string", 1);
     FIG_ASSERT(is_symbol(car(args)),
                "invalid argument passed to symbol->string");
-    obj *arg = car(args);
-    return mk_string(arg->sym);
+    obj_t *arg = car(args);
+    return mk_string(vm, arg->sym);
 }
 
-obj *builtin_string_to_symbol(obj *args) {
+obj_t *builtin_string_to_symbol(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "symbol->string", 1);
     FIG_ASSERT(is_string(car(args)),
                "invalid argument passed to string->symbol");
-    obj *arg = car(args);
-    return mk_sym(arg->sym);
+    obj_t *arg = car(args);
+    return mk_sym(vm, arg->sym);
 }
 
-obj *builtin_is_equal(obj *args) {
+obj_t *builtin_is_equal(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "eq?", 2);
 
-    obj *x = car(args);
-    obj *y = cadr(args);
+    obj_t *x = car(args);
+    obj_t *y = cadr(args);
 
     if (x->type != y->type)
         return false;
@@ -258,7 +258,7 @@ obj *builtin_is_equal(obj *args) {
     }
 }
 
-obj *readfile(char *fname) {
+obj_t *readfile(char *fname) {
 
     FILE *infile;
     infile = fopen(fname, "r");
@@ -269,7 +269,7 @@ obj *readfile(char *fname) {
     reader *rdr = reader_new(infile);
 
     while (!feof(infile)) {
-        obj *object = eval(universe, read(rdr));
+        obj_t *object = eval(vm, universe, read(vm, rdr));
         if (object && object->type == OBJ_ERR) {
             println(object);
             break;
@@ -281,14 +281,14 @@ obj *readfile(char *fname) {
     return NULL;
 }
 
-obj *builtin_load(obj *args) {
-    obj *f = car(args);
+obj_t *builtin_load(VM *vm, obj_t *args) {
+    obj_t *f = car(args);
     char *filename = f->str;
-    obj *res = readfile(filename);
+    obj_t *res = readfile(filename);
     return res;
 }
 
-obj *builtin_exit(obj *args) {
+obj_t *builtin_exit(VM *vm, obj_t *args) {
     exit(0);
     return NULL;
 }

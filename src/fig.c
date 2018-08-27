@@ -3,7 +3,7 @@
 #include "init.h"
 #include "read.h"
 
-void repl_println(obj *object) {
+void repl_println(obj_t *object) {
     if (object) {
         printf("=> ");
         println(object);
@@ -24,7 +24,8 @@ void repl() {
             continue;
         ungetc(c, stdin);
 
-        obj *object = eval(universe, read(rdr));
+        obj_t *object = eval(vm, universe, read(vm, rdr));
+        // obj_t *object = read(vm, rdr);
         repl_println(object);
         reader_delete(rdr);
     }
@@ -35,8 +36,8 @@ int main(int argc, char **argv) {
     init();
 
     if (argc > 1) {
-        obj *f = mk_string(argv[1]);
-        builtin_load(f);
+        // obj_t *f = mk_string(vm, argv[1]);
+        // builtin_load(f);
     } else {
         repl();
     }

@@ -59,31 +59,31 @@ int expected_string(reader *rdr, char *str) {
     return 1;
 }
 
-obj *read_character(reader *rdr) {
+obj_t *read_character(VM *vm, reader *rdr) {
     rdr->cur = getc(rdr->in);
 
-    obj *res;
+    obj_t *res;
     switch (rdr->cur) {
     case 'n':
         if (expected_string(rdr, "ewline"))
-            return mk_char('\n');
-        res = mk_char('n');
+            return mk_char(vm, '\n');
+        res = mk_char(vm, 'n');
         ungetc(rdr->cur, rdr->in);
         break;
     case 't':
         if (expected_string(rdr, "ab"))
-            return mk_char('\t');
-        res = mk_char('t');
+            return mk_char(vm, '\t');
+        res = mk_char(vm, 't');
         ungetc(rdr->cur, rdr->in);
         break;
     case 's':
         if (expected_string(rdr, "pace"))
-            return mk_char(' ');
-        res = mk_char('s');
+            return mk_char(vm, ' ');
+        res = mk_char(vm, 's');
         ungetc(rdr->cur, rdr->in);
         break;
     default:
-        res = mk_char(rdr->cur);
+        res = mk_char(vm, rdr->cur);
     }
 
     if (!is_delim(peek(rdr)))
@@ -92,10 +92,10 @@ obj *read_character(reader *rdr) {
     return res;
 }
 
-obj *read_constant(reader *rdr) {
+obj_t *read_constant(VM *vm, reader *rdr) {
     rdr->cur = getc(rdr->in);
     if (rdr->cur == '\\') {
-        return read_character(rdr);
+        return read_character(vm, rdr);
     } else if (rdr->cur == 't') {
         return true;
     } else if (rdr->cur == 'f') {
@@ -105,7 +105,7 @@ obj *read_constant(reader *rdr) {
     return mk_err("invalid constant");
 }
 
-obj *read_symbol(reader *rdr) {
+obj_t *read_symbol(VM *vm, reader *rdr) {
     char sym[MAXSTRLEN];
     int i = 0;
 
@@ -116,10 +116,10 @@ obj *read_symbol(reader *rdr) {
     sym[i] = '\0';
 
     ungetc(rdr->cur, rdr->in);
-    return mk_sym(sym);
+    return mk_sym(vm, sym);
 }
 
-obj *read_string(reader *rdr) {
+obj_t *read_string(VM *vm, reader *rdr) {
     char str[MAXSTRLEN];
     int i = 0;
 
@@ -132,10 +132,10 @@ obj *read_string(reader *rdr) {
     }
     str[i] = '\0';
 
-    return mk_string(str);
+    return mk_string(vm, str);
 }
 
-obj *read_number(reader *rdr) {
+obj_t *read_number(VM *vm, reader *rdr) {
     char num[MAXSTRLEN];
     int i = 0;
 
@@ -155,35 +155,38 @@ obj *read_number(reader *rdr) {
 
     if (is_delim(rdr->cur)) {
         ungetc(rdr->cur, rdr->in);
-        return mk_num_from_str(num);
+        return mk_num_from_str(vm, num);
     }
 
     return mk_err("invalid number syntax");
 }
 
-obj *read_quote(reader *rdr) {
-    obj *quote = cons(read(rdr), the_empty_list);
-    return cons(quote_sym, quote);
+obj_t *read_quote(VM *vm, reader *rdr) {
+    int sp = vm->sp;
+    obj_t *quoted_expr = read(vm, rdr);
+    obj_t *quote = mk_cons(vm, quoted_expr, the_empty_list);
+    popn(vm, vm->sp - sp);
+    mk_cons(vm, quote_sym, quote);
+    return pop(vm);
 }
 
-obj *read_list(reader *rdr) {
-
-    obj *car_obj;
-    obj *cdr_obj;
-
+obj_t *read_list(VM *vm, reader *rdr) {
     skipwhitespace(rdr);
-
     if (rdr->cur == EOF)
         return mk_err("expected ')'");
 
     rdr->cur = getc(rdr->in);
     if (rdr->cur == ')') {
+        push(vm, the_empty_list);
         return the_empty_list;
     }
     ungetc(rdr->cur, rdr->in);
 
-    car_obj = read(rdr);
+    int sp = vm->sp;
+    obj_t *car_obj;
+    obj_t *cdr_obj;
 
+    car_obj = read(vm, rdr);
     if (is_error(car_obj))
         return car_obj;
 
@@ -191,7 +194,7 @@ obj *read_list(reader *rdr) {
 
     if (rdr->cur == '.') {
         rdr->cur = getc(rdr->in);
-        cdr_obj = read(rdr);
+        cdr_obj = read(vm, rdr);
         if (is_error(cdr_obj))
             return car_obj;
 
@@ -201,44 +204,46 @@ obj *read_list(reader *rdr) {
 
         rdr->cur = getc(rdr->in);
 
-        return cons(car_obj, cdr_obj);
+        return mk_cons(vm, car_obj, cdr_obj);
     }
 
-    cdr_obj = read_list(rdr);
+    cdr_obj = read_list(vm, rdr);
     if (is_error(cdr_obj))
         return cdr_obj;
 
-    return cons(car_obj, cdr_obj);
+    popn(vm, vm->sp - sp);
+
+    mk_cons(vm, car_obj, cdr_obj);
+
+    return pop(vm);
 }
 
-obj *read(reader *rdr) {
+obj_t *read(VM *vm, reader *rdr) {
 
     skipwhitespace(rdr);
+    rdr->cur = getc(rdr->in);
 
-    if (rdr->cur != EOF) {
-        rdr->cur = getc(rdr->in);
-
-        if (rdr->cur == '#') {
-            return read_constant(rdr);
-        } else if (isdigit(rdr->cur) ||
-                   (rdr->cur == '-' && isdigit(peek(rdr)))) {
-            return read_number(rdr);
-        } else if (is_initial(rdr->cur)) {
-            return read_symbol(rdr);
-        } else if (rdr->cur == '"') {
-            return read_string(rdr);
-        } else if (rdr->cur == '(') {
-            return read_list(rdr);
-        } else if (rdr->cur == '\'') {
-            return read_quote(rdr);
-        } else if (rdr->cur == ')') {
-            return mk_err("unexpected ')'");
-        } else if (rdr->cur == '.') {
-            return mk_err("unexpected '.'");
-        }
-
-        return mk_err("unknown character %c", rdr->cur);
+    obj_t *result;
+    if (rdr->cur == '#') {
+        result = read_constant(vm, rdr);
+    } else if (isdigit(rdr->cur) || (rdr->cur == '-' && isdigit(peek(rdr)))) {
+        result = read_number(vm, rdr);
+    } else if (is_initial(rdr->cur)) {
+        result = read_symbol(vm, rdr);
+    } else if (rdr->cur == '"') {
+        result = read_string(vm, rdr);
+    } else if (rdr->cur == '(') {
+        result = read_list(vm, rdr);
+    } else if (rdr->cur == '\'') {
+        result = read_quote(vm, rdr);
+        result = pop(vm);
+    } else if (rdr->cur == ')') {
+        result = mk_err("unexpected ')'");
+    } else if (rdr->cur == '.') {
+        result = mk_err("unexpected '.'");
+    } else {
+        result = mk_err("unknown character %c", rdr->cur);
     }
 
-    return NULL;
+    return result;
 }
