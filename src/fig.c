@@ -40,8 +40,6 @@ void repl(VM *vm) {
 
 int main(int argc, char **argv) {
 
-    vm = vm_new();
-
     init();
 
     if (argc > 1) {

@@ -298,7 +298,7 @@ void cleanup(VM *vm) {
 
     free(vm);
     free(universe);
-    free(symbol_table);
+    table_delete(symbol_table);
 }
 
 obj_t *builtin_exit(VM *vm, obj_t *args) {

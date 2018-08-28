@@ -57,3 +57,14 @@ void table_print(table_t *table) {
         }
     }
 }
+
+void table_delete(table_t *table) {
+    for (int i = 0; i < table->size; i++) {
+        entry_t *entry = table->store[i];
+        while (entry) {
+            free(entry);
+            entry = entry->next;
+        }
+    }
+    free(table);
+}

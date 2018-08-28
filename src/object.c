@@ -124,7 +124,7 @@ obj_t *mk_err(char *fmt, ...) {
     vsnprintf(object->err, 511, fmt, args);
     va_end(args);
 
-    // push(vm, object);
+    push(vm, object);
     return object;
 }
 

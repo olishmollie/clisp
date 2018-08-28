@@ -28,4 +28,6 @@ obj_t *table_get(table_t *table, char *key);
 
 void table_print(table_t *table);
 
+void table_delete(table_t *table);
+
 #endif
