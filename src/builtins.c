@@ -203,8 +203,6 @@ obj_t *builtin_int_to_char(VM *vm, obj_t *args) {
     ARG_NUMCHECK(args, "int->char", 1);
     FIG_ASSERT(is_num(car(args)), "invalid argument passed to int->char");
     obj_t *arg = car(args);
-    FIG_ASSERT(arg->num >= 0 && arg->num <= 9,
-               "invalid argument passed to int->char");
     return mk_char(vm, arg->num);
 }
 
