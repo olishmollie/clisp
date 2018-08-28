@@ -74,6 +74,4 @@ void init() {
     universe = global_env(vm);
 
     // readfile(vm, STDLIB);
-
-    printf("obj_count = %d\n", vm->obj_count);
 }

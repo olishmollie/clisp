@@ -87,9 +87,6 @@ void bind_params(env_t *env, obj_t *params, obj_t *args) {
 
 obj_t *eval(VM *vm, env_t *env, obj_t *expr) {
 
-    printf("entering eval layer...\n");
-    stack_print(vm);
-
 tailcall:
 
     FIG_ERRORCHECK(expr);
@@ -152,10 +149,8 @@ tailcall:
             FIG_ASSERT(length(procedure->params) == length(args),
                        "incorrect number of arguments to function");
 
-            env_t *local_env = env_new();
-            local_env->enclosing = procedure->env;
-            bind_params(local_env, procedure->params, args);
-            env = local_env;
+            bind_params(procedure->env, procedure->params, args);
+            env = procedure->env;
 
             expr = mk_cons(vm, begin_sym, procedure->body);
             goto tailcall;

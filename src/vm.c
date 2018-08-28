@@ -1,6 +1,6 @@
 #include "vm.h"
 
-#define INITIAL_GC_THRESHOLD 500
+#define INITIAL_GC_THRESHOLD 85
 VM *vm_new() {
     VM *vm = malloc(sizeof(VM));
     vm->alloc_list = NULL;

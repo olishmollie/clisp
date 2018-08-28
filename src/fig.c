@@ -35,8 +35,6 @@ void repl(VM *vm) {
 
         repl_println(object);
         reader_delete(rdr);
-        printf("obj_count = %d\n", vm->obj_count);
-        stack_print(vm);
     }
 }
 

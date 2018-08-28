@@ -55,8 +55,10 @@ obj_t *env_lookup(env_t *env, obj_t *symbol) {
     return mk_err("unbound symbol '%s'", symbol->sym);
 }
 
-void env_delete(env_t *env) {
-    if (env->enclosing)
-        env_delete(env->enclosing);
-    free(env);
+void env_print(env_t *env) {
+    for (int i = 0; i < env->obj_count; i++) {
+        print(env->symbols[i]);
+        printf(" : ");
+        println(env->objects[i]);
+    }
 }

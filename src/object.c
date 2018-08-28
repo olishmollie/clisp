@@ -6,7 +6,6 @@ obj_t *obj_new(VM *vm, object_type type) {
     object->marked = 0;
 
     if (vm->obj_count >= vm->gc_threshold) {
-        printf("running garbage collector...\n");
         gc(vm);
         vm->gc_threshold = vm->obj_count * 2;
     }
@@ -88,7 +87,8 @@ obj_t *mk_builtin(VM *vm, char *name, builtin proc) {
 
 obj_t *mk_fun(VM *vm, env_t *env, obj_t *params, obj_t *body) {
     obj_t *object = obj_new(vm, OBJ_FUN);
-    object->env = env;
+    object->env = env_new();
+    object->env->enclosing = env;
     object->params = params;
     object->body = body;
     push(vm, object);
@@ -286,8 +286,6 @@ void println(obj_t *object) {
 
 void obj_delete(obj_t *object) {
     if (object) {
-        printf("deleting object = ");
-        println(object);
         if (is_symbol(object))
             free(object->sym);
         else if (is_string(object))
@@ -296,8 +294,8 @@ void obj_delete(obj_t *object) {
             free(object->name);
         else if (is_error(object))
             free(object->err);
-        // else if (is_fun(object))
-        //     env_delete(object->env);
+        else if (is_fun(object))
+            free(object->env);
 
         free(object);
         vm->obj_count--;
