@@ -163,4 +163,6 @@ void set_cdr(obj_t *pair, obj_t *item);
 void print(obj_t *object);
 void println(obj_t *object);
 
+void obj_delete(obj_t *object);
+
 #endif

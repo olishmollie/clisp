@@ -258,7 +258,7 @@ obj_t *builtin_is_equal(VM *vm, obj_t *args) {
     }
 }
 
-obj_t *readfile(char *fname) {
+obj_t *readfile(VM *vm, char *fname) {
 
     FILE *infile;
     infile = fopen(fname, "r");
@@ -269,11 +269,12 @@ obj_t *readfile(char *fname) {
     reader *rdr = reader_new(infile);
 
     while (!feof(infile)) {
+        int sp = vm->sp;
         obj_t *object = eval(vm, universe, read(vm, rdr));
         if (object && object->type == OBJ_ERR) {
             println(object);
-            break;
         }
+        popn(vm, vm->sp - sp);
     }
 
     reader_delete(rdr);
@@ -284,11 +285,24 @@ obj_t *readfile(char *fname) {
 obj_t *builtin_load(VM *vm, obj_t *args) {
     obj_t *f = car(args);
     char *filename = f->str;
-    obj_t *res = readfile(filename);
+    obj_t *res = readfile(vm, filename);
     return res;
 }
 
+void cleanup(VM *vm) {
+    obj_t *object = vm->alloc_list;
+    while (object) {
+        obj_delete(object);
+        object = object->next;
+    }
+
+    free(vm);
+    free(universe);
+    free(symbol_table);
+}
+
 obj_t *builtin_exit(VM *vm, obj_t *args) {
+    cleanup(vm);
     exit(0);
     return NULL;
 }

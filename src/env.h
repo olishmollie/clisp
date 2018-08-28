@@ -21,4 +21,6 @@ obj_t *env_set(env_t *env, obj_t *sybol, obj_t *object);
 
 obj_t *env_lookup(env_t *env, obj_t *symbol);
 
+void env_delete(env_t *env);
+
 #endif

@@ -1,6 +1,6 @@
 #include "vm.h"
 
-#define INITIAL_GC_THRESHOLD 177
+#define INITIAL_GC_THRESHOLD 500
 VM *vm_new() {
     VM *vm = malloc(sizeof(VM));
     vm->alloc_list = NULL;
@@ -11,7 +11,9 @@ VM *vm_new() {
 }
 
 void push(VM *vm, obj_t *item) { vm->stack[vm->sp++] = item; }
+
 obj_t *pop(VM *vm) { return vm->stack[--vm->sp]; }
+
 void popn(VM *vm, int n) {
     for (int i = 0; i < n; i++) {
         pop(vm);
@@ -24,4 +26,54 @@ void stack_print(VM *vm) {
         println(vm->stack[i]);
     }
     printf("=========================\n");
+}
+
+void mark(obj_t *object);
+
+void mark_env(env_t *env) {
+    for (int i = 0; i < env->obj_count; i++) {
+        mark(env->symbols[i]);
+        mark(env->objects[i]);
+    }
+}
+
+void mark(obj_t *object) {
+    if (!object || object->marked)
+        return;
+
+    if (is_pair(object)) {
+        mark(object->car);
+        mark(object->cdr);
+    } else if (is_fun(object)) {
+        mark(object->params);
+        mark(object->body);
+    }
+
+    object->marked = 1;
+}
+
+void mark_all(VM *vm) {
+    mark_env(universe);
+    for (int i = 0; i < vm->sp; i++) {
+        mark(vm->stack[i]);
+    }
+}
+
+void sweep(VM *vm) {
+    obj_t **object = &vm->alloc_list;
+    while (*object) {
+        if (!(*object)->marked) {
+            obj_t *unreached = *object;
+            *object = unreached->next;
+            obj_delete(unreached);
+        } else {
+            (*object)->marked = 0;
+            object = &(*object)->next;
+        }
+    }
+}
+
+void gc(VM *vm) {
+    mark_all(vm);
+    sweep(vm);
 }

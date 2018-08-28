@@ -166,8 +166,7 @@ obj_t *read_quote(VM *vm, reader *rdr) {
     obj_t *quoted_expr = read(vm, rdr);
     obj_t *quote = mk_cons(vm, quoted_expr, the_empty_list);
     popn(vm, vm->sp - sp);
-    mk_cons(vm, quote_sym, quote);
-    return pop(vm);
+    return mk_cons(vm, quote_sym, quote);
 }
 
 obj_t *read_list(VM *vm, reader *rdr) {
@@ -213,9 +212,7 @@ obj_t *read_list(VM *vm, reader *rdr) {
 
     popn(vm, vm->sp - sp);
 
-    mk_cons(vm, car_obj, cdr_obj);
-
-    return pop(vm);
+    return mk_cons(vm, car_obj, cdr_obj);
 }
 
 obj_t *read(VM *vm, reader *rdr) {
@@ -236,7 +233,6 @@ obj_t *read(VM *vm, reader *rdr) {
         result = read_list(vm, rdr);
     } else if (rdr->cur == '\'') {
         result = read_quote(vm, rdr);
-        result = pop(vm);
     } else if (rdr->cur == ')') {
         result = mk_err("unexpected ')'");
     } else if (rdr->cur == '.') {

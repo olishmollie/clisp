@@ -1,9 +1,15 @@
 #include "init.h"
 
+#define STDLIB "lib/lib.fig"
+
 void register_builtin(VM *vm, env_t *env, builtin fun, char *name) {
     obj_t *var = mk_sym(vm, name);
     obj_t *fn = mk_builtin(vm, name, fun);
     env_define(env, var, fn);
+
+    /* pop global symbols and builtins off the stack */
+    pop(vm);
+    pop(vm);
 }
 
 env_t *global_env(VM *vm) {
@@ -66,4 +72,8 @@ void init() {
     begin_sym = mk_sym(vm, "begin");
 
     universe = global_env(vm);
+
+    // readfile(vm, STDLIB);
+
+    printf("obj_count = %d\n", vm->obj_count);
 }

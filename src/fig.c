@@ -10,7 +10,14 @@ void repl_println(obj_t *object) {
     }
 }
 
-void repl() {
+obj_t *interpret(VM *vm, reader *rdr) {
+    int sp = vm->sp;
+    obj_t *object = eval(vm, universe, read(vm, rdr));
+    popn(vm, vm->sp - sp);
+    return object;
+}
+
+void repl(VM *vm) {
 
     printf("fig version 0.1\n\n");
 
@@ -24,14 +31,18 @@ void repl() {
             continue;
         ungetc(c, stdin);
 
-        obj_t *object = eval(vm, universe, read(vm, rdr));
-        // obj_t *object = read(vm, rdr);
+        obj_t *object = interpret(vm, rdr);
+
         repl_println(object);
         reader_delete(rdr);
+        printf("obj_count = %d\n", vm->obj_count);
+        stack_print(vm);
     }
 }
 
 int main(int argc, char **argv) {
+
+    vm = vm_new();
 
     init();
 
@@ -39,7 +50,7 @@ int main(int argc, char **argv) {
         // obj_t *f = mk_string(vm, argv[1]);
         // builtin_load(f);
     } else {
-        repl();
+        repl(vm);
     }
 
     return 0;

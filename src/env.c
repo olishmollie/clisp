@@ -10,7 +10,7 @@ env_t *env_new(void) {
 obj_t *env_define(env_t *env, obj_t *symbol, obj_t *object) {
     for (int i = 0; i < env->obj_count; i++) {
         if (env->symbols[i] == symbol) {
-            env->symbols[i] = object;
+            env->objects[i] = object;
             return NULL;
         }
     }
@@ -36,6 +36,9 @@ obj_t *env_set(env_t *env, obj_t *symbol, obj_t *object) {
         }
     }
 
+    if (env->enclosing)
+        return env_set(env->enclosing, symbol, object);
+
     return mk_err("unbound symbol '%s'", symbol->sym);
 }
 
@@ -46,5 +49,14 @@ obj_t *env_lookup(env_t *env, obj_t *symbol) {
         }
     }
 
+    if (env->enclosing)
+        return env_lookup(env->enclosing, symbol);
+
     return mk_err("unbound symbol '%s'", symbol->sym);
+}
+
+void env_delete(env_t *env) {
+    if (env->enclosing)
+        env_delete(env->enclosing);
+    free(env);
 }

@@ -7,17 +7,25 @@ obj_t *obj_new(VM *vm, object_type type) {
 
     if (vm->obj_count >= vm->gc_threshold) {
         printf("running garbage collector...\n");
+        gc(vm);
+        vm->gc_threshold = vm->obj_count * 2;
     }
     object->next = vm->alloc_list;
     vm->alloc_list = object;
+    vm->obj_count++;
 
     return object;
 }
 
 obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr) {
+
+    push(vm, car);
+    push(vm, cdr);
     obj_t *object = obj_new(vm, OBJ_PAIR);
     object->car = car;
     object->cdr = cdr;
+    pop(vm);
+    pop(vm);
 
     push(vm, object);
     return object;
@@ -116,6 +124,7 @@ obj_t *mk_err(char *fmt, ...) {
     vsnprintf(object->err, 511, fmt, args);
     va_end(args);
 
+    // push(vm, object);
     return object;
 }
 
@@ -273,4 +282,24 @@ void print(obj_t *object) {
 void println(obj_t *object) {
     print(object);
     putchar('\n');
+}
+
+void obj_delete(obj_t *object) {
+    if (object) {
+        printf("deleting object = ");
+        println(object);
+        if (is_symbol(object))
+            free(object->sym);
+        else if (is_string(object))
+            free(object->sym);
+        else if (is_builtin(object))
+            free(object->name);
+        else if (is_error(object))
+            free(object->err);
+        // else if (is_fun(object))
+        //     env_delete(object->env);
+
+        free(object);
+        vm->obj_count--;
+    }
 }

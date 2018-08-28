@@ -6,6 +6,7 @@
 #define MAX_STACK_LENGTH 256
 
 typedef struct obj_t obj_t;
+
 typedef struct VM {
     int obj_count;
     int gc_threshold;
@@ -20,6 +21,8 @@ obj_t *pop(VM *vm);
 void popn(VM *vm, int n);
 
 void stack_print(VM *vm);
+
+void gc(VM *vm);
 
 VM *vm;
 

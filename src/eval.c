@@ -17,11 +17,6 @@ obj_t *text_of_quotation(obj_t *expr) {
     return cadr(expr);
 }
 
-int is_self_evaluating(obj_t *expr) {
-    return expr == NULL || is_char(expr) || is_boolean(expr) ||
-           is_string(expr) || is_num(expr) || is_error(expr);
-}
-
 int is_assignment(obj_t *expr) { return is_tagged_list(expr, set_sym); }
 
 obj_t *eval_assignment(VM *vm, env_t *env, obj_t *expr) {
@@ -66,17 +61,34 @@ int is_callable(obj_t *expr) {
     return expr->type == OBJ_FUN || expr->type == OBJ_BUILTIN;
 }
 
-obj_t *eval_arglist(env_t *env, obj_t *arglist) {
+obj_t *eval_arglist(VM *vm, env_t *env, obj_t *arglist) {
     if (arglist == the_empty_list)
         return arglist;
     obj_t *expr = car(arglist);
     if (is_top_level_only(expr))
         return mk_err("invalid syntax %s", car(arglist));
     expr = eval(vm, env, expr);
-    return mk_cons(vm, expr, eval_arglist(env, cdr(arglist)));
+    mk_cons(vm, expr, eval_arglist(vm, env, cdr(arglist)));
+    return pop(vm);
+}
+
+int is_self_evaluating(obj_t *expr) {
+    return expr == NULL || is_char(expr) || is_boolean(expr) ||
+           is_string(expr) || is_num(expr) || is_error(expr);
+}
+
+void bind_params(env_t *env, obj_t *params, obj_t *args) {
+    while (!is_the_empty_list(params)) {
+        env_define(env, car(params), car(args));
+        params = cdr(params);
+        args = cdr(args);
+    }
 }
 
 obj_t *eval(VM *vm, env_t *env, obj_t *expr) {
+
+    printf("entering eval layer...\n");
+    stack_print(vm);
 
 tailcall:
 
@@ -131,7 +143,7 @@ tailcall:
         FIG_ERRORCHECK(procedure);
         FIG_ASSERT(is_callable(procedure), "invalid procedure");
 
-        obj_t *args = eval_arglist(env, cdr(expr));
+        obj_t *args = eval_arglist(vm, env, cdr(expr));
         FIG_ERRORCHECK(args);
 
         if (is_builtin(procedure)) {
@@ -140,9 +152,10 @@ tailcall:
             FIG_ASSERT(length(procedure->params) == length(args),
                        "incorrect number of arguments to function");
 
-            /* extend enviroment */
-            env = env_new();
-            env->enclosing = procedure->env;
+            env_t *local_env = env_new();
+            local_env->enclosing = procedure->env;
+            bind_params(local_env, procedure->params, args);
+            env = local_env;
 
             expr = mk_cons(vm, begin_sym, procedure->body);
             goto tailcall;
