@@ -221,6 +221,8 @@ obj_t *read(VM *vm, reader *rdr) {
     rdr->cur = getc(rdr->in);
 
     obj_t *result;
+    if (rdr->cur == EOF)
+        return NULL;
     if (rdr->cur == '#') {
         result = read_constant(vm, rdr);
     } else if (isdigit(rdr->cur) || (rdr->cur == '-' && isdigit(peek(rdr)))) {

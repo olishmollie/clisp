@@ -73,5 +73,5 @@ void init() {
 
     universe = global_env(vm);
 
-    // readfile(vm, STDLIB);
+    readfile(vm, STDLIB);
 }

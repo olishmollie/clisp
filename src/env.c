@@ -31,7 +31,7 @@ obj_t *env_define(env_t *env, obj_t *symbol, obj_t *object) {
 obj_t *env_set(env_t *env, obj_t *symbol, obj_t *object) {
     for (int i = 0; i < env->obj_count; i++) {
         if (env->symbols[i] == symbol) {
-            env->symbols[i] = object;
+            env->objects[i] = object;
             return NULL;
         }
     }

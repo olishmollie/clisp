@@ -25,7 +25,7 @@ void repl(VM *vm) {
         printf("> ");
         reader *rdr = reader_new(stdin);
 
-        /* if user hits enter with no data */
+        /* Hack. User hits enter with no data */
         int c = getc(stdin);
         if (c == '\n')
             continue;
