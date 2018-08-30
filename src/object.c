@@ -6,6 +6,7 @@ obj_t *obj_new(VM *vm, object_type type) {
     object->marked = 0;
 
     if (vm->obj_count >= vm->gc_threshold) {
+        printf("running gc\n");
         gc(vm);
         vm->gc_threshold = vm->obj_count * 2;
     }
@@ -85,10 +86,9 @@ obj_t *mk_builtin(VM *vm, char *name, builtin proc) {
     return object;
 }
 
-obj_t *mk_fun(VM *vm, env_t *env, obj_t *params, obj_t *body) {
+obj_t *mk_fun(VM *vm, obj_t *env, obj_t *params, obj_t *body) {
     obj_t *object = obj_new(vm, OBJ_FUN);
-    object->env = env_new();
-    object->env->enclosing = env;
+    object->env = env;
     object->params = params;
     object->body = body;
     push(vm, object);
@@ -115,7 +115,7 @@ obj_t *mk_nil(VM *vm) {
     return object;
 }
 
-obj_t *mk_err(char *fmt, ...) {
+obj_t *mk_err(VM *vm, char *fmt, ...) {
     obj_t *object = obj_new(vm, OBJ_ERR);
 
     va_list args;
@@ -126,6 +126,93 @@ obj_t *mk_err(char *fmt, ...) {
 
     push(vm, object);
     return object;
+}
+
+obj_t *mk_env(VM *vm) {
+    obj_t *frame = mk_cons(vm, the_empty_list, the_empty_list);
+    obj_t *env = mk_cons(vm, frame, the_empty_list);
+    return env;
+}
+
+void add_binding_to_frame(VM *vm, obj_t *frame, obj_t *symbol, obj_t *object) {
+    set_car(frame, mk_cons(vm, symbol, car(frame)));
+    set_cdr(frame, mk_cons(vm, object, cdr(frame)));
+}
+
+obj_t *env_define(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
+    obj_t *frame;
+    obj_t *symbols;
+    obj_t *values;
+
+    frame = car(env);
+    symbols = car(frame);
+    values = cdr(frame);
+
+    while (!is_the_empty_list(symbols)) {
+        if (car(symbols) == symbol) {
+            set_car(values, value);
+            return NULL;
+        }
+        symbols = cdr(symbols);
+        values = cdr(values);
+    }
+
+    add_binding_to_frame(vm, frame, symbol, value);
+    return NULL;
+}
+
+obj_t *env_set(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
+    obj_t *frame;
+    obj_t *symbols;
+    obj_t *values;
+
+    frame = car(env);
+
+    while (!is_the_empty_list(env)) {
+        frame = car(env);
+        symbols = car(frame);
+        values = cdr(frame);
+
+        while (!is_the_empty_list(symbols)) {
+            if (car(symbols) == symbol) {
+                set_car(values, value);
+                return NULL;
+            }
+            symbols = cdr(symbols);
+            values = cdr(values);
+        }
+        env = cdr(env);
+    }
+
+    return mk_err(vm, "unbound symbol '%s'", symbol->sym);
+}
+
+obj_t *env_lookup(VM *vm, obj_t *env, obj_t *symbol) {
+    obj_t *frame;
+    obj_t *symbols;
+    obj_t *objects;
+    while (!is_the_empty_list(env)) {
+        frame = car(env);
+        symbols = car(frame);
+        objects = cdr(frame);
+        while (!is_the_empty_list(symbols)) {
+            if (symbol == car(symbols))
+                return car(objects);
+            symbols = cdr(symbols);
+            objects = cdr(objects);
+        }
+        env = cdr(env);
+    }
+
+    return mk_err(vm, "unbound symbol '%s'", symbol->sym);
+}
+
+obj_t *mk_frame(VM *vm, obj_t *symbols, obj_t *values) {
+    return mk_cons(vm, symbols, values);
+}
+
+obj_t *env_extend(VM *vm, obj_t *env, obj_t *symbols, obj_t *values) {
+    return mk_cons(vm, mk_frame(vm, symbols, values), env);
 }
 
 int is_the_empty_list(obj_t *object) { return object == the_empty_list; }
@@ -294,8 +381,6 @@ void obj_delete(obj_t *object) {
             free(object->name);
         else if (is_error(object))
             free(object->err);
-        else if (is_fun(object))
-            free(object->env);
 
         free(object);
         vm->obj_count--;

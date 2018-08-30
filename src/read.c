@@ -87,7 +87,7 @@ obj_t *read_character(VM *vm, reader *rdr) {
     }
 
     if (!is_delim(peek(rdr)))
-        return mk_err("invalid constant");
+        return mk_err(vm, "invalid constant");
 
     return res;
 }
@@ -102,7 +102,7 @@ obj_t *read_constant(VM *vm, reader *rdr) {
         return false;
     }
 
-    return mk_err("invalid constant");
+    return mk_err(vm, "invalid constant");
 }
 
 obj_t *read_symbol(VM *vm, reader *rdr) {
@@ -128,7 +128,7 @@ obj_t *read_string(VM *vm, reader *rdr) {
         str[i++] = rdr->cur;
         rdr->cur = getc(rdr->in);
         if (feof(rdr->in))
-            return mk_err("unclosed string literal");
+            return mk_err(vm, "unclosed string literal");
     }
     str[i] = '\0';
 
@@ -151,14 +151,14 @@ obj_t *read_number(VM *vm, reader *rdr) {
     num[i] = '\0';
 
     if (i == MAXSTRLEN)
-        return mk_err("string exceeds max length");
+        return mk_err(vm, "string exceeds max length");
 
     if (is_delim(rdr->cur)) {
         ungetc(rdr->cur, rdr->in);
         return mk_num_from_str(vm, num);
     }
 
-    return mk_err("invalid number syntax");
+    return mk_err(vm, "invalid number syntax");
 }
 
 obj_t *read_quote(VM *vm, reader *rdr) {
@@ -172,7 +172,7 @@ obj_t *read_quote(VM *vm, reader *rdr) {
 obj_t *read_list(VM *vm, reader *rdr) {
     skipwhitespace(rdr);
     if (rdr->cur == EOF)
-        return mk_err("expected ')'");
+        return mk_err(vm, "expected ')'");
 
     rdr->cur = getc(rdr->in);
     if (rdr->cur == ')') {
@@ -198,7 +198,7 @@ obj_t *read_list(VM *vm, reader *rdr) {
             return car_obj;
 
         if (rdr->cur != ')') {
-            return mk_err("expected ')'");
+            return mk_err(vm, "expected ')'");
         }
 
         rdr->cur = getc(rdr->in);
@@ -236,11 +236,11 @@ obj_t *read(VM *vm, reader *rdr) {
     } else if (rdr->cur == '\'') {
         result = read_quote(vm, rdr);
     } else if (rdr->cur == ')') {
-        result = mk_err("unexpected ')'");
+        result = mk_err(vm, "unexpected ')'");
     } else if (rdr->cur == '.') {
-        result = mk_err("unexpected '.'");
+        result = mk_err(vm, "unexpected '.'");
     } else {
-        result = mk_err("unknown character %c", rdr->cur);
+        result = mk_err(vm, "unknown character %c", rdr->cur);
     }
 
     return result;

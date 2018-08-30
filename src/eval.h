@@ -7,6 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-obj_t *eval(VM *vm, env_t *env, obj_t *expr);
+obj_t *eval(VM *vm, obj_t *env, obj_t *expr);
 
 #endif

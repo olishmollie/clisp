@@ -2,7 +2,6 @@
 #define OBJECT_H
 
 #include "table.h"
-#include "env.h"
 #include "vm.h"
 
 #include <stdio.h>
@@ -12,10 +11,10 @@
 
 #define MAXSTRLEN 512
 
-typedef struct env_t env_t;
+typedef struct obj_t obj_t;
 typedef struct table_t table_t;
 
-env_t *universe;
+obj_t *universe;
 
 table_t *symbol_table;
 
@@ -75,7 +74,7 @@ struct obj_t {
         };
 
         struct {
-            env_t *env;
+            obj_t *env;
             obj_t *params;
             obj_t *body;
         };
@@ -99,10 +98,16 @@ obj_t *mk_char(VM *vm, char c);
 obj_t *mk_bool(VM *vm, int value);
 
 obj_t *mk_builtin(VM *vm, char *name, builtin proc);
-obj_t *mk_fun(VM *vm, env_t *env, obj_t *params, obj_t *body);
+obj_t *mk_fun(VM *vm, obj_t *env, obj_t *params, obj_t *body);
 
 obj_t *mk_nil(VM *vm);
-obj_t *mk_err(char *fmt, ...);
+obj_t *mk_err(VM *vm, char *fmt, ...);
+
+obj_t *mk_env(VM *vm);
+obj_t *env_lookup(VM *vm, obj_t *env, obj_t *symbol);
+obj_t *env_define(VM *vm, obj_t *env, obj_t *symbol, obj_t *value);
+obj_t *env_set(VM *vm, obj_t *env, obj_t *symbol, obj_t *value);
+obj_t *env_extend(VM *vm, obj_t *env, obj_t *symbols, obj_t *values);
 
 int is_the_empty_list(obj_t *object);
 int is_false(obj_t *c);

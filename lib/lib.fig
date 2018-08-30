@@ -23,6 +23,11 @@
               max)))
   (iter base 1 exp))
 
+(define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+
 ;; lists
 (define (list-ref seq n)
   (if (eq? n 0)

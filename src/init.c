@@ -2,18 +2,18 @@
 
 #define STDLIB "lib/lib.fig"
 
-void register_builtin(VM *vm, env_t *env, builtin fun, char *name) {
+void register_builtin(VM *vm, obj_t *env, builtin fun, char *name) {
     obj_t *var = mk_sym(vm, name);
     obj_t *fn = mk_builtin(vm, name, fun);
-    env_define(env, var, fn);
+    env_define(vm, env, var, fn);
 
     /* pop global symbols and builtins off the stack */
     pop(vm);
     pop(vm);
 }
 
-env_t *global_env(VM *vm) {
-    env_t *env = env_new();
+obj_t *global_env(VM *vm) {
+    obj_t *env = mk_env(vm);
     register_builtin(vm, env, builtin_plus, "+");
     register_builtin(vm, env, builtin_minus, "-");
     register_builtin(vm, env, builtin_times, "*");

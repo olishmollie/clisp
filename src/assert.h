@@ -1,13 +1,13 @@
 #ifndef ASSERT_H
 #define ASSERT_H
 
-#define FIG_ASSERT(cond, fmt, ...)                                             \
+#define FIG_ASSERT(vm, cond, fmt, ...)                                         \
     {                                                                          \
         if (!(cond))                                                           \
-            return mk_err(fmt, ##__VA_ARGS__);                                 \
+            return mk_err(vm, fmt, ##__VA_ARGS__);                             \
     }
 
-#define ARG_NUMCHECK(args, name, num)                                          \
+#define ARG_NUMCHECK(vm, args, name, num)                                      \
     {                                                                          \
         int count = 0;                                                         \
         obj_t *tmp = args;                                                     \
@@ -17,17 +17,18 @@
         }                                                                      \
         if (count != num) {                                                    \
             return mk_err(                                                     \
+                vm,                                                            \
                 "incorrect argument count for %s. expected %d, got %d", name,  \
                 num, count);                                                   \
         }                                                                      \
     }
 
-#define ARG_TYPECHECK(args, name, typ)                                         \
+#define ARG_TYPECHECK(vm, args, name, typ)                                     \
     {                                                                          \
         obj_t *tmp = args;                                                     \
         while (tmp != the_empty_list) {                                        \
             if (car(tmp)->type != typ) {                                       \
-                return mk_err("%s can only operate on type %s", name,          \
+                return mk_err(vm, "%s can only operate on type %s", name,      \
                               type_name(typ));                                 \
             }                                                                  \
             tmp = cdr(tmp);                                                    \

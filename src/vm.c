@@ -1,6 +1,6 @@
 #include "vm.h"
 
-#define INITIAL_GC_THRESHOLD 85
+#define INITIAL_GC_THRESHOLD 500
 VM *vm_new() {
     VM *vm = malloc(sizeof(VM));
     vm->alloc_list = NULL;
@@ -28,15 +28,6 @@ void stack_print(VM *vm) {
     printf("=========================\n");
 }
 
-void mark(obj_t *object);
-
-void mark_env(env_t *env) {
-    for (int i = 0; i < env->obj_count; i++) {
-        mark(env->symbols[i]);
-        mark(env->objects[i]);
-    }
-}
-
 void mark(obj_t *object) {
     if (!object || object->marked)
         return;
@@ -53,7 +44,7 @@ void mark(obj_t *object) {
 }
 
 void mark_all(VM *vm) {
-    mark_env(universe);
+    mark(universe);
     for (int i = 0; i < vm->sp; i++) {
         mark(vm->stack[i]);
     }

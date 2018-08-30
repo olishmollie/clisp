@@ -13,25 +13,25 @@ int is_quotation(obj_t *expr) { return is_tagged_list(expr, quote_sym); }
 
 obj_t *text_of_quotation(obj_t *expr) {
     if (cddr(expr) != the_empty_list)
-        return mk_err("invalid syntax");
+        return mk_err(vm, "invalid syntax");
     return cadr(expr);
 }
 
 int is_assignment(obj_t *expr) { return is_tagged_list(expr, set_sym); }
 
-obj_t *eval_assignment(VM *vm, env_t *env, obj_t *expr) {
-    ARG_NUMCHECK(cdr(expr), "set!", 2);
+obj_t *eval_assignment(VM *vm, obj_t *env, obj_t *expr) {
+    ARG_NUMCHECK(vm, cdr(expr), "set!", 2);
     obj_t *var = cadr(expr);
     obj_t *val = eval(vm, env, caddr(expr));
     FIG_ERRORCHECK(var);
-    return env_set(env, var, val);
+    return env_set(vm, env, var, val);
 }
 
 int is_definition(obj_t *expr) { return is_tagged_list(expr, define_sym); }
 
-obj_t *eval_definition(VM *vm, env_t *env, obj_t *expr) {
+obj_t *eval_definition(VM *vm, obj_t *env, obj_t *expr) {
     obj_t *var, *val;
-    FIG_ASSERT(length(cdr(expr)) >= 2, "invalid syntax define");
+    FIG_ASSERT(vm, length(cdr(expr)) >= 2, "invalid syntax define");
 
     if (is_pair(cadr(expr))) {
         var = caadr(expr);
@@ -44,7 +44,7 @@ obj_t *eval_definition(VM *vm, env_t *env, obj_t *expr) {
         FIG_ERRORCHECK(val);
     }
 
-    return env_define(env, var, val);
+    return env_define(vm, env, var, val);
 }
 
 int is_if(obj_t *expr) { return is_tagged_list(expr, if_sym); }
@@ -61,12 +61,12 @@ int is_callable(obj_t *expr) {
     return expr->type == OBJ_FUN || expr->type == OBJ_BUILTIN;
 }
 
-obj_t *eval_arglist(VM *vm, env_t *env, obj_t *arglist) {
+obj_t *eval_arglist(VM *vm, obj_t *env, obj_t *arglist) {
     if (arglist == the_empty_list)
         return arglist;
     obj_t *expr = car(arglist);
     if (is_top_level_only(expr))
-        return mk_err("invalid syntax %s", car(arglist));
+        return mk_err(vm, "invalid syntax %s", car(arglist));
     expr = eval(vm, env, expr);
     mk_cons(vm, expr, eval_arglist(vm, env, cdr(arglist)));
     return pop(vm);
@@ -77,15 +77,7 @@ int is_self_evaluating(obj_t *expr) {
            is_string(expr) || is_num(expr) || is_error(expr);
 }
 
-void bind_params(env_t *env, obj_t *params, obj_t *args) {
-    while (!is_the_empty_list(params)) {
-        env_define(env, car(params), car(args));
-        params = cdr(params);
-        args = cdr(args);
-    }
-}
-
-obj_t *eval(VM *vm, env_t *env, obj_t *expr) {
+obj_t *eval(VM *vm, obj_t *env, obj_t *expr) {
 
 tailcall:
 
@@ -96,7 +88,7 @@ tailcall:
     } else if (is_quotation(expr)) {
         return text_of_quotation(expr);
     } else if (expr->type == OBJ_SYM) {
-        return env_lookup(env, expr);
+        return env_lookup(vm, env, expr);
     } else if (is_definition(expr)) {
         return eval_definition(vm, env, expr);
     } else if (is_assignment(expr)) {
@@ -117,11 +109,11 @@ tailcall:
 
     } else if (is_if(expr)) {
 
-        FIG_ASSERT(length(cdr(expr)) == 2 || length(cdr(expr)) == 3,
+        FIG_ASSERT(vm, length(cdr(expr)) == 2 || length(cdr(expr)) == 3,
                    "invalid syntax if");
         obj_t *cond = cadr(expr);
         if (is_top_level_only(cond))
-            return mk_err("invalid syntax %s", car(cond));
+            return mk_err(vm, "invalid syntax %s", car(cond));
 
         cond = eval(vm, env, cond);
         FIG_ERRORCHECK(cond);
@@ -138,7 +130,7 @@ tailcall:
 
         obj_t *procedure = eval(vm, env, car(expr));
         FIG_ERRORCHECK(procedure);
-        FIG_ASSERT(is_callable(procedure), "invalid procedure");
+        FIG_ASSERT(vm, is_callable(procedure), "invalid procedure");
 
         obj_t *args = eval_arglist(vm, env, cdr(expr));
         FIG_ERRORCHECK(args);
@@ -146,16 +138,15 @@ tailcall:
         if (is_builtin(procedure)) {
             return procedure->proc(vm, args);
         } else {
-            FIG_ASSERT(length(procedure->params) == length(args),
+            FIG_ASSERT(vm, length(procedure->params) == length(args),
                        "incorrect number of arguments to function");
 
-            bind_params(procedure->env, procedure->params, args);
-            env = procedure->env;
+            env = env_extend(vm, procedure->env, procedure->params, args);
 
             expr = mk_cons(vm, begin_sym, procedure->body);
             goto tailcall;
         }
     } else {
-        return mk_err("invalid syntax");
+        return mk_err(vm, "invalid syntax");
     }
 }
