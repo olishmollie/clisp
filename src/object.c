@@ -6,7 +6,6 @@ obj_t *obj_new(VM *vm, object_type type) {
     object->marked = 0;
 
     if (vm->obj_count >= vm->gc_threshold) {
-        printf("running gc\n");
         gc(vm);
         vm->gc_threshold = vm->obj_count * 2;
     }

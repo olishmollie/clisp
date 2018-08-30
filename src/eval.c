@@ -143,7 +143,8 @@ tailcall:
 
             env = env_extend(vm, procedure->env, procedure->params, args);
 
-            expr = mk_cons(vm, begin_sym, procedure->body);
+            mk_cons(vm, begin_sym, procedure->body);
+            expr = pop(vm);
             goto tailcall;
         }
     } else {

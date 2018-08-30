@@ -3,7 +3,7 @@
 
 #include "object.h"
 
-#define MAX_STACK_LENGTH 256
+#define MAX_STACK_SIZE 8192
 
 typedef struct obj_t obj_t;
 
@@ -12,7 +12,7 @@ typedef struct VM {
     int gc_threshold;
     int sp;
     obj_t *alloc_list;
-    obj_t *stack[MAX_STACK_LENGTH];
+    obj_t *stack[MAX_STACK_SIZE];
 } VM;
 
 VM *vm_new(void);

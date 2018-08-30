@@ -10,9 +10,21 @@ VM *vm_new() {
     return vm;
 }
 
-void push(VM *vm, obj_t *item) { vm->stack[vm->sp++] = item; }
+void push(VM *vm, obj_t *item) {
+    if (vm->obj_count >= MAX_STACK_SIZE) {
+        fprintf(stderr, "stack overflow\n");
+        exit(1);
+    }
+    vm->stack[vm->sp++] = item;
+}
 
-obj_t *pop(VM *vm) { return vm->stack[--vm->sp]; }
+obj_t *pop(VM *vm) {
+    if (vm->obj_count == 0) {
+        fprintf(stderr, "stack underflow\n");
+        exit(1);
+    }
+    return vm->stack[--vm->sp];
+}
 
 void popn(VM *vm, int n) {
     for (int i = 0; i < n; i++) {
