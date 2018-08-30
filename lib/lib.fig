@@ -10,6 +10,11 @@
 (define (caddr l) (car (cdr (cdr l))))
 
 ;; math
+(define (= x y)
+  (if (and (number? x) (number? y))
+      (eq? x y)
+      #f))
+
 (define (identity x) x)
 
 (define (abs x) (if (< x 0) (- x) x))
