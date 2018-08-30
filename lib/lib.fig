@@ -28,6 +28,16 @@
       n
       (+ (fib (- n 1)) (fib (- n 2)))))
 
+(define (fib n)
+  (define (iter cur prev count max)
+    (if (>= count max)
+        cur
+        (iter (+ cur prev)
+              cur
+              (+ 1 count)
+              max)))
+  (iter 1 0 1 n))
+
 ;; lists
 (define (list-ref seq n)
   (if (eq? n 0)
