@@ -57,6 +57,8 @@ int is_lambda(obj_t *expr) { return is_tagged_list(expr, lambda_sym); }
 
 int is_begin(obj_t *expr) { return is_tagged_list(expr, begin_sym); }
 
+int is_cond(obj_t *expr) { return is_tagged_list(expr, cond_sym); }
+
 int is_top_level_only(obj_t *expr) {
     return is_definition(expr) || is_assignment(expr);
 }
@@ -134,6 +136,22 @@ tailcall:
 
         goto tailcall;
     }
+    else if (is_cond(expr)) {
+        FIG_ASSERT(vm, length(cdr(expr)) >= 1, "invalid syntax cond");
+
+        obj_t *clauses = cdr(expr);
+        while (!is_the_empty_list(clauses)) {
+            obj_t *clause = eval(vm, env, caar(clauses));
+            FIG_ERRORCHECK(clause);
+            if (is_true(clause)) {
+                expr = cadar(clauses);
+                goto tailcall;
+            }
+            clauses = cdr(clauses);
+        }
+
+        return NULL;
+    }
     else if (is_and(expr)) {
         obj_t *args = cdr(expr);
         while (!is_the_empty_list(args)) {
@@ -144,7 +162,7 @@ tailcall:
             }
             args = cdr(args);
         }
-        expr = true;
+        expr =true;
         goto tailcall;
     }
     else if (is_or(expr)) {

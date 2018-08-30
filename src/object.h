@@ -33,6 +33,7 @@ obj_t *lambda_sym;
 obj_t *begin_sym;
 obj_t *and_sym;
 obj_t *or_sym;
+obj_t *cond_sym;
 
 typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
 
