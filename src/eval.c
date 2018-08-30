@@ -59,6 +59,8 @@ int is_begin(obj_t *expr) { return is_tagged_list(expr, begin_sym); }
 
 int is_cond(obj_t *expr) { return is_tagged_list(expr, cond_sym); }
 
+int is_else(obj_t *expr) { return is_tagged_list(expr, else_sym); }
+
 int is_top_level_only(obj_t *expr) {
     return is_definition(expr) || is_assignment(expr);
 }
@@ -140,7 +142,7 @@ tailcall:
         FIG_ASSERT(vm, length(cdr(expr)) >= 1, "invalid syntax cond");
 
         obj_t *clauses = cdr(expr);
-        while (!is_the_empty_list(clauses)) {
+        while (!is_the_empty_list(cdr(clauses))) {
             obj_t *clause = eval(vm, env, caar(clauses));
             FIG_ERRORCHECK(clause);
             if (is_true(clause)) {
@@ -148,6 +150,18 @@ tailcall:
                 goto tailcall;
             }
             clauses = cdr(clauses);
+        }
+
+        if (is_else(car(clauses))) {
+            expr = cadar(clauses);
+            goto tailcall;
+        }
+
+        obj_t *clause = eval(vm, env, caar(clauses));
+        FIG_ERRORCHECK(clause);
+        if (is_true(clause)) {
+            expr = cadar(clauses);
+            goto tailcall;
         }
 
         return NULL;

@@ -73,6 +73,7 @@ void init() {
     and_sym = mk_sym(vm, "and");
     or_sym = mk_sym(vm, "or");
     cond_sym = mk_sym(vm, "cond");
+    else_sym = mk_sym(vm, "else");
 
     universe = global_env(vm);
 
