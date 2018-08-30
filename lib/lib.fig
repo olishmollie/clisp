@@ -38,6 +38,15 @@
               max)))
   (iter 1 0 1 n))
 
+(define (vec2 x y) (list x y))
+(define (vec3 x y z) (list x y z))
+
+(define (dot a b)
+  (if (or (null? a) (null? b))
+      0
+      (+ (* (car a) (car b))
+         (dot (cdr a) (cdr b)))))
+
 ;; lists
 (define (list-ref seq n)
   (if (eq? n 0)

@@ -49,6 +49,10 @@ obj_t *eval_definition(VM *vm, obj_t *env, obj_t *expr) {
 
 int is_if(obj_t *expr) { return is_tagged_list(expr, if_sym); }
 
+int is_and(obj_t *expr) { return is_tagged_list(expr, and_sym); }
+
+int is_or(obj_t *expr) { return is_tagged_list(expr, or_sym); }
+
 int is_lambda(obj_t *expr) { return is_tagged_list(expr, lambda_sym); }
 
 int is_begin(obj_t *expr) { return is_tagged_list(expr, begin_sym); }
@@ -85,18 +89,23 @@ tailcall:
 
     if (is_self_evaluating(expr)) {
         return expr;
-    } else if (is_quotation(expr)) {
+    }
+    else if (is_quotation(expr)) {
         return text_of_quotation(expr);
-    } else if (expr->type == OBJ_SYM) {
+    }
+    else if (expr->type == OBJ_SYM) {
         return env_lookup(vm, env, expr);
-    } else if (is_definition(expr)) {
+    }
+    else if (is_definition(expr)) {
         return eval_definition(vm, env, expr);
-    } else if (is_assignment(expr)) {
+    }
+    else if (is_assignment(expr)) {
         return eval_assignment(vm, env, expr);
-    } else if (is_lambda(expr)) {
+    }
+    else if (is_lambda(expr)) {
         return mk_fun(vm, env, cadr(expr), cddr(expr));
-    } else if (is_begin(expr)) {
-
+    }
+    else if (is_begin(expr)) {
         expr = cdr(expr);
         while (!is_the_empty_list(cdr(expr))) {
             obj_t *cur = eval(vm, env, car(expr));
@@ -106,9 +115,8 @@ tailcall:
 
         expr = car(expr);
         goto tailcall;
-
-    } else if (is_if(expr)) {
-
+    }
+    else if (is_if(expr)) {
         FIG_ASSERT(vm, length(cdr(expr)) == 2 || length(cdr(expr)) == 3,
                    "invalid syntax if");
         obj_t *cond = cadr(expr);
@@ -125,9 +133,34 @@ tailcall:
         }
 
         goto tailcall;
-
-    } else if (is_pair(expr)) {
-
+    }
+    else if (is_and(expr)) {
+        obj_t *args = cdr(expr);
+        while (!is_the_empty_list(args)) {
+            obj_t *pred = eval(vm, env, car(args));
+            if (is_false(pred)) {
+                expr = false;
+                goto tailcall;
+            }
+            args = cdr(args);
+        }
+        expr = true;
+        goto tailcall;
+    }
+    else if (is_or(expr)) {
+        obj_t *args = cdr(expr);
+        while (!is_the_empty_list(args)) {
+            obj_t *pred = eval(vm, env, car(args));
+            if (is_true(pred)) {
+                expr = true;
+                goto tailcall;
+            }
+            args = cdr(args);
+        }
+        expr = false;
+        goto tailcall;
+    }
+    else if (is_pair(expr)) {
         obj_t *procedure = eval(vm, env, car(expr));
         FIG_ERRORCHECK(procedure);
         FIG_ASSERT(vm, is_callable(procedure), "invalid procedure");
@@ -147,7 +180,8 @@ tailcall:
             expr = pop(vm);
             goto tailcall;
         }
-    } else {
+    }
+    else {
         return mk_err(vm, "invalid syntax");
     }
 }

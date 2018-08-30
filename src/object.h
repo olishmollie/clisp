@@ -31,6 +31,8 @@ obj_t *set_sym;
 obj_t *if_sym;
 obj_t *lambda_sym;
 obj_t *begin_sym;
+obj_t *and_sym;
+obj_t *or_sym;
 
 typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
 
