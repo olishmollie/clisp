@@ -256,6 +256,16 @@ obj_t *builtin_is_equal(VM *vm, obj_t *args) {
     }
 }
 
+obj_t *builtin_display(VM *vm, obj_t *args) {
+    FIG_ASSERT(vm, !is_the_empty_list(args), "invalid syntax display");
+    while (!is_the_empty_list(cdr(args))) {
+        print(car(args));
+        args = cdr(args);
+    }
+    println(car(args));
+    return NULL;
+}
+
 obj_t *readfile(VM *vm, char *fname) {
 
     FILE *infile;

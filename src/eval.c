@@ -143,9 +143,14 @@ tailcall:
 
         obj_t *clauses = cdr(expr);
         while (!is_the_empty_list(cdr(clauses))) {
-            obj_t *clause = eval(vm, env, caar(clauses));
-            FIG_ERRORCHECK(clause);
-            if (is_true(clause)) {
+            obj_t *clause = car(clauses);
+            FIG_ASSERT(vm, length(clause) == 2,
+                "clauses in cond must have a predicate and a consequent");
+
+            obj_t *pred = eval(vm, env, car(clause));
+            FIG_ERRORCHECK(pred);
+
+            if (is_true(pred)) {
                 expr = cadar(clauses);
                 goto tailcall;
             }
@@ -157,9 +162,14 @@ tailcall:
             goto tailcall;
         }
 
-        obj_t *clause = eval(vm, env, caar(clauses));
-        FIG_ERRORCHECK(clause);
-        if (is_true(clause)) {
+        obj_t *clause = car(clauses);
+        FIG_ASSERT(vm, length(clause) == 2,
+            "clauses in cond must have a predicate and a consequent");
+
+        obj_t *pred = eval(vm, env, caar(clauses));
+        FIG_ERRORCHECK(pred);
+
+        if (is_true(pred)) {
             expr = cadar(clauses);
             goto tailcall;
         }
@@ -170,6 +180,7 @@ tailcall:
         obj_t *args = cdr(expr);
         while (!is_the_empty_list(args)) {
             obj_t *pred = eval(vm, env, car(args));
+            FIG_ERRORCHECK(pred);
             if (is_false(pred)) {
                 expr = false;
                 goto tailcall;
@@ -183,6 +194,7 @@ tailcall:
         obj_t *args = cdr(expr);
         while (!is_the_empty_list(args)) {
             obj_t *pred = eval(vm, env, car(args));
+            FIG_ERRORCHECK(pred);
             if (is_true(pred)) {
                 expr = true;
                 goto tailcall;

@@ -46,6 +46,7 @@ obj_t *builtin_list(VM *vm, obj_t *args);
 obj_t *builtin_setcar(VM *vm, obj_t *args);
 obj_t *builtin_setcdr(VM *vm, obj_t *args);
 
+obj_t *builtin_display(VM *vm, obj_t *args);
 obj_t *readfile(VM *vm, char *fname);
 obj_t *builtin_load(VM *vm, obj_t *args);
 

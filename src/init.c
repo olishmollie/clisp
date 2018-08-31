@@ -49,6 +49,7 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_setcdr, "set-cdr!");
     register_builtin(vm, env, builtin_list, "list");
 
+    register_builtin(vm, env, builtin_display, "display");
     register_builtin(vm, env, builtin_load, "load");
     register_builtin(vm, env, builtin_exit, "exit");
 

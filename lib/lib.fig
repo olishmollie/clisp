@@ -9,12 +9,28 @@
 (define (cadar l) (car (cdr (car l))))
 (define (caddr l) (car (cdr (cdr l))))
 
-;; math
+;; types/equality/comparison
+(define (not x)
+  (if x #f #t))
+
+(define (atom? x)
+  (not (pair? x)))
+
 (define (= x y)
   (if (and (number? x) (number? y))
       (eq? x y)
       #f))
 
+(define (equal? x y)
+  (cond ((and (null? x) (null? y)) #t)
+        ((and (number? x) (number? y)) (= x y))
+        ((and (atom? x) (atom? y)) (eq? x y))
+        ((and (pair? x) (pair? y))
+         (and (equal? (car x) (car y))
+              (equal? (cdr x) (cdr y))))
+        (else #f)))
+
+;; math
 (define (identity x) x)
 
 (define (abs x) (if (< x 0) (- x) x))
@@ -54,14 +70,20 @@
 
 (define (vec2 x y) (list x y))
 (define (vec3 x y z) (list x y z))
-
 (define (dot a b)
   (if (or (null? a) (null? b))
       0
       (+ (* (car a) (car b))
          (dot (cdr a) (cdr b)))))
+(define (orthogonal? va vb)
+  (= (dot va vb) 0))
 
 ;; lists
+(define (memq item seq)
+  (cond ((null? seq) #f)
+        ((eq? item (car seq)) seq)
+        (else (memq item (cdr seq)))))
+
 (define (list-ref seq n)
   (if (eq? n 0)
       (car seq)
@@ -92,6 +114,11 @@
       seq
       (cons (proc (car seq))
             (map proc (cdr seq)))))
+
+(define (reduce proc seq mem)
+  (if (null? seq)
+      mem
+      (proc (car seq) (reduce proc (cdr seq) mem))))
 
 (define count
   ((lambda (total)
