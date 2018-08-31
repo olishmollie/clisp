@@ -190,7 +190,10 @@ obj_t *builtin_setcdr(VM *vm, obj_t *args) {
     return NULL;
 }
 
-obj_t *builtin_list(VM *vm, obj_t *args) { return args; }
+obj_t *builtin_list(VM *vm, obj_t *args) {
+    push(vm, args);
+    return args;
+}
 
 obj_t *builtin_char_to_int(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "char->int", 1);

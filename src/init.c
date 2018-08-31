@@ -77,6 +77,5 @@ void init() {
     else_sym = mk_sym(vm, "else");
 
     universe = global_env(vm);
-
     readfile(vm, STDLIB);
 }
