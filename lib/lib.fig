@@ -35,6 +35,8 @@
 
 (define (abs x) (if (< x 0) (- x) x))
 
+(define (square x) (* x x))
+
 (define (fact n)
   (define (iter prod count max)
     (if (> count max)
@@ -69,12 +71,23 @@
   (iter 1 0 1 n))
 
 (define (vec2 x y) (list x y))
+
 (define (vec3 x y z) (list x y z))
+
 (define (dot a b)
   (if (or (null? a) (null? b))
       0
       (+ (* (car a) (car b))
          (dot (cdr a) (cdr b)))))
+
+(define (veclen vec)
+  (define (len vec)
+    (if (null? vec)
+        0
+        (+ (square (car vec))
+           (len (cdr vec)))))
+  (list 'sqrt (len vec)))
+
 (define (orthogonal? va vb)
   (= (dot va vb) 0))
 
