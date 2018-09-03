@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define MAXSTRLEN 512
+#define MAX_STRING_LENGTH 512
 
 typedef struct obj_t obj_t;
 typedef struct table_t table_t;

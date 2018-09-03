@@ -45,8 +45,8 @@ obj_t *mk_num_from_long(VM *vm, long num) {
 }
 
 char *num_to_string(obj_t *object) {
-    char *buf = malloc(sizeof(char) * MAXSTRLEN);
-    snprintf(buf, MAXSTRLEN - 1, "%li", object->num);
+    char *buf = malloc(sizeof(char) * MAX_STRING_LENGTH);
+    snprintf(buf, MAX_STRING_LENGTH - 1, "%li", object->num);
     return buf;
 }
 

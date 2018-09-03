@@ -106,7 +106,7 @@ obj_t *read_constant(VM *vm, reader *rdr) {
 }
 
 obj_t *read_symbol(VM *vm, reader *rdr) {
-    char sym[MAXSTRLEN];
+    char sym[MAX_STRING_LENGTH];
     int i = 0;
 
     while (!is_delim(rdr->cur)) {
@@ -120,7 +120,7 @@ obj_t *read_symbol(VM *vm, reader *rdr) {
 }
 
 obj_t *read_string(VM *vm, reader *rdr) {
-    char str[MAXSTRLEN];
+    char str[MAX_STRING_LENGTH];
     int i = 0;
 
     rdr->cur = getc(rdr->in);
@@ -136,7 +136,7 @@ obj_t *read_string(VM *vm, reader *rdr) {
 }
 
 obj_t *read_number(VM *vm, reader *rdr) {
-    char num[MAXSTRLEN];
+    char num[MAX_STRING_LENGTH];
     int i = 0;
 
     if (rdr->cur == '-') {
@@ -144,13 +144,13 @@ obj_t *read_number(VM *vm, reader *rdr) {
         rdr->cur = getc(rdr->in);
     }
 
-    while (isdigit(rdr->cur) && i < MAXSTRLEN) {
+    while (isdigit(rdr->cur) && i < MAX_STRING_LENGTH) {
         num[i++] = rdr->cur;
         rdr->cur = getc(rdr->in);
     }
     num[i] = '\0';
 
-    if (i == MAXSTRLEN)
+    if (i == MAX_STRING_LENGTH)
         return mk_err(vm, "string exceeds max length");
 
     if (is_delim(rdr->cur)) {

@@ -264,6 +264,22 @@ obj_t *builtin_is_equal(VM *vm, obj_t *args) {
     }
 }
 
+obj_t *builtin_string_append(VM *vm, obj_t *args) {
+    ARG_TYPECHECK(vm, args, "string-append", OBJ_STR);
+    char buf[MAX_STRING_LENGTH];
+    int i = 0;
+    while (!is_the_empty_list(args)) {
+        char *sym = car(args)->sym;
+        while (*sym) {
+            buf[i++] = *sym++;
+        }
+        args = cdr(args);
+    }
+    buf[i] = '\0';
+
+    return mk_string(vm, buf);
+}
+
 obj_t *builtin_display(VM *vm, obj_t *args) {
     FIG_ASSERT(vm, !is_the_empty_list(args), "invalid syntax display");
     while (!is_the_empty_list(cdr(args))) {
