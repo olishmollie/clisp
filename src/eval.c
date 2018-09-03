@@ -31,6 +31,7 @@ int is_definition(obj_t *expr) { return is_tagged_list(expr, define_sym); }
 
 obj_t *eval_definition(VM *vm, obj_t *env, obj_t *expr) {
     obj_t *var, *val;
+    // (define (list . x) x)
     FIG_ASSERT(vm, length(cdr(expr)) >= 2, "invalid syntax define");
 
     if (is_pair(cadr(expr))) {
@@ -68,6 +69,8 @@ int is_top_level_only(obj_t *expr) {
 int is_callable(obj_t *expr) {
     return expr->type == OBJ_FUN || expr->type == OBJ_BUILTIN;
 }
+
+int is_variadic(obj_t *fun) { return fun->variadic; }
 
 obj_t *eval_arglist(VM *vm, obj_t *env, obj_t *arglist) {
     if (arglist == the_empty_list)
@@ -181,30 +184,24 @@ tailcall:
         while (!is_the_empty_list(args)) {
             obj_t *pred = eval(vm, env, car(args));
             FIG_ERRORCHECK(pred);
-            if (is_false(pred)) {
-                expr = false;
-                goto tailcall;
-            }
+            if (is_false(pred))
+                return false;
             args = cdr(args);
         }
-        expr =true;
-        goto tailcall;
+        return true;
     }
     else if (is_or(expr)) {
         obj_t *args = cdr(expr);
         while (!is_the_empty_list(args)) {
             obj_t *pred = eval(vm, env, car(args));
             FIG_ERRORCHECK(pred);
-            if (is_true(pred)) {
-                expr = true;
-                goto tailcall;
-            }
+            if (is_true(pred))
+                return true;
             args = cdr(args);
         }
-        expr = false;
-        goto tailcall;
+        return false;
     }
-    else if (is_pair(expr)) {
+    else if (is_list(expr)) {
         obj_t *procedure = eval(vm, env, car(expr));
         FIG_ERRORCHECK(procedure);
         FIG_ASSERT(vm, is_callable(procedure), "invalid procedure");
@@ -215,13 +212,13 @@ tailcall:
         if (is_builtin(procedure)) {
             return procedure->proc(vm, args);
         } else {
-            FIG_ASSERT(vm, length(procedure->params) == length(args),
-                       "incorrect number of arguments to function");
+            if (!is_variadic(procedure)) {
+                FIG_ASSERT(vm, length(procedure->params) == length(args),
+                        "incorrect number of arguments to function");
+            }
 
             env = env_extend(vm, procedure->env, procedure->params, args);
-
-            mk_cons(vm, begin_sym, procedure->body);
-            expr = pop(vm);
+            expr = mk_cons(vm, begin_sym, procedure->body);
             goto tailcall;
         }
     }

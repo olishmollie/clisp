@@ -13,7 +13,7 @@ VM *vm_new() {
 void push(VM *vm, obj_t *item) {
     if (vm->obj_count >= MAX_STACK_SIZE) {
         fprintf(stderr, "stack overflow\n");
-        exit(1);
+        builtin_exit(vm, NULL);
     }
     vm->stack[vm->sp++] = item;
 }
@@ -21,7 +21,7 @@ void push(VM *vm, obj_t *item) {
 obj_t *pop(VM *vm) {
     if (vm->obj_count == 0) {
         fprintf(stderr, "stack underflow\n");
-        exit(1);
+        builtin_exit(vm, NULL);
     }
     return vm->stack[--vm->sp];
 }

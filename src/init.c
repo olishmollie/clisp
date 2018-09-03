@@ -32,6 +32,7 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_is_char, "char?");
     register_builtin(vm, env, builtin_is_string, "string?");
     register_builtin(vm, env, builtin_is_pair, "pair?");
+    register_builtin(vm, env, builtin_is_list, "list?");
     register_builtin(vm, env, builtin_is_proc, "procedure?");
     register_builtin(vm, env, builtin_is_equal, "eq?");
 
@@ -47,7 +48,6 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_cdr, "cdr");
     register_builtin(vm, env, builtin_setcar, "set-car!");
     register_builtin(vm, env, builtin_setcdr, "set-cdr!");
-    register_builtin(vm, env, builtin_list, "list");
 
     register_builtin(vm, env, builtin_display, "display");
     register_builtin(vm, env, builtin_load, "load");

@@ -14,6 +14,8 @@ typedef struct {
     FILE *in;
 } reader;
 
+typedef struct VM VM;
+
 reader *reader_new(FILE *in);
 obj_t *read(VM *vm, reader *rdr);
 void reader_delete(reader *rdr);

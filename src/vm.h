@@ -2,6 +2,7 @@
 #define VM_H
 
 #include "object.h"
+#include "builtins.h"
 
 #define MAX_STACK_SIZE 8192
 

@@ -1,5 +1,7 @@
 (define lib "lib/lib.fig")
 
+(define (list . x) x)
+
 (define (caar l) (car (car l)))
 (define (cadr l) (car (cdr l)))
 (define (cdar l) (cdr (car l)))
@@ -7,7 +9,11 @@
 (define (caaar l) (car (car (car l))))
 (define (caadr l) (car (car (cdr l))))
 (define (cadar l) (car (cdr (car l))))
+(define (cdaar l) (cdr (car (car l))))
+(define (cddar l) (cdr (cdr (car l))))
+(define (cdadr l) (cdr (car (cdr l))))
 (define (caddr l) (car (cdr (cdr l))))
+(define (cdddr l) (cdr (cdr (cdr l))))
 
 ;; types/equality/comparison
 (define (not x)
@@ -56,11 +62,6 @@
   (iter base 1 exp))
 
 (define (fib n)
-  (if (< n 2)
-      n
-      (+ (fib (- n 1)) (fib (- n 2)))))
-
-(define (fib n)
   (define (iter cur prev count max)
     (if (>= count max)
         cur
@@ -70,9 +71,7 @@
               max)))
   (iter 1 0 1 n))
 
-(define (vec2 x y) (list x y))
-
-(define (vec3 x y z) (list x y z))
+(define (vec . x) x)
 
 (define (dot a b)
   (if (or (null? a) (null? b))
@@ -106,6 +105,13 @@
   (if (null? seq)
       0
       (+ 1 (length (cdr seq)))))
+
+(define (range n)
+  (define (iter count max)
+    (if (>= count max)
+        '()
+        (cons count (iter (+ count 1) max))))
+  (iter 0 n))
 
 (define (append l1 l2)
   (if (null? l1)

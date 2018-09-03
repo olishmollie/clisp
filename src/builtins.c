@@ -150,6 +150,11 @@ obj_t *builtin_is_pair(VM *vm, obj_t *args) {
     return is_pair(car(args)) ? true : false;
 }
 
+obj_t *builtin_is_list(VM *vm, obj_t *args) {
+    ARG_NUMCHECK(vm, args, "list?", 1);
+    return is_list(car(args)) ? true : false;
+}
+
 obj_t *builtin_is_proc(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "proc?", 1);
     return is_builtin(car(args)) ? true : false;

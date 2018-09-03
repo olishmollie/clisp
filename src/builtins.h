@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct obj_t obj_t;
+typedef struct VM VM;
+
 obj_t *builtin_plus(VM *vm, obj_t *args);
 obj_t *builtin_minus(VM *vm, obj_t *args);
 obj_t *builtin_times(VM *vm, obj_t *args);
@@ -28,6 +31,7 @@ obj_t *builtin_is_num(VM *vm, obj_t *args);
 obj_t *builtin_is_char(VM *vm, obj_t *args);
 obj_t *builtin_is_string(VM *vm, obj_t *args);
 obj_t *builtin_is_pair(VM *vm, obj_t *args);
+obj_t *builtin_is_list(VM *vm, obj_t *args);
 obj_t *builtin_is_proc(VM *vm, obj_t *args);
 obj_t *builtin_is_equal(VM *vm, obj_t *args);
 

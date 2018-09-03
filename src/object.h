@@ -78,6 +78,7 @@ struct obj_t {
         };
 
         struct {
+            int variadic;
             obj_t *env;
             obj_t *params;
             obj_t *body;
@@ -118,6 +119,7 @@ int is_false(obj_t *c);
 int is_true(obj_t *c);
 
 int is_pair(obj_t *object);
+int is_list(obj_t *object);
 
 int is_num(obj_t *object);
 int is_rat(obj_t *object);

@@ -90,6 +90,7 @@ obj_t *mk_fun(VM *vm, obj_t *env, obj_t *params, obj_t *body) {
     object->env = env;
     object->params = params;
     object->body = body;
+    object->variadic = is_list(object->params) ? 0 : 1;
     push(vm, object);
     return object;
 }
@@ -194,12 +195,16 @@ obj_t *env_lookup(VM *vm, obj_t *env, obj_t *symbol) {
         frame = car(env);
         symbols = car(frame);
         objects = cdr(frame);
-        while (!is_the_empty_list(symbols)) {
+
+        while (is_pair(symbols)) {
             if (symbol == car(symbols))
                 return car(objects);
             symbols = cdr(symbols);
             objects = cdr(objects);
         }
+        if (symbols == symbol)
+            return objects;
+
         env = cdr(env);
     }
 
@@ -211,7 +216,8 @@ obj_t *mk_frame(VM *vm, obj_t *symbols, obj_t *values) {
 }
 
 obj_t *env_extend(VM *vm, obj_t *env, obj_t *symbols, obj_t *values) {
-    return mk_cons(vm, mk_frame(vm, symbols, values), env);
+    obj_t *frame = mk_frame(vm, symbols, values);
+    return mk_cons(vm, frame, env);
 }
 
 int is_the_empty_list(obj_t *object) { return object == the_empty_list; }
@@ -219,6 +225,13 @@ int is_false(obj_t *object) { return object == false; }
 int is_true(obj_t *object) { return !is_false(object); }
 
 int is_pair(obj_t *object) { return object->type == OBJ_PAIR; }
+
+int is_list(obj_t *object) {
+    while (is_pair(object)) {
+        object = cdr(object);
+    }
+    return is_the_empty_list(object);
+}
 
 int is_num(obj_t *object) { return object->type == OBJ_NUM; }
 
