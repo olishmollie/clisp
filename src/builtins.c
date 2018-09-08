@@ -280,13 +280,24 @@ obj_t *builtin_string_append(VM *vm, obj_t *args) {
     return mk_string(vm, buf);
 }
 
+void display(obj_t *object) {
+    switch (object->type) {
+        case OBJ_STR:
+            printf("%s", object->str);
+            break;
+        default:
+            print(object);
+    }
+}
+
 obj_t *builtin_display(VM *vm, obj_t *args) {
     FIG_ASSERT(vm, !is_the_empty_list(args), "invalid syntax display");
-    while (!is_the_empty_list(cdr(args))) {
-        print(car(args));
+    while (!is_the_empty_list(args)) {
+        display(car(args));
         args = cdr(args);
+        printf(" ");
     }
-    println(car(args));
+    printf("\n");
     return NULL;
 }
 

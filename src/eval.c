@@ -31,7 +31,6 @@ int is_definition(obj_t *expr) { return is_tagged_list(expr, define_sym); }
 
 obj_t *eval_definition(VM *vm, obj_t *env, obj_t *expr) {
     obj_t *var, *val;
-    // (define (list . x) x)
     FIG_ASSERT(vm, length(cdr(expr)) >= 2, "invalid syntax define");
 
     if (is_pair(cadr(expr))) {
@@ -202,7 +201,9 @@ tailcall:
         return false;
     }
     else if (is_list(expr)) {
-        obj_t *procedure = eval(vm, env, car(expr));
+        obj_t *procedure = car(expr);
+        char *fn_name = procedure->sym;
+        procedure = eval(vm, env, procedure);
         FIG_ERRORCHECK(procedure);
         FIG_ASSERT(vm, is_callable(procedure), "invalid procedure");
 
@@ -214,7 +215,7 @@ tailcall:
         } else {
             if (!is_variadic(procedure)) {
                 FIG_ASSERT(vm, length(procedure->params) == length(args),
-                        "incorrect number of arguments to function");
+                        "incorrect number of arguments to %s", fn_name);
             }
 
             env = env_extend(vm, procedure->env, procedure->params, args);

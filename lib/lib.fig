@@ -2,6 +2,9 @@
 
 (define (list . x) x)
 
+(define (error msg fn-name)
+  (display (string-append "Error: " msg) fn-name))
+
 (define (caar l) (car (car l)))
 (define (cadr l) (car (cdr l)))
 (define (cdar l) (cdr (car l)))
