@@ -3,7 +3,9 @@ package jfig;
 class Symbol implements FigObject {
     static final Symbol quote = new Symbol("quote");
     static final Symbol define = new Symbol("define");
+    static final Symbol begin = new Symbol("begin");
     static final Symbol lambda = new Symbol("lambda");
+    static final Symbol iff = new Symbol("if");
 
     private final String value;
 

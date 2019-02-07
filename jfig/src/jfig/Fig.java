@@ -32,17 +32,25 @@ class Fig {
         globals.define("*", Builtins.multiply);
         globals.define("/", Builtins.divide);
 
-        globals.define("exit", Builtins.exit);
         globals.define("isNumber?", Builtins.isNumber);
+        globals.define("isBool?", Builtins.isBool);
+        globals.define("isSymbol?", Builtins.isSymbol);
+
+        globals.define("eq?", Builtins.eq);
+
         globals.define("cons", Builtins.cons);
         globals.define("car", Builtins.car);
         globals.define("cdr", Builtins.cdr);
+
+        globals.define("print", Builtins.print);
+        globals.define("println", Builtins.println);
+        globals.define("exit", Builtins.exit);
     }
 
     private static void runFile(String filename) throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(filename));
         String data = new String(encoded, Charset.defaultCharset());
-        run(data);
+        run(data, false);
     }
 
     private static void runPrompt() throws IOException {
@@ -51,15 +59,26 @@ class Fig {
 
         for (;;) {
             System.out.print("> ");
-            run(reader.readLine());
+            run(reader.readLine(), true);
         }
     }
 
-    private static void run(String data) {
+    private static void run(String data, boolean repl) {
         FigReader reader = new FigReader(data);
-        FigObject object = reader.read();
-        if (object != null) {
-            System.out.println(evaluator.evaluate(object, globals));
+
+        try {
+            while (!reader.isAtEnd()) {
+                FigObject object = reader.read();
+
+                if (object != null) {
+                    FigObject result = evaluator.evaluate(object, globals);
+                    if (repl) {
+                        System.out.println(result.toString());
+                    }
+                }
+            }
+        } catch (Error err) {
+            System.out.println("fig error: " + err.getMessage());
         }
     }
 }

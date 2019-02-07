@@ -23,6 +23,8 @@ class FigReader {
             throw new Error("unexpected ')'");
         } else if (c == '.') {
             throw new Error("unexpected '.'");
+        } else if (c == '#') {
+            return constant();
         } else if (c == '\'') {
             return quote();
         } else if (c == '(') {
@@ -33,6 +35,40 @@ class FigReader {
         }
 
         return symbol();
+    }
+
+    private FigObject constant() {
+        if (peek() == '\\') {
+            return character();
+        }
+
+        if (peek() == 't') {
+            consume();
+            return Bool.t;
+        } else if (peek() == 'f') {
+            consume();
+            return Bool.f;
+        }
+
+        throw new Error("invalid constant.");
+    }
+
+    private FigObject character() {
+        advance(); // eat the \
+
+        switch (peek()) {
+            case 'n':
+                throw new Error("invalid character.");
+            case 't':
+                throw new Error("invalid character.");
+            default:
+                char c = advance();
+                if (isDelimeter(peek())) {
+                    reset();
+                    return new FigCharacter(c);
+                }
+                throw new Error("invalid character " + Character.toString(c) + ".");
+        }
     }
 
     private FigObject quote() {
@@ -88,8 +124,12 @@ class FigReader {
             return Symbol.quote;
         } else if (lexeme.equals("define")) {
             return Symbol.define;
+        } else if (lexeme.equals("begin")) {
+            return Symbol.begin;
         } else if (lexeme.equals("lambda")) {
             return Symbol.lambda;
+        } else if (lexeme.equals("if")) {
+            return Symbol.iff;
         }
 
         return new Symbol(lexeme);
@@ -137,6 +177,7 @@ class FigReader {
         start = current;
     }
 
+    // TODO: better name
     private String reset() {
         String result = source.substring(start, current);
         start = current;
@@ -155,8 +196,20 @@ class FigReader {
         return source.charAt(current - 1);
     }
 
-    private boolean isAtEnd() {
+    boolean isAtEnd() {
         return current >= source.length();
+    }
+
+    private boolean isDelimeter(char c) {
+        switch (c) {
+            case ' ':
+            case '\n':
+            case '\t':
+            case '\0':
+                return true;
+            default:
+                return false;
+        }
     }
 
     private boolean isSymbolChar(char c) {
@@ -178,7 +231,7 @@ class FigReader {
     }
 
     private boolean isSpace(char c) {
-        return c == ' ' || c == '\t';
+        return c == ' ' || c == '\t' || c == '\n';
     }
 
 }

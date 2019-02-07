@@ -64,8 +64,16 @@ class Pair implements FigObject {
         return ((Pair) this.cdr).cdr;
     }
 
+    FigObject cdddr() {
+        return ((Pair) this.cddr()).cdr;
+    }
+
     FigObject caddr() {
         return ((Pair) this.cddr()).car;
+    }
+
+    FigObject cadddr() {
+        return ((Pair) this.cdddr()).car;
     }
 
     @Override

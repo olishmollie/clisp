@@ -6,7 +6,7 @@ class Evaluator {
             throw new Error("invalid syntax.");
         }
 
-        if (object.isNumber()) {
+        if (object.isNumber() || object.isBool() || object.isCharacter()) {
             return object;
         } else if (object.isSymbol()) {
             return evaluateSymbol((Symbol) object, environment);
@@ -26,12 +26,16 @@ class Evaluator {
             return evaluateQuote(object);
         } else if (object.car == Symbol.define) {
             return evaluateDefine(object, environment);
+        } else if (object.car == Symbol.begin) {
+            return evaluateBegin(object, environment);
         } else if (object.car == Symbol.lambda) {
-            return evaluateLambda(object);
+            return evaluateLambda(object, environment);
+        } else if (object.car == Symbol.iff) {
+            return evaluateIf(object, environment);
         }
 
         FigObject procedure = evaluate(object.car, environment);
-        if (!procedure.isCallable()) {
+        if (!procedure.isProcedure()) {
             throw new Error("invalid procedure.");
         }
         Pair arguments = (Pair) object.cdr;
@@ -59,7 +63,7 @@ class Evaluator {
 
             Pair lambdaObject =
                     new Pair(Symbol.lambda, new Pair(parameters, new Pair(body, Pair.nil)));
-            FigObject lambda = evaluateLambda(lambdaObject);
+            FigObject lambda = evaluateLambda(lambdaObject, environment);
 
             environment.define(((Symbol) target).getValue(), lambda);
 
@@ -77,7 +81,25 @@ class Evaluator {
         return null;
     }
 
-    private FigObject evaluateLambda(Pair object) {
+    private FigObject evaluateBegin(Pair object, Environment environment) {
+        FigObject actions = object.cdr;
+
+        if (!actions.isPair()) {
+            throw new Error("invalid syntax begin.");
+        }
+
+        while (!((Pair) actions).cdr.isNil()) {
+            if (!actions.isPair()) {
+                throw new Error("invalid syntax begin.");
+            }
+            evaluate(((Pair) actions).car, environment);
+            actions = ((Pair) actions).cdr;
+        }
+
+        return evaluate(((Pair) actions).car, environment);
+    }
+
+    private FigObject evaluateLambda(Pair object, Environment environment) {
         if (object.cdr.isNil()) {
             throw new Error("invalid lambda definition.");
         }
@@ -93,6 +115,19 @@ class Evaluator {
         }
 
         return new Procedure(null, (Pair) parameters, body);
+    }
+
+    private FigObject evaluateIf(Pair object, Environment environment) {
+        if (object.cdr.isNil() || !object.cdr.isPair()) {
+            throw new Error("bad syntax if.");
+        }
+
+        FigObject predicate = evaluate(object.cadr(), environment);
+        if (!predicate.isFalse()) {
+            return evaluate(object.caddr(), environment);
+        } else {
+            return evaluate(object.cadddr(), environment);
+        }
     }
 
 }

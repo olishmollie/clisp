@@ -30,24 +30,26 @@ class Builtins {
                 throw new Error("cannot call minus with no arguments.");
             }
 
-            if (!arguments.car.isNumber()) {
+            FigObject result = evaluator.evaluate(arguments.car, environment);
+
+            if (!result.isNumber()) {
                 throw new Error("arguments to minus must be numbers.");
             }
 
-            Number result = (Number) arguments.car;
-
             // unary minus
             if (arguments.cdr.isNil()) {
-                return new Number(-1 * result.getValue());
+                return new Number(-1 * ((Number) result).getValue());
             }
 
             Pair cur = (Pair) arguments.cdr;
             while (!cur.isNil()) {
                 FigObject x = evaluator.evaluate(cur.car, environment);
+
                 if (!x.isNumber()) {
                     throw new Error("arguments to minus be numbers.");
                 }
-                result = new Number(result.getValue() - ((Number) x).getValue());
+
+                result = new Number(((Number) result).getValue() - ((Number) x).getValue());
                 cur = (Pair) cur.cdr;
             }
 
@@ -62,19 +64,21 @@ class Builtins {
                 throw new Error("cannot call multiply with no arguments.");
             }
 
-            if (!arguments.car.isNumber()) {
+            FigObject result = evaluator.evaluate(arguments.car, environment);
+
+            if (!result.isNumber()) {
                 throw new Error("arguments to multiply must be numbers.");
             }
-
-            Number result = (Number) arguments.car;
 
             Pair cur = (Pair) arguments.cdr;
             while (!cur.isNil()) {
                 FigObject x = evaluator.evaluate(cur.car, environment);
+
                 if (!x.isNumber()) {
                     throw new Error("arguments to multiply be numbers.");
                 }
-                result = new Number(result.getValue() * ((Number) x).getValue());
+
+                result = new Number(((Number) result).getValue() * ((Number) x).getValue());
                 cur = (Pair) cur.cdr;
             }
 
@@ -89,22 +93,25 @@ class Builtins {
                 throw new Error("cannot call divide with no arguments.");
             }
 
-            if (!arguments.car.isNumber()) {
+            FigObject result = evaluator.evaluate(arguments.car, environment);
+
+            if (!result.isNumber()) {
                 throw new Error("arguments to divide must be numbers.");
             }
-
-            Number result = (Number) arguments.car;
 
             Pair cur = (Pair) arguments.cdr;
             while (!cur.isNil()) {
                 FigObject x = evaluator.evaluate(cur.car, environment);
+
                 if (!x.isNumber()) {
-                    throw new Error("arguments to multiply be numbers.");
+                    throw new Error("arguments to divide be numbers.");
                 }
+
                 if (((Number) x).getValue() == 0) {
                     throw new Error("division by zero.");
                 }
-                result = new Number(result.getValue() / ((Number) x).getValue());
+
+                result = new Number(((Number) result).getValue() / ((Number) x).getValue());
                 cur = (Pair) cur.cdr;
             }
 
@@ -140,6 +147,52 @@ class Builtins {
             FigObject object = evaluator.evaluate(arguments.car, environment);
 
             return object.isNumber() ? Bool.t : Bool.f;
+        }
+    };
+
+    static final Procedure isBool = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || !arguments.cdr.isNil()) {
+                throw new Error("incorrect number of arguments to isSymbol");
+            }
+
+            FigObject object = evaluator.evaluate(arguments.car, environment);
+
+            return object.isBool() ? Bool.t : Bool.f;
+        }
+    };
+
+    static final Procedure isSymbol = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || !arguments.cdr.isNil()) {
+                throw new Error("incorrect number of arguments to isSymbol");
+            }
+
+            FigObject object = evaluator.evaluate(arguments.car, environment);
+
+            return object.isSymbol() ? Bool.t : Bool.f;
+        }
+    };
+
+    static final Procedure eq = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || arguments.cadr().isNil() || !arguments.cddr().isNil()) {
+                throw new Error("incorrect number of arguments to eq.");
+            }
+
+            FigObject a = evaluator.evaluate(arguments.car, environment);
+            FigObject b = evaluator.evaluate(arguments.cadr(), environment);
+
+            if (a.isNumber() && b.isNumber()) {
+                return ((Number) a).getValue() == ((Number) b).getValue() ? Bool.t : Bool.f;
+            } else if (a.isSymbol() && b.isSymbol()) {
+                return ((Symbol) a).getValue().equals(((Symbol) b).getValue()) ? Bool.t : Bool.f;
+            }
+
+            return a == b ? Bool.t : Bool.f;
         }
     };
 
@@ -190,6 +243,27 @@ class Builtins {
             }
 
             return ((Pair) pair).cdr;
+        }
+    };
+
+    static final Procedure print = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || !arguments.cdr.isNil()) {
+                throw new Error("incorrect number of arguments to print.");
+            }
+
+            System.out.print(evaluator.evaluate(arguments.car, environment));
+            return null;
+        }
+    };
+
+    static final Procedure println = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            print.call(arguments, environment);
+            System.out.println();
+            return null;
         }
     };
 }
