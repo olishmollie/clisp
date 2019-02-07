@@ -72,7 +72,7 @@ class Fig {
 
                 if (object != null) {
                     FigObject result = evaluator.evaluate(object, globals);
-                    if (repl) {
+                    if (repl && result != null) {
                         System.out.println(result.toString());
                     }
                 }
