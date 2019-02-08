@@ -4,18 +4,21 @@ class Procedure implements FigObject, FigCallable {
     private String name;
     private final Pair parameters;
     private final FigObject body;
+    private final Environment environment;
 
     // Used for builtins
     Procedure() {
         this.name = null;
         this.parameters = null;
         this.body = null;
+        this.environment = null;
     }
 
-    Procedure(String name, Pair parameters, FigObject body) {
+    Procedure(String name, Pair parameters, FigObject body, Environment enclosing) {
         this.name = name;
         this.parameters = parameters;
         this.body = body;
+        this.environment = new Environment(enclosing);
     }
 
     void setName(String name) {
@@ -24,7 +27,6 @@ class Procedure implements FigObject, FigCallable {
 
     @Override
     public FigObject call(Pair arguments, Environment enclosing) {
-        Environment environment = new Environment(enclosing);
         Evaluator evaluator = new Evaluator();
 
         Pair currentArgument = arguments;

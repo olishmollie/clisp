@@ -59,10 +59,9 @@ class Evaluator {
             }
 
             FigObject parameters = ((Pair) name).cdr;
-            FigObject body = object.caddr();
+            FigObject body = object.cddr();
 
-            Pair lambdaObject =
-                    new Pair(Symbol.lambda, new Pair(parameters, new Pair(body, Pair.nil)));
+            Pair lambdaObject = new Pair(Symbol.lambda, new Pair(parameters, body));
             FigObject lambda = evaluateLambda(lambdaObject, environment);
 
             environment.define(((Symbol) target).getValue(), lambda);
@@ -109,12 +108,15 @@ class Evaluator {
             throw new Error("invalid lambda parameter list.");
         }
 
-        FigObject body = object.caddr();
+        FigObject body = object.cddr();
         if (body.isNil()) {
             throw new Error("invalid lambda body.");
         }
 
-        return new Procedure(null, (Pair) parameters, body);
+        // wrap body in begin block
+        body = new Pair(Symbol.begin, body);
+
+        return new Procedure(null, (Pair) parameters, body, environment);
     }
 
     private FigObject evaluateIf(Pair object, Environment environment) {
