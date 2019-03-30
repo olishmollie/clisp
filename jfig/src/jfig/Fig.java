@@ -37,6 +37,10 @@ class Fig {
         globals.define("isSymbol?", Builtins.isSymbol);
 
         globals.define("eq?", Builtins.eq);
+        globals.define(">", Builtins.gt);
+        globals.define(">=", Builtins.gte);
+        globals.define("<", Builtins.lt);
+        globals.define("<=", Builtins.lte);
 
         globals.define("cons", Builtins.cons);
         globals.define("car", Builtins.car);

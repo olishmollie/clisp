@@ -196,6 +196,78 @@ class Builtins {
         }
     };
 
+    static final Procedure gt = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || arguments.cadr().isNil() || !arguments.cddr().isNil()) {
+                throw new Error("incorrect number of arguments for >.");
+            }
+
+            FigObject a = evaluator.evaluate(arguments.car, environment);
+            FigObject b = evaluator.evaluate(arguments.cadr(), environment);
+
+            if (a.isNumber() && b.isNumber()) {
+                return ((Number) a).getValue() > ((Number) b).getValue() ? Bool.t : Bool.f;
+            }
+
+            throw new Error("incorrect arguments passed to >.");
+        }
+    };
+
+    static final Procedure gte = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || arguments.cadr().isNil() || !arguments.cddr().isNil()) {
+                throw new Error("incorrect number of arguments for >.");
+            }
+
+            FigObject a = evaluator.evaluate(arguments.car, environment);
+            FigObject b = evaluator.evaluate(arguments.cadr(), environment);
+
+            if (a.isNumber() && b.isNumber()) {
+                return ((Number) a).getValue() >= ((Number) b).getValue() ? Bool.t : Bool.f;
+            }
+
+            throw new Error("incorrect arguments passed to >.");
+        }
+    };
+
+    static final Procedure lt = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || arguments.cadr().isNil() || !arguments.cddr().isNil()) {
+                throw new Error("incorrect number of arguments for <.");
+            }
+
+            FigObject a = evaluator.evaluate(arguments.car, environment);
+            FigObject b = evaluator.evaluate(arguments.cadr(), environment);
+
+            if (a.isNumber() && b.isNumber()) {
+                return ((Number) a).getValue() < ((Number) b).getValue() ? Bool.t : Bool.f;
+            }
+
+            throw new Error("incorrect arguments passed to >.");
+        }
+    };
+
+    static final Procedure lte = new Procedure() {
+        @Override
+        public FigObject call(Pair arguments, Environment environment) {
+            if (arguments.isNil() || arguments.cadr().isNil() || !arguments.cddr().isNil()) {
+                throw new Error("incorrect number of arguments for <.");
+            }
+
+            FigObject a = evaluator.evaluate(arguments.car, environment);
+            FigObject b = evaluator.evaluate(arguments.cadr(), environment);
+
+            if (a.isNumber() && b.isNumber()) {
+                return ((Number) a).getValue() <= ((Number) b).getValue() ? Bool.t : Bool.f;
+            }
+
+            throw new Error("incorrect arguments passed to >.");
+        }
+    };
+
     static final Procedure cons = new Procedure() {
         @Override
         public FigObject call(Pair arguments, Environment environment) {
