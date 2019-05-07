@@ -33,8 +33,12 @@ void repl(VM *vm) {
 
         obj_t *object = interpret(vm, rdr);
 
+        int done = reader_eof(rdr);
+
         repl_println(object);
         reader_delete(rdr);
+
+        if (done) break;
     }
 }
 
@@ -49,5 +53,6 @@ int main(int argc, char **argv) {
         repl(vm);
     }
 
+    printf("\n");
     return 0;
 }

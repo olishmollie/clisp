@@ -27,7 +27,7 @@ void table_put(table_t *table, char *key, obj_t *value) {
     unsigned long h = hash(key);
     entry_t **entry = &table->store[h % table->size];
     while (*entry) {
-        entry = &(*entry)->next;
+       entry = &(*entry)->next;
     }
     *entry = entry_new(value);
 }

@@ -17,6 +17,10 @@ void reader_delete(reader *rdr) {
     free(rdr);
 }
 
+int reader_eof(reader *rdr) {
+    return rdr->cur == EOF;
+}
+
 int peek(reader *rdr) {
     int c = getc(rdr->in);
     ungetc(c, rdr->in);
@@ -220,9 +224,10 @@ obj_t *read(VM *vm, reader *rdr) {
     skipwhitespace(rdr);
     rdr->cur = getc(rdr->in);
 
-    obj_t *result;
-    if (rdr->cur == EOF)
+    if (reader_eof(rdr))
         return NULL;
+
+    obj_t *result;
     if (rdr->cur == '#') {
         result = read_constant(vm, rdr);
     } else if (isdigit(rdr->cur) || (rdr->cur == '-' && isdigit(peek(rdr)))) {

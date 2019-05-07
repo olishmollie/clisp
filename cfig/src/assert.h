@@ -38,7 +38,7 @@
 #define FIG_ERRORCHECK(args)                                                   \
     {                                                                          \
         if (args) {                                                            \
-            if (!is_pair(args)) {                                              \
+            if (!is_list(args)) {                                              \
                 if (is_error(args))                                            \
                     return args;                                               \
             } else {                                                           \
