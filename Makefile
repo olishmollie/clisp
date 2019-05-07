@@ -3,7 +3,7 @@ CFLAGS=-c -g -Wall
 LDFLAGS=-ledit
 SOURCES:=$(wildcard src/*.c)
 OBJECTS=$(SOURCES:.c=.o)
-EXECUTABLE=bin/cfig
+EXECUTABLE=bin/fig
 
 all: $(SOURCES) $(EXECUTABLE)
 
