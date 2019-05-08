@@ -19,7 +19,7 @@ obj_t *interpret(VM *vm, reader *rdr) {
 
 void repl(VM *vm) {
 
-    printf("fig version 0.1\n\n");
+    printf("fig version 0.2\n\n");
 
     while (1) {
         printf("> ");

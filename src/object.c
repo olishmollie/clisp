@@ -1,7 +1,9 @@
+#include "numbers.h"
 #include "object.h"
 
 obj_t *obj_new(VM *vm, object_type type) {
     obj_t *object = malloc(sizeof(obj_t));
+
     object->type = type;
     object->marked = 0;
 
@@ -9,15 +11,16 @@ obj_t *obj_new(VM *vm, object_type type) {
         gc(vm);
         vm->gc_threshold = vm->obj_count * 2;
     }
+
     object->next = vm->alloc_list;
     vm->alloc_list = object;
+
     vm->obj_count++;
 
     return object;
 }
 
 obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr) {
-
     push(vm, car);
     push(vm, cdr);
     obj_t *object = obj_new(vm, OBJ_PAIR);
@@ -30,23 +33,49 @@ obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr) {
     return object;
 }
 
-obj_t *mk_num_from_str(VM *vm, char *numstr) {
-    obj_t *object = obj_new(vm, OBJ_NUM);
-    object->num = strtol(numstr, NULL, 10);
-    push(vm, object);
-    return object;
+obj_t *mk_num_from_str(VM *vm, char *str) {
+    char *numer = strtok(str, "/");
+    char *denom = strtok(NULL, "/");
+
+    if (denom && *denom == 0) {
+        return mk_err(vm, "division by zero");
+    }
+
+    obj_t *num = obj_new(vm, OBJ_NUM);
+
+    num->numer = strtol(numer, NULL, 10);
+    num->denom = denom ? strtol(denom, NULL, 10) : 1l;
+
+    num = reduce(vm, num);
+
+    push(vm, num);
+
+    return num;
 }
 
-obj_t *mk_num_from_long(VM *vm, long num) {
-    obj_t *object = obj_new(vm, OBJ_NUM);
-    object->num = num;
-    push(vm, object);
-    return object;
+obj_t *mk_num_from_long(VM *vm, long numer, long denom) {
+    if (denom == 0) {
+        return mk_err(vm, "division by zero");
+    }
+
+    obj_t *num = obj_new(vm, OBJ_NUM);
+
+    num->numer = numer;
+    num->denom = denom;
+
+    num = reduce(vm, num);
+
+    push(vm, num);
+    return num;
 }
 
-char *num_to_string(obj_t *object) {
+char *num_to_string(obj_t *num) {
     char *buf = malloc(sizeof(char) * MAX_STRING_LENGTH);
-    snprintf(buf, MAX_STRING_LENGTH - 1, "%li", object->num);
+    if (num->denom == 1) {
+        snprintf(buf, MAX_STRING_LENGTH - 1, "%li", num->numer);
+    } else {
+        snprintf(buf, MAX_STRING_LENGTH - 1, "%li/%li", num->numer, num->denom);
+    }
     return buf;
 }
 
@@ -234,7 +263,6 @@ int is_list(obj_t *object) {
 }
 
 int is_num(obj_t *object) { return object->type == OBJ_NUM; }
-
 int is_symbol(obj_t *object) { return object->type == OBJ_SYM; }
 int is_boolean(obj_t *object) { return object == true || object == false; }
 int is_char(obj_t *object) { return object->type == OBJ_CHAR; }
@@ -335,7 +363,11 @@ void print(obj_t *object) {
     if (object) {
         switch (object->type) {
         case OBJ_NUM:
-            printf("%li", object->num);
+            if (object->denom == 1) {
+                printf("%li", object->numer);
+            } else {
+                printf("%li/%li", object->numer, object->denom);
+            }
             break;
         case OBJ_SYM:
             printf("%s", object->sym);

@@ -36,8 +36,6 @@ obj_t *or_sym;
 obj_t *cond_sym;
 obj_t *else_sym;
 
-typedef enum { NUM_INT, NUM_RAT, NUM_DBL, NUM_ERR } num_type;
-
 typedef enum {
     OBJ_NUM,
     OBJ_SYM,
@@ -60,7 +58,11 @@ struct obj_t {
     unsigned char marked;
     obj_t *next;
     union {
-        long num;
+        struct {
+            long numer;
+            long denom;
+        };
+
         char *sym;
         char *str;
 
@@ -92,8 +94,8 @@ typedef struct VM VM;
 
 obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr);
 
-obj_t *mk_num_from_str(VM *vm, char *numstr);
-obj_t *mk_num_from_long(VM *vm, long num);
+obj_t *mk_num_from_str(VM *vm, char *str);
+obj_t *mk_num_from_long(VM *vm, long numer, long denom);
 char *num_to_string(obj_t *object);
 
 obj_t *mk_sym(VM *vm, char *name);
@@ -122,7 +124,6 @@ int is_pair(obj_t *object);
 int is_list(obj_t *object);
 
 int is_num(obj_t *object);
-int is_rat(obj_t *object);
 int is_double(obj_t *object);
 
 int is_symbol(obj_t *object);

@@ -152,10 +152,20 @@ obj_t *read_number(VM *vm, reader *rdr) {
         num[i++] = rdr->cur;
         rdr->cur = getc(rdr->in);
     }
-    num[i] = '\0';
 
     if (i == MAX_STRING_LENGTH)
         return mk_err(vm, "string exceeds max length");
+
+    if (rdr->cur == '/') {
+        num[i++] = rdr->cur;
+        rdr->cur = getc(rdr->in);
+        while (isdigit(rdr->cur)) {
+            num[i++] = rdr->cur;
+            rdr->cur = getc(rdr->in);
+        }
+    }
+
+    num[i] = '\0';
 
     if (is_delim(rdr->cur)) {
         ungetc(rdr->cur, rdr->in);
