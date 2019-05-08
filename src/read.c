@@ -141,7 +141,7 @@ obj_t *read_string(VM *vm, reader *rdr) {
 
 obj_t *read_number(VM *vm, reader *rdr) {
     char num[MAX_STRING_LENGTH];
-    int i = 0;
+    int i = 0, is_decimal = 0, is_fractional = 0;
 
     if (rdr->cur == '-') {
         num[i++] = rdr->cur;
@@ -156,7 +156,10 @@ obj_t *read_number(VM *vm, reader *rdr) {
     if (i == MAX_STRING_LENGTH)
         return mk_err(vm, "string exceeds max length");
 
-    if (rdr->cur == '/') {
+    if (rdr->cur == '/' || rdr->cur == '.') {
+        is_decimal = rdr->cur == '.';
+        is_fractional = rdr->cur == '/';
+
         num[i++] = rdr->cur;
         rdr->cur = getc(rdr->in);
         while (isdigit(rdr->cur)) {
@@ -169,7 +172,7 @@ obj_t *read_number(VM *vm, reader *rdr) {
 
     if (is_delim(rdr->cur)) {
         ungetc(rdr->cur, rdr->in);
-        return mk_num_from_str(vm, num);
+        return mk_num_from_str(vm, num, is_decimal, is_fractional);
     }
 
     return mk_err(vm, "invalid number syntax");

@@ -29,6 +29,7 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_is_boolean, "boolean?");
     register_builtin(vm, env, builtin_is_symbol, "symbol?");
     register_builtin(vm, env, builtin_is_num, "number?");
+    register_builtin(vm, env, builtin_is_integer, "integer?");
     register_builtin(vm, env, builtin_is_char, "char?");
     register_builtin(vm, env, builtin_is_string, "string?");
     register_builtin(vm, env, builtin_is_pair, "pair?");
@@ -52,6 +53,7 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_string_append, "string-append");
 
     register_builtin(vm, env, builtin_display, "display");
+    register_builtin(vm, env, builtin_eval, "eval");
     register_builtin(vm, env, builtin_load, "load");
     register_builtin(vm, env, builtin_exit, "exit");
 

@@ -170,6 +170,12 @@ obj_t *builtin_is_num(VM *vm, obj_t *args) {
     return is_num(num) ? true : false;
 }
 
+obj_t *builtin_is_integer(VM *vm, obj_t *args) {
+    ARG_NUMCHECK(vm, args, "integer?", 1);
+    obj_t *num = car(args);
+    return is_integer(num) ? true : false;
+}
+
 obj_t *builtin_is_char(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "char?", 1);
     return is_char(car(args)) ? true : false;
@@ -342,6 +348,19 @@ obj_t *builtin_display(VM *vm, obj_t *args) {
     }
     printf("\n");
     return NULL;
+}
+
+obj_t *builtin_eval(VM *vm, obj_t *args) {
+    FIG_ASSERT(vm, !is_the_empty_list(args), "incorrect argument count in 'eval'");
+
+    obj_t *expr = car(args);
+    obj_t *env = cdr(args);
+
+    if (!is_the_empty_list(env)) {
+        return eval(vm, env, expr);
+    }
+
+    return eval(vm, universe, expr);
 }
 
 obj_t *readfile(VM *vm, char *fname) {

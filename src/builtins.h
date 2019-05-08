@@ -28,6 +28,7 @@ obj_t *builtin_is_null(VM *vm, obj_t *args);
 obj_t *builtin_is_boolean(VM *vm, obj_t *args);
 obj_t *builtin_is_symbol(VM *vm, obj_t *args);
 obj_t *builtin_is_num(VM *vm, obj_t *args);
+obj_t *builtin_is_integer(VM *vm, obj_t *args);
 obj_t *builtin_is_char(VM *vm, obj_t *args);
 obj_t *builtin_is_string(VM *vm, obj_t *args);
 obj_t *builtin_is_pair(VM *vm, obj_t *args);
@@ -53,6 +54,7 @@ obj_t *builtin_setcdr(VM *vm, obj_t *args);
 obj_t *builtin_string_append(VM *vm, obj_t *args);
 
 obj_t *builtin_display(VM *vm, obj_t *args);
+obj_t *builtin_eval(VM *vm, obj_t *args);
 obj_t *readfile(VM *vm, char *fname);
 obj_t *builtin_load(VM *vm, obj_t *args);
 

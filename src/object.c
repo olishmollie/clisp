@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "numbers.h"
 #include "object.h"
 
@@ -33,21 +35,31 @@ obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr) {
     return object;
 }
 
-obj_t *mk_num_from_str(VM *vm, char *str) {
-    char *numer = strtok(str, "/");
-    char *denom = strtok(NULL, "/");
-
-    if (denom && *denom == 0) {
-        return mk_err(vm, "division by zero");
-    }
-
+obj_t *mk_num_from_str(VM *vm, char *str, int is_decimal, int is_fractional) {
     obj_t *num = obj_new(vm, OBJ_NUM);
 
-    num->numer = strtol(numer, NULL, 10);
-    num->denom = denom ? strtol(denom, NULL, 10) : 1l;
+    if (is_decimal) {
+        strtok(str, ".");
+        char *f = strtok(NULL, ".");
+
+        long denom = (long) pow(10.0, (double) strlen(f));
+
+        num->numer = (long) (strtod(str, NULL) * denom) + strtol(f, NULL, 10);
+        num->denom = denom;
+    }
+    else if (is_fractional) {
+        char *numer = strtok(str, "/");
+        char *denom = strtok(NULL, "/");
+
+        num->numer = strtol(numer, NULL, 10);
+        num->denom = strtol(denom, NULL, 10);
+    }
+    else {
+        num->numer = strtol(str, NULL, 10);
+        num->denom = 1l;
+    }
 
     num = reduce(vm, num);
-
     push(vm, num);
 
     return num;
@@ -263,6 +275,7 @@ int is_list(obj_t *object) {
 }
 
 int is_num(obj_t *object) { return object->type == OBJ_NUM; }
+int is_integer(obj_t *object) { return is_num(object) && object->denom == 1; }
 int is_symbol(obj_t *object) { return object->type == OBJ_SYM; }
 int is_boolean(obj_t *object) { return object == true || object == false; }
 int is_char(obj_t *object) { return object->type == OBJ_CHAR; }
@@ -271,29 +284,15 @@ int is_builtin(obj_t *object) { return object->type == OBJ_BUILTIN; }
 int is_fun(obj_t *object) { return object->type == OBJ_FUN; }
 int is_error(obj_t *object) { return object->type == OBJ_ERR; }
 
+static char *type_names[10] = {"number", "symbol", "string",
+                               "pair", "bool", "char", "builtin",
+                               "function", "nil", "error"};
+
 char *type_name(object_type type) {
-    switch (type) {
-    case OBJ_NUM:
-        return "number";
-    case OBJ_SYM:
-        return "symbol";
-    case OBJ_STR:
-        return "string";
-    case OBJ_PAIR:
-        return "cons";
-    case OBJ_BOOL:
-        return "boolean";
-    case OBJ_CHAR:
-        return "character";
-    case OBJ_FUN:
-        return "function";
-    case OBJ_NIL:
-        return "nil";
-    case OBJ_ERR:
-        return "error";
-    default:
-        return "unknown";
+    if (type < 0 || type > 9) {
+        return "unknown type";
     }
+    return type_names[type];
 }
 
 int length(obj_t *object) {

@@ -94,7 +94,7 @@ typedef struct VM VM;
 
 obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr);
 
-obj_t *mk_num_from_str(VM *vm, char *str);
+obj_t *mk_num_from_str(VM *vm, char *str, int is_decimal, int is_fractional);
 obj_t *mk_num_from_long(VM *vm, long numer, long denom);
 char *num_to_string(obj_t *object);
 
@@ -124,6 +124,7 @@ int is_pair(obj_t *object);
 int is_list(obj_t *object);
 
 int is_num(obj_t *object);
+int is_integer(obj_t *object);
 int is_double(obj_t *object);
 
 int is_symbol(obj_t *object);
