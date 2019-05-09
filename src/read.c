@@ -33,7 +33,7 @@ int is_delim(int c) {
 }
 
 int is_initial(int c) {
-    char *allowed = "+-*/%!?<>=&^";
+    char *allowed = "+-*/%!?<>=&^|";
     return isalpha(c) || strchr(allowed, c);
 }
 
@@ -113,10 +113,23 @@ obj_t *read_symbol(VM *vm, reader *rdr) {
     char sym[MAX_STRING_LENGTH];
     int i = 0;
 
-    while (!is_delim(rdr->cur)) {
-        sym[i++] = rdr->cur;
+    if (rdr->cur == '|') {
+        /* symbol literals are wrapped in pipes */
         rdr->cur = getc(rdr->in);
+        while (!reader_eof(rdr) && rdr->cur != '|') {
+            sym[i++] = rdr->cur;
+            rdr->cur = getc(rdr->in);
+        }
+        rdr->cur = getc(rdr->in); /* eat the '|' */
     }
+    else {
+        /* regular symbol */
+        while (!is_delim(rdr->cur)) {
+            sym[i++] = rdr->cur;
+            rdr->cur = getc(rdr->in);
+        }
+    }
+
     sym[i] = '\0';
 
     ungetc(rdr->cur, rdr->in);
