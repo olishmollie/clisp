@@ -250,14 +250,14 @@ obj_t *builtin_char_to_int(VM *vm, obj_t *args) {
 
 obj_t *builtin_int_to_char(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "int->char", 1);
-    FIG_ASSERT(vm, is_num(car(args)) && car(args)->denom == 1, "invalid argument passed to int->char");
     obj_t *arg = car(args);
+    FIG_ASSERT(vm, is_integer(arg), "'invalid argument passed to int->char'");
     return mk_char(vm, arg->numer);
 }
 
 obj_t *builtin_number_to_string(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "number->string", 1);
-    FIG_ASSERT(vm, is_num(car(args)), "invalid argument passed to number->string");
+    FIG_ASSERT(vm, is_num(car(args)), "invalid argument passed to 'number->string'");
 
     obj_t *arg = car(args);
 
@@ -269,12 +269,47 @@ obj_t *builtin_number_to_string(VM *vm, obj_t *args) {
     return result;
 }
 
+// TODO: can we use reader functions for this or vice versa?
+static obj_t *parse_number(VM *vm, char *str) {
+    int i = 0, is_decimal = 0, is_fraction = 0;
+
+    if (str[i] == '-') {
+        i++;
+    }
+
+    while (isdigit(str[i])) {
+        i++;
+    }
+
+    if (str[i] == '/') {
+        is_fraction = 1;
+    } else if (str[i] == '.') {
+        is_decimal = 1;
+    } else if (str[i] != '\0') {
+        printf("str[i] = %c\n", str[i]);
+        return mk_err(vm, "invalid number syntax");
+    }
+
+    i++;
+    while (isdigit(str[i])) {
+        i++;
+    }
+
+    if (is_delim(str[i])) {
+        return mk_num_from_str(vm, str, is_decimal, is_fraction);
+    }
+
+    return mk_err(vm, "invalid number syntax");
+}
+
 obj_t *builtin_string_to_number(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "string->number", 1);
     FIG_ASSERT(vm, is_string(car(args)),
-               "invalid argument passed to string->number");
+               "invalid argument passed to 'string->number'");
+
     obj_t *arg = car(args);
-    return mk_num_from_str(vm, arg->str);
+
+    return parse_number(vm, arg->str);
 }
 
 obj_t *builtin_symbol_to_string(VM *vm, obj_t *args) {
@@ -350,17 +385,9 @@ obj_t *builtin_display(VM *vm, obj_t *args) {
     return NULL;
 }
 
-obj_t *builtin_eval(VM *vm, obj_t *args) {
-    FIG_ASSERT(vm, !is_the_empty_list(args), "incorrect argument count in 'eval'");
-
-    obj_t *expr = car(args);
-    obj_t *env = cdr(args);
-
-    if (!is_the_empty_list(env)) {
-        return eval(vm, env, expr);
-    }
-
-    return eval(vm, universe, expr);
+obj_t *builtin_env(VM *vm, obj_t *args) {
+    FIG_ASSERT(vm, is_the_empty_list(args), "incorrect argument count in 'env'");
+    return universe;
 }
 
 obj_t *readfile(VM *vm, char *fname) {

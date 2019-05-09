@@ -25,13 +25,17 @@ obj_t *obj_new(VM *vm, object_type type) {
 obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr) {
     push(vm, car);
     push(vm, cdr);
+
     obj_t *object = obj_new(vm, OBJ_PAIR);
+
     object->car = car;
     object->cdr = cdr;
+
     pop(vm);
     pop(vm);
 
     push(vm, object);
+
     return object;
 }
 
@@ -365,7 +369,13 @@ void print(obj_t *object) {
             if (object->denom == 1) {
                 printf("%li", object->numer);
             } else {
-                printf("%li/%li", object->numer, object->denom);
+                double d = (double) object->numer / object->denom;
+                double l = round(d * 100);
+                if (fabs(d * 100 - l) > 0.01) {
+                    printf("%li/%li", object->numer, object->denom);
+                } else {
+                    printf("%g", d);
+                }
             }
             break;
         case OBJ_SYM:

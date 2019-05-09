@@ -29,7 +29,7 @@ int peek(reader *rdr) {
 
 int is_delim(int c) {
     return isspace(c) || c == EOF || c == '(' || c == ')' || c == '"' ||
-           c == ';';
+           c == ';' || c == '\0';
 }
 
 int is_initial(int c) {
