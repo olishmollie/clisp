@@ -12,15 +12,15 @@ typedef struct {
     int cur;
     int linenum;
     FILE *in;
-} reader;
+} Reader;
 
 typedef struct VM VM;
 
 int is_delim(int c);
 
-reader *reader_new(FILE *in);
-obj_t *read(VM *vm, reader *rdr);
-void reader_delete(reader *rdr);
-int reader_eof(reader *rdr);
+Reader *reader_new(FILE *in);
+obj_t *read(VM *vm, Reader *rdr);
+void reader_delete(Reader *rdr);
+int reader_eof(Reader *rdr);
 
 #endif

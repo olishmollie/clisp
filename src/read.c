@@ -1,14 +1,14 @@
 #include "read.h"
 
-reader *reader_new(FILE *in) {
-    reader *r = malloc(sizeof(reader));
-    r->cur = 0;
-    r->linenum = 0;
-    r->in = in;
-    return r;
+Reader *reader_new(FILE *in) {
+    Reader *rdr = malloc(sizeof(Reader));
+    rdr->cur = 0;
+    rdr->linenum = 0;
+    rdr->in = in;
+    return rdr;
 }
 
-void reader_delete(reader *rdr) {
+void reader_delete(Reader *rdr) {
     /* flush input buffer */
     while ((rdr->cur = getc(rdr->in)) != '\n' && rdr->cur != EOF) {
     }
@@ -17,11 +17,11 @@ void reader_delete(reader *rdr) {
     free(rdr);
 }
 
-int reader_eof(reader *rdr) {
+int reader_eof(Reader *rdr) {
     return rdr->cur == EOF;
 }
 
-int peek(reader *rdr) {
+int peek(Reader *rdr) {
     int c = getc(rdr->in);
     ungetc(c, rdr->in);
     return c;
@@ -37,7 +37,7 @@ int is_initial(int c) {
     return isalpha(c) || strchr(allowed, c);
 }
 
-void skipwhitespace(reader *rdr) {
+void skipwhitespace(Reader *rdr) {
     while ((rdr->cur = getc(rdr->in)) != EOF) {
         if (isspace(rdr->cur)) {
             continue;
@@ -52,7 +52,7 @@ void skipwhitespace(reader *rdr) {
     }
 }
 
-int expected_string(reader *rdr, char *str) {
+int expected_string(Reader *rdr, char *str) {
     while (*str != '\0') {
         rdr->cur = getc(rdr->in);
         if (*str++ != rdr->cur)
@@ -63,7 +63,7 @@ int expected_string(reader *rdr, char *str) {
     return 1;
 }
 
-obj_t *read_character(VM *vm, reader *rdr) {
+obj_t *read_character(VM *vm, Reader *rdr) {
     rdr->cur = getc(rdr->in);
 
     obj_t *res;
@@ -96,7 +96,7 @@ obj_t *read_character(VM *vm, reader *rdr) {
     return res;
 }
 
-obj_t *read_constant(VM *vm, reader *rdr) {
+obj_t *read_constant(VM *vm, Reader *rdr) {
     rdr->cur = getc(rdr->in);
     if (rdr->cur == '\\') {
         return read_character(vm, rdr);
@@ -109,7 +109,7 @@ obj_t *read_constant(VM *vm, reader *rdr) {
     return mk_err(vm, "invalid constant");
 }
 
-obj_t *read_symbol(VM *vm, reader *rdr) {
+obj_t *read_symbol(VM *vm, Reader *rdr) {
     char sym[MAX_STRING_LENGTH];
     int i = 0;
 
@@ -136,7 +136,7 @@ obj_t *read_symbol(VM *vm, reader *rdr) {
     return mk_sym(vm, sym);
 }
 
-obj_t *read_string(VM *vm, reader *rdr) {
+obj_t *read_string(VM *vm, Reader *rdr) {
     char str[MAX_STRING_LENGTH];
     int i = 0;
 
@@ -152,7 +152,7 @@ obj_t *read_string(VM *vm, reader *rdr) {
     return mk_string(vm, str);
 }
 
-obj_t *read_number(VM *vm, reader *rdr) {
+obj_t *read_number(VM *vm, Reader *rdr) {
     char num[MAX_STRING_LENGTH];
     int i = 0, is_decimal = 0, is_fractional = 0;
 
@@ -191,7 +191,7 @@ obj_t *read_number(VM *vm, reader *rdr) {
     return mk_err(vm, "invalid number syntax");
 }
 
-obj_t *read_quote(VM *vm, reader *rdr) {
+obj_t *read_quote(VM *vm, Reader *rdr) {
     int sp = vm->sp;
     obj_t *quoted_expr = read(vm, rdr);
     obj_t *quote = mk_cons(vm, quoted_expr, the_empty_list);
@@ -199,7 +199,7 @@ obj_t *read_quote(VM *vm, reader *rdr) {
     return mk_cons(vm, quote_sym, quote);
 }
 
-obj_t *read_list(VM *vm, reader *rdr) {
+obj_t *read_list(VM *vm, Reader *rdr) {
     skipwhitespace(rdr);
     if (rdr->cur == EOF)
         return mk_err(vm, "expected ')'");
@@ -245,7 +245,7 @@ obj_t *read_list(VM *vm, reader *rdr) {
     return mk_cons(vm, car_obj, cdr_obj);
 }
 
-obj_t *read(VM *vm, reader *rdr) {
+obj_t *read(VM *vm, Reader *rdr) {
 
     skipwhitespace(rdr);
     rdr->cur = getc(rdr->in);

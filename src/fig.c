@@ -10,7 +10,7 @@ void repl_println(obj_t *object) {
     }
 }
 
-obj_t *interpret(VM *vm, reader *rdr) {
+obj_t *interpret(VM *vm, Reader *rdr) {
     int sp = vm->sp;
     obj_t *object = eval(vm, universe, read(vm, rdr));
     popn(vm, vm->sp - sp);
@@ -23,7 +23,7 @@ void repl(VM *vm) {
 
     while (1) {
         printf("> ");
-        reader *rdr = reader_new(stdin);
+        Reader *rdr = reader_new(stdin);
 
         /* Hack. User hits enter with no data */
         int c = getc(stdin);

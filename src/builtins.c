@@ -398,7 +398,7 @@ obj_t *readfile(VM *vm, char *fname) {
     if (!infile)
         return mk_err(vm, "could not open %s", fname);
 
-    reader *rdr = reader_new(infile);
+    Reader *rdr = reader_new(infile);
 
     while (!feof(infile)) {
         int sp = vm->sp;
