@@ -201,7 +201,7 @@ obj_t *read_number(VM *vm, Reader *rdr) {
     return mk_err(vm, "invalid number syntax");
 }
 
-obj_t *read_quote(VM *vm, Reader *rdr) {
+obj_t *read_quote(VM *vm, Reader *rdr, obj_t *quote_sym) {
     int sp = vm->sp;
     obj_t *quoted_expr = read(vm, rdr);
     obj_t *quote = mk_cons(vm, quoted_expr, the_empty_list);
@@ -310,7 +310,11 @@ obj_t *read(VM *vm, Reader *rdr) {
     } else if (rdr->cur == '(') {
         result = read_list(vm, rdr);
     } else if (rdr->cur == '\'') {
-        result = read_quote(vm, rdr);
+        result = read_quote(vm, rdr, quote_sym);
+    } else if (rdr->cur == '`') {
+        result = read_quote(vm, rdr, quasiquote_sym);
+    } else if (rdr->cur == ',') {
+        result = read_quote(vm, rdr, unquote_sym);
     } else if (rdr->cur == ')') {
         result = mk_err(vm, "unexpected ')'");
     } else if (rdr->cur == '.') {

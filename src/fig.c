@@ -12,8 +12,13 @@ void repl_println(obj_t *object) {
 
 obj_t *interpret(VM *vm, Reader *rdr) {
     int sp = vm->sp;
-    obj_t *object = eval(vm, universe, read(vm, rdr));
+    obj_t *ast = read(vm, rdr);
     popn(vm, vm->sp - sp);
+
+    sp = vm->sp;
+    obj_t *object = eval(vm, universe, ast);
+    popn(vm, vm->sp - sp);
+
     return object;
 }
 

@@ -9,11 +9,51 @@ int is_tagged_list(obj_t *expr, obj_t *tag) {
     return 0;
 }
 
-int is_quotation(obj_t *expr) { return is_tagged_list(expr, quote_sym); }
+int is_quote(obj_t *expr) {
+    return is_tagged_list(expr, quote_sym);
+}
 
 obj_t *text_of_quotation(obj_t *expr) {
-    if (cddr(expr) != the_empty_list)
+    if (cddr(expr) != the_empty_list) {
         return mk_err(vm, "invalid syntax");
+    }
+    return cadr(expr);
+}
+
+int is_quasiquote(obj_t *expr) {
+    return is_tagged_list(expr, quasiquote_sym);
+}
+
+int is_unquote(obj_t *expr) {
+    return is_tagged_list(expr, unquote_sym);
+}
+
+obj_t *eval_unquote(obj_t *env, obj_t *expr) {
+    if (!is_the_empty_list(cddr(expr))) {
+        return mk_err(vm, "invalid syntax in unquote");
+    }
+
+    return eval(vm, env, cadr(expr));
+}
+
+obj_t *eval_quasiquote(obj_t *env, obj_t *expr) {
+    if (cddr(expr) != the_empty_list) {
+        return mk_err(vm, "invalid syntax");
+    }
+
+    obj_t *list = cadr(expr);
+    while (!is_the_empty_list(list)) {
+        obj_t *item = car(list);
+        if (is_unquote(item)) {
+            obj_t *res = eval_unquote(env, item);
+            if (is_error(res)) {
+                return res;
+            }
+            set_car(list, res);
+        }
+        list = cdr(list);
+    }
+
     return cadr(expr);
 }
 
@@ -96,11 +136,17 @@ tailcall:
     if (is_self_evaluating(expr)) {
         return expr;
     }
-    else if (is_quotation(expr)) {
+    else if (is_quote(expr)) {
         return text_of_quotation(expr);
     }
     else if (expr->type == OBJ_SYM) {
         return env_lookup(vm, env, expr);
+    }
+    else if (is_quasiquote(expr)) {
+        return eval_quasiquote(env, expr);
+    }
+    else if (is_unquote(expr)) {
+        return mk_err(vm, "improper setting for unquote");
     }
     else if (is_definition(expr)) {
         return eval_definition(vm, env, expr);

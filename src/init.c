@@ -70,6 +70,9 @@ void init() {
     the_empty_list = mk_nil(vm);
 
     quote_sym = mk_sym(vm, "quote");
+    quasiquote_sym = mk_sym(vm, "quasiquote");
+    unquote_sym = mk_sym(vm, "unquote");
+
     define_sym = mk_sym(vm, "define");
     set_sym = mk_sym(vm, "set!");
     if_sym = mk_sym(vm, "if");
