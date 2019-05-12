@@ -28,12 +28,39 @@ int is_unquote(obj_t *expr) {
     return is_tagged_list(expr, unquote_sym);
 }
 
+int is_unquote_splicing(obj_t *expr) {
+    return is_tagged_list(expr, unquote_splicing_sym);
+}
+
 obj_t *eval_unquote(obj_t *env, obj_t *expr) {
     if (!is_the_empty_list(cddr(expr))) {
-        return mk_err(vm, "invalid syntax in unquote");
+        return mk_err(vm, "invalid syntax in 'unquote'");
     }
 
     return eval(vm, env, cadr(expr));
+}
+
+obj_t *eval_unquote_splicing(obj_t *env, obj_t *expr) {
+    if (!is_the_empty_list(cddr(expr))) {
+        return mk_err(vm, "invalid syntax in 'unquote-splicint'");
+    }
+
+    obj_t *res = eval(vm, env, cadr(expr));
+
+    if (!is_list(res)) {
+        return mk_err(vm, "unquote_splicing must result in a list");
+    }
+
+    return res;
+}
+
+void append(obj_t *dest, obj_t *items) {
+    obj_t *tmp = items;
+    while (!is_the_empty_list(cdr(tmp))) {
+        tmp = cdr(tmp);
+    }
+    set_cdr(tmp, cdr(dest));
+    *dest = *items;
 }
 
 obj_t *eval_quasiquote(obj_t *env, obj_t *expr) {
@@ -42,15 +69,29 @@ obj_t *eval_quasiquote(obj_t *env, obj_t *expr) {
     }
 
     obj_t *list = cadr(expr);
+
     while (!is_the_empty_list(list)) {
         obj_t *item = car(list);
+
         if (is_unquote(item)) {
             obj_t *res = eval_unquote(env, item);
+
             if (is_error(res)) {
                 return res;
             }
+
             set_car(list, res);
+        } else if (is_unquote_splicing(item)) {
+            obj_t *res = eval_unquote_splicing(env, item);
+
+            if (is_error(res)) {
+                return res;
+            }
+
+            append(list, res);
         }
+
+
         list = cdr(list);
     }
 

@@ -314,7 +314,12 @@ obj_t *read(VM *vm, Reader *rdr) {
     } else if (rdr->cur == '`') {
         result = read_quote(vm, rdr, quasiquote_sym);
     } else if (rdr->cur == ',') {
-        result = read_quote(vm, rdr, unquote_sym);
+        if (get_peek_char(rdr) == '@') {
+            get_next_char(rdr);
+            result = read_quote(vm, rdr, unquote_splicing_sym);
+        } else {
+            result = read_quote(vm, rdr, unquote_sym);
+        }
     } else if (rdr->cur == ')') {
         result = mk_err(vm, "unexpected ')'");
     } else if (rdr->cur == '.') {
