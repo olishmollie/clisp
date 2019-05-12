@@ -8,29 +8,29 @@ Reader *reader_new(FILE *in) {
     return rdr;
 }
 
+int reader_eof(Reader *rdr) {
+    return rdr->cur == EOF;
+}
+
+static int get_next_char(Reader *rdr) {
+    rdr->cur = getc(rdr->in);
+    return rdr->cur;
+}
+
+static int get_peek_char(Reader *rdr) {
+    int c = getc(rdr->in);
+    ungetc(c, rdr->in);
+    return c;
+}
+
 void reader_delete(Reader *rdr) {
     /* flush input buffer */
-    while ((rdr->cur = getc(rdr->in)) != '\n' && rdr->cur != EOF) {
+    while (get_next_char(rdr) != '\n' && !reader_eof(rdr)) {
     }
     if (rdr->in != stdin) {
         fclose(rdr->in);
     }
     free(rdr);
-}
-
-int reader_eof(Reader *rdr) {
-    return rdr->cur == EOF;
-}
-
-int next(Reader *rdr) {
-    rdr->cur = getc(rdr->in);
-    return rdr->cur;
-}
-
-int peek(Reader *rdr) {
-    int c = getc(rdr->in);
-    ungetc(c, rdr->in);
-    return c;
 }
 
 int is_delim(int c) {
@@ -44,11 +44,11 @@ int is_initial(int c) {
 }
 
 void skip_whitespace_and_comments(Reader *rdr) {
-    while (next(rdr) != EOF) {
+    while (get_next_char(rdr) != EOF) {
         if (isspace(rdr->cur)) {
             continue;
         } else if (rdr->cur == ';') {
-            while (next(rdr) != EOF && rdr->cur != '\n') {
+            while (get_next_char(rdr) != EOF && rdr->cur != '\n') {
             }
             continue;
         }
@@ -59,17 +59,17 @@ void skip_whitespace_and_comments(Reader *rdr) {
 
 int expected_string(Reader *rdr, char *str) {
     while (*str != '\0') {
-        rdr->cur = getc(rdr->in);
+        get_next_char(rdr);
         if (*str++ != rdr->cur)
             return 0;
     }
-    if (!is_delim(peek(rdr)))
+    if (!is_delim(get_peek_char(rdr)))
         return 0;
     return 1;
 }
 
 obj_t *read_character(VM *vm, Reader *rdr) {
-    rdr->cur = getc(rdr->in);
+    get_next_char(rdr);
 
     obj_t *res;
     switch (rdr->cur) {
@@ -95,14 +95,14 @@ obj_t *read_character(VM *vm, Reader *rdr) {
         res = mk_char(vm, rdr->cur);
     }
 
-    if (!is_delim(peek(rdr)))
+    if (!is_delim(get_peek_char(rdr)))
         return mk_err(vm, "invalid constant");
 
     return res;
 }
 
 obj_t *read_constant(VM *vm, Reader *rdr) {
-    rdr->cur = getc(rdr->in);
+    get_next_char(rdr);
     if (rdr->cur == '\\') {
         return read_character(vm, rdr);
     } else if (rdr->cur == 't') {
@@ -119,19 +119,23 @@ obj_t *read_symbol(VM *vm, Reader *rdr) {
     int i = 0;
 
     if (rdr->cur == '|') {
-        /* symbol literals are wrapped in pipes */
-        rdr->cur = getc(rdr->in);
+        get_next_char(rdr);
         while (!reader_eof(rdr) && rdr->cur != '|') {
             sym[i++] = rdr->cur;
-            rdr->cur = getc(rdr->in);
+            get_next_char(rdr);
         }
-        rdr->cur = getc(rdr->in); /* eat the '|' */
+        get_next_char(rdr); /* eat the '|' */
+
+        /* special case '||' */
+        if (i == 0) {
+            return mk_sym(vm, "||");
+        }
     }
     else {
         /* regular symbol */
         while (!is_delim(rdr->cur)) {
             sym[i++] = rdr->cur;
-            rdr->cur = getc(rdr->in);
+            get_next_char(rdr);
         }
     }
 
@@ -145,12 +149,13 @@ obj_t *read_string(VM *vm, Reader *rdr) {
     char str[MAX_STRING_LENGTH];
     int i = 0;
 
-    rdr->cur = getc(rdr->in);
+    get_next_char(rdr);
     while (rdr->cur != '"') {
         str[i++] = rdr->cur;
-        rdr->cur = getc(rdr->in);
-        if (feof(rdr->in))
+        get_next_char(rdr);
+        if (reader_eof(rdr)) {
             return mk_err(vm, "unclosed string literal");
+        }
     }
     str[i] = '\0';
 
@@ -163,12 +168,12 @@ obj_t *read_number(VM *vm, Reader *rdr) {
 
     if (rdr->cur == '-') {
         num[i++] = rdr->cur;
-        rdr->cur = getc(rdr->in);
+        get_next_char(rdr);
     }
 
     while (isdigit(rdr->cur) && i < MAX_STRING_LENGTH) {
         num[i++] = rdr->cur;
-        rdr->cur = getc(rdr->in);
+        get_next_char(rdr);
     }
 
     if (i == MAX_STRING_LENGTH)
@@ -179,10 +184,10 @@ obj_t *read_number(VM *vm, Reader *rdr) {
         is_fractional = rdr->cur == '/';
 
         num[i++] = rdr->cur;
-        rdr->cur = getc(rdr->in);
+        get_next_char(rdr);
         while (isdigit(rdr->cur)) {
             num[i++] = rdr->cur;
-            rdr->cur = getc(rdr->in);
+            get_next_char(rdr);
         }
     }
 
@@ -209,7 +214,7 @@ obj_t *read_list(VM *vm, Reader *rdr) {
     if (rdr->cur == EOF)
         return mk_err(vm, "unexpected EOF");
 
-    next(rdr);
+    get_next_char(rdr);
     if (rdr->cur == ')') {
         push(vm, the_empty_list);
         return the_empty_list;
@@ -231,7 +236,7 @@ obj_t *read_list(VM *vm, Reader *rdr) {
     skip_whitespace_and_comments(rdr);
 
     if (rdr->cur == '.') {
-        next(rdr);
+        get_next_char(rdr);
         cdr_obj = read(vm, rdr);
         if (is_error(cdr_obj))
             return car_obj;
@@ -240,7 +245,7 @@ obj_t *read_list(VM *vm, Reader *rdr) {
             return mk_err(vm, "expected ')'");
         }
 
-        next(rdr);
+        get_next_char(rdr);
 
         return mk_cons(vm, car_obj, cdr_obj);
     }
@@ -288,7 +293,7 @@ obj_t *readfile(VM *vm, char *fname) {
 obj_t *read(VM *vm, Reader *rdr) {
 
     skip_whitespace_and_comments(rdr);
-    next(rdr);
+    get_next_char(rdr);
 
     if (reader_eof(rdr))
         return NULL;
@@ -296,7 +301,7 @@ obj_t *read(VM *vm, Reader *rdr) {
     obj_t *result;
     if (rdr->cur == '#') {
         result = read_constant(vm, rdr);
-    } else if (isdigit(rdr->cur) || (rdr->cur == '-' && isdigit(peek(rdr)))) {
+    } else if (isdigit(rdr->cur) || (rdr->cur == '-' && isdigit(get_peek_char(rdr)))) {
         result = read_number(vm, rdr);
     } else if (is_initial(rdr->cur)) {
         result = read_symbol(vm, rdr);
