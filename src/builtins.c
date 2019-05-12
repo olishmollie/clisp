@@ -7,7 +7,7 @@ obj_t *builtin_plus(VM *vm, obj_t *args) {
     while (!is_the_empty_list(args)) {
         obj_t *x = car(args);
         if (!is_num(x)) {
-            return mk_err(vm, "invalid argument passed to '+'");
+            return mk_err(vm, "invalid argument of type '%s' passed to '+'", type_name(x->type));
         }
         res = num_add(vm, res, x);
         args = cdr(args);

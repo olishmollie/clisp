@@ -295,7 +295,7 @@ static char *type_names[10] = {"number", "symbol", "string",
 
 char *type_name(object_type type) {
     if (type < 0 || type > 9) {
-        return "unknown type";
+        return "unknown";
     }
     return type_names[type];
 }
@@ -371,8 +371,8 @@ void print(obj_t *object) {
                 printf("%li", object->numer);
             } else {
                 double d = (double) object->numer / object->denom;
-                double l = round(d * 100);
-                if (fabs(d * 100 - l) > 0.01) {
+                double l = round(d * 100000);
+                if (fabs(d * 100000 - l) > 0.1) {
                     printf("%li/%li", object->numer, object->denom);
                 } else {
                     printf("%g", d);

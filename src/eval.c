@@ -201,9 +201,15 @@ tailcall:
         return false;
     }
     else if (is_list(expr)) {
+        if (is_the_empty_list(expr)) {
+            return mk_err(vm, "cannot evaluate the empty list");
+        }
+
         obj_t *procedure = car(expr);
         char *fn_name = procedure->sym;
+
         procedure = eval(vm, env, procedure);
+
         FIG_ERRORCHECK(procedure);
         FIG_ASSERT(vm, is_callable(procedure), "invalid procedure");
 
