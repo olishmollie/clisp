@@ -10,7 +10,7 @@
 
 typedef struct {
     int cur;
-    int linenum;
+    int line;
     FILE *in;
 } Reader;
 
@@ -20,6 +20,7 @@ int is_delim(int c);
 
 Reader *reader_new(FILE *in);
 obj_t *read(VM *vm, Reader *rdr);
+obj_t *readfile(VM *vm, char *fname);
 void reader_delete(Reader *rdr);
 int reader_eof(Reader *rdr);
 

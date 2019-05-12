@@ -47,8 +47,7 @@ int main(int argc, char **argv) {
     init();
 
     if (argc > 1) {
-        obj_t *f = mk_string(vm, argv[1]);
-        builtin_load(vm, f);
+        readfile(vm, argv[1]);
     } else {
         repl(vm);
     }

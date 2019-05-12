@@ -3,7 +3,7 @@
 Reader *reader_new(FILE *in) {
     Reader *rdr = malloc(sizeof(Reader));
     rdr->cur = 0;
-    rdr->linenum = 0;
+    rdr->line = 0;
     rdr->in = in;
     return rdr;
 }
@@ -12,13 +12,19 @@ void reader_delete(Reader *rdr) {
     /* flush input buffer */
     while ((rdr->cur = getc(rdr->in)) != '\n' && rdr->cur != EOF) {
     }
-    if (rdr->in != stdin)
+    if (rdr->in != stdin) {
         fclose(rdr->in);
+    }
     free(rdr);
 }
 
 int reader_eof(Reader *rdr) {
     return rdr->cur == EOF;
+}
+
+int next(Reader *rdr) {
+    rdr->cur = getc(rdr->in);
+    return rdr->cur;
 }
 
 int peek(Reader *rdr) {
@@ -37,13 +43,12 @@ int is_initial(int c) {
     return isalpha(c) || strchr(allowed, c);
 }
 
-void skipwhitespace(Reader *rdr) {
-    while ((rdr->cur = getc(rdr->in)) != EOF) {
+void skip_whitespace_and_comments(Reader *rdr) {
+    while (next(rdr) != EOF) {
         if (isspace(rdr->cur)) {
             continue;
         } else if (rdr->cur == ';') {
-            while (((rdr->cur = getc(rdr->in)) != EOF) && (rdr->cur != '\n')) {
-                ;
+            while (next(rdr) != EOF && rdr->cur != '\n') {
             }
             continue;
         }
@@ -200,11 +205,11 @@ obj_t *read_quote(VM *vm, Reader *rdr) {
 }
 
 obj_t *read_list(VM *vm, Reader *rdr) {
-    skipwhitespace(rdr);
+    skip_whitespace_and_comments(rdr);
     if (rdr->cur == EOF)
-        return mk_err(vm, "expected ')'");
+        return mk_err(vm, "unexpected EOF");
 
-    rdr->cur = getc(rdr->in);
+    next(rdr);
     if (rdr->cur == ')') {
         push(vm, the_empty_list);
         return the_empty_list;
@@ -216,13 +221,17 @@ obj_t *read_list(VM *vm, Reader *rdr) {
     obj_t *cdr_obj;
 
     car_obj = read(vm, rdr);
-    if (is_error(car_obj))
+    if (!car_obj) {
+        return mk_err(vm, "unexpected EOF");
+    }
+    if (is_error(car_obj)) {
         return car_obj;
+    }
 
-    skipwhitespace(rdr);
+    skip_whitespace_and_comments(rdr);
 
     if (rdr->cur == '.') {
-        rdr->cur = getc(rdr->in);
+        next(rdr);
         cdr_obj = read(vm, rdr);
         if (is_error(cdr_obj))
             return car_obj;
@@ -231,24 +240,55 @@ obj_t *read_list(VM *vm, Reader *rdr) {
             return mk_err(vm, "expected ')'");
         }
 
-        rdr->cur = getc(rdr->in);
+        next(rdr);
 
         return mk_cons(vm, car_obj, cdr_obj);
     }
 
     cdr_obj = read_list(vm, rdr);
-    if (is_error(cdr_obj))
+    if (!cdr_obj) {
+        return mk_err(vm, "unexpected EOF");
+    }
+    if (is_error(cdr_obj)) {
         return cdr_obj;
+    }
 
     popn(vm, vm->sp - sp);
 
     return mk_cons(vm, car_obj, cdr_obj);
 }
 
+obj_t *readfile(VM *vm, char *fname) {
+
+    FILE *infile;
+    infile = fopen(fname, "r");
+
+    if (!infile) {
+        return mk_err(vm, "could not open %s", fname);
+    }
+
+    Reader *rdr = reader_new(infile);
+
+    while (!feof(infile)) {
+        int sp = vm->sp;
+        obj_t *object = eval(vm, universe, read(vm, rdr));
+        if (object && object->type == OBJ_ERR) {
+            popn(vm, vm->sp - sp);
+            println(object);
+            break;
+        }
+        popn(vm, vm->sp - sp);
+    }
+
+    reader_delete(rdr);
+
+    return NULL;
+}
+
 obj_t *read(VM *vm, Reader *rdr) {
 
-    skipwhitespace(rdr);
-    rdr->cur = getc(rdr->in);
+    skip_whitespace_and_comments(rdr);
+    next(rdr);
 
     if (reader_eof(rdr))
         return NULL;

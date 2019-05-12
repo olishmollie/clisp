@@ -1,5 +1,6 @@
 #include "builtins.h"
 #include "numbers.h"
+#include "read.h"
 
 obj_t *builtin_plus(VM *vm, obj_t *args) {
     obj_t *res = mk_num_from_long(vm, 0l, 1l);
@@ -388,30 +389,6 @@ obj_t *builtin_display(VM *vm, obj_t *args) {
 obj_t *builtin_env(VM *vm, obj_t *args) {
     FIG_ASSERT(vm, is_the_empty_list(args), "incorrect argument count in 'env'");
     return universe;
-}
-
-obj_t *readfile(VM *vm, char *fname) {
-
-    FILE *infile;
-    infile = fopen(fname, "r");
-
-    if (!infile)
-        return mk_err(vm, "could not open %s", fname);
-
-    Reader *rdr = reader_new(infile);
-
-    while (!feof(infile)) {
-        int sp = vm->sp;
-        obj_t *object = eval(vm, universe, read(vm, rdr));
-        if (object && object->type == OBJ_ERR) {
-            println(object);
-        }
-        popn(vm, vm->sp - sp);
-    }
-
-    reader_delete(rdr);
-
-    return NULL;
 }
 
 obj_t *builtin_load(VM *vm, obj_t *args) {

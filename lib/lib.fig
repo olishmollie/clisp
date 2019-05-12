@@ -1,5 +1,3 @@
-(define lib "lib/lib.fig")
-
 (define (list . x) x)
 
 (define (error msg fn-name)
@@ -17,6 +15,22 @@
 (define (cdadr l) (cdr (car (cdr l))))
 (define (caddr l) (car (cdr (cdr l))))
 (define (cdddr l) (cdr (cdr (cdr l))))
+(define (caaaar l) (car (car (car (car l)))))
+(define (cdaaar l) (cdr (car (car (car l)))))
+(define (cadaar l) (car (cdr (car (car l)))))
+(define (caadar l) (car (car (cdr (car l)))))
+(define (caaadr l) (car (car (car (cdr l)))))
+(define (cddaar l) (cdr (cdr (car (car l)))))
+(define (cdadar l) (cdr (car (cdr (car l)))))
+(define (cdaadr l) (cdr (car (car (cdr l)))))
+(define (cdddar l) (cdr (cdr (cdr (car l)))))
+(define (cddadr l) (cdr (cdr (car (cdr l)))))
+(define (cddddr l) (cdr (cdr (cdr (cdr l)))))
+(define (cadddr l) (car (cdr (cdr (cdr l)))))
+(define (cdaddr l) (cdr (car (cdr (cdr l)))))
+(define (cadddr l) (car (cdr (cdr (cdr l)))))
+(define (cadadr l) (car (cdr (car (cdr l)))))
+(define (caaddr l) (car (car (cdr (cdr l)))))
 
 ;; types/equality/comparison
 (define (not x)
@@ -38,113 +52,3 @@
          (and (equal? (car x) (car y))
               (equal? (cdr x) (cdr y))))
         (else #f)))
-
-;; math
-(define (identity x) x)
-
-(define (abs x) (if (< x 0) (- x) x))
-
-(define (square x) (* x x))
-
-(define (fact n)
-  (define (iter prod count max)
-    (if (> count max)
-        prod
-        (iter (* count prod)
-              (+ count 1)
-              max)))
-  (iter 1 1 n))
-
-(define (** base exp)
-  (define (iter prod count max)
-    (if (eq? count max)
-        prod
-        (iter (* base prod)
-              (+ count 1)
-              max)))
-  (iter base 1 exp))
-
-(define (fib n)
-  (define (iter cur prev count max)
-    (if (>= count max)
-        cur
-        (iter (+ cur prev)
-              cur
-              (+ 1 count)
-              max)))
-  (iter 1 0 1 n))
-
-(define (vec . x) x)
-
-(define (dot a b)
-  (if (or (null? a) (null? b))
-      0
-      (+ (* (car a) (car b))
-         (dot (cdr a) (cdr b)))))
-
-(define (veclen vec)
-  (define (len vec)
-    (if (null? vec)
-        0
-        (+ (square (car vec))
-           (len (cdr vec)))))
-  (list 'sqrt (len vec)))
-
-(define (orthogonal? va vb)
-  (= (dot va vb) 0))
-
-;; lists
-(define (memq item seq)
-  (cond ((null? seq) #f)
-        ((eq? item (car seq)) seq)
-        (else (memq item (cdr seq)))))
-
-(define (list-ref seq n)
-  (if (eq? n 0)
-      (car seq)
-      (list-ref (cdr seq) (- n 1))))
-
-(define (length seq)
-  (if (null? seq)
-      0
-      (+ 1 (length (cdr seq)))))
-
-(define (range n)
-  (define (iter count max)
-    (if (>= count max)
-        '()
-        (cons count (iter (+ count 1) max))))
-  (iter 0 n))
-
-(define (append l1 l2)
-  (if (null? l1)
-      l2
-      (cons (car l1) (append (cdr l1) l2))))
-
-(define (last-pair seq)
-  (if (null? (cdr seq))
-      seq
-      (last-pair (cdr seq))))
-
-(define (reverse seq)
-  (if (null? seq)
-      seq
-      (append (reverse (cdr seq)) (list (car seq)))))
-
-(define (map proc seq)
-  (if (null? seq)
-      seq
-      (cons (proc (car seq))
-            (map proc (cdr seq)))))
-
-(define (reduce proc seq mem)
-  (if (null? seq)
-      mem
-      (proc (car seq) (reduce proc (cdr seq) mem))))
-
-(define count
-  ((lambda (total)
-    (lambda (increment)
-      (set! total (+ total increment))
-      total))
-  0))
