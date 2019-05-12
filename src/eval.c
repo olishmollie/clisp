@@ -112,13 +112,19 @@ int is_callable(obj_t *expr) {
 int is_variadic(obj_t *fun) { return fun->variadic; }
 
 obj_t *eval_arglist(VM *vm, obj_t *env, obj_t *arglist) {
-    if (arglist == the_empty_list)
+    if (arglist == the_empty_list) {
         return arglist;
+    }
+
     obj_t *expr = car(arglist);
-    if (is_top_level_only(expr))
-        return mk_err(vm, "invalid syntax %s", car(arglist));
+
+    if (is_top_level_only(expr)) {
+        return mk_err(vm, "invalid syntax '%s'", car(arglist));
+    }
+
     expr = eval(vm, env, expr);
     mk_cons(vm, expr, eval_arglist(vm, env, cdr(arglist)));
+
     return pop(vm);
 }
 
@@ -164,21 +170,24 @@ tailcall:
             FIG_ERRORCHECK(cur);
             expr = cdr(expr);
         }
-
         expr = car(expr);
+
         goto tailcall;
     }
     else if (is_if(expr)) {
         FIG_ASSERT(vm, length(cdr(expr)) == 2 || length(cdr(expr)) == 3,
                    "invalid syntax if");
-        obj_t *cond = cadr(expr);
-        if (is_top_level_only(cond))
-            return mk_err(vm, "invalid syntax %s", car(cond));
 
-        cond = eval(vm, env, cond);
-        FIG_ERRORCHECK(cond);
+        obj_t *condition = cadr(expr);
 
-        if (is_true(cond)) {
+        if (is_top_level_only(condition)) {
+            return mk_err(vm, "invalid syntax %s", car(condition));
+        }
+
+        condition = eval(vm, env, condition);
+        FIG_ERRORCHECK(condition);
+
+        if (is_true(condition)) {
             expr = caddr(expr);
         } else {
             expr = !is_the_empty_list(cdddr(expr)) ? cadddr(expr) : NULL;
@@ -271,7 +280,9 @@ tailcall:
             }
 
             env = env_extend(vm, procedure->env, procedure->params, args);
+
             expr = mk_cons(vm, begin_sym, procedure->body);
+
             goto tailcall;
         }
     }

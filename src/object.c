@@ -124,19 +124,24 @@ obj_t *mk_string(VM *vm, char *str) {
 
 obj_t *mk_builtin(VM *vm, char *name, builtin proc) {
     obj_t *object = obj_new(vm, OBJ_BUILTIN);
+
     object->name = malloc(sizeof(char) * (strlen(name) + 1));
     strcpy(object->name, name);
+
     object->proc = proc;
+
     push(vm, object);
     return object;
 }
 
 obj_t *mk_fun(VM *vm, obj_t *env, obj_t *params, obj_t *body) {
     obj_t *object = obj_new(vm, OBJ_FUN);
+
     object->env = env;
     object->params = params;
     object->body = body;
     object->variadic = is_list(object->params) ? 0 : 1;
+
     push(vm, object);
     return object;
 }
@@ -237,19 +242,25 @@ obj_t *env_lookup(VM *vm, obj_t *env, obj_t *symbol) {
     obj_t *frame;
     obj_t *symbols;
     obj_t *objects;
+
     while (!is_the_empty_list(env)) {
         frame = car(env);
         symbols = car(frame);
         objects = cdr(frame);
 
         while (is_pair(symbols)) {
-            if (symbol == car(symbols))
+            if (symbol == car(symbols)) {
                 return car(objects);
+            }
+
             symbols = cdr(symbols);
             objects = cdr(objects);
         }
-        if (symbols == symbol)
+
+        /* for variadic functions */
+        if (symbols == symbol) {
             return objects;
+        }
 
         env = cdr(env);
     }
