@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     init();
 
     if (argc > 1) {
-        readfile(vm, argv[1]);
+        read_file(vm, argv[1]);
     } else {
         repl(vm);
     }

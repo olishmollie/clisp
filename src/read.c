@@ -263,7 +263,28 @@ obj_t *read_list(VM *vm, Reader *rdr) {
     return mk_cons(vm, car_obj, cdr_obj);
 }
 
-obj_t *readfile(VM *vm, char *fname) {
+obj_t *read_vector(VM *vm, Reader *rdr) {
+    get_next_char(rdr); /* eat the '(' */
+
+    obj_t *list = read_list(vm, rdr);
+    int size = length(list);
+
+    obj_t **objects = malloc(sizeof(obj_t *) * size);
+
+    for (int i = 0; i < size; i++) {
+        objects[i] = car(list);
+        list = cdr(list);
+    }
+
+    return mk_vec(vm, objects, size);
+}
+
+obj_t *read_block_comment(VM *vm, Reader *rdr) {
+    /* TODO: not implemented */
+    return NULL;
+}
+
+obj_t *read_file(VM *vm, char *fname) {
 
     FILE *infile;
     infile = fopen(fname, "r");
@@ -300,7 +321,14 @@ obj_t *read(VM *vm, Reader *rdr) {
 
     obj_t *result;
     if (rdr->cur == '#') {
-        result = read_constant(vm, rdr);
+        char c = get_peek_char(rdr);
+        if (c == '(') {
+            result = read_vector(vm, rdr);
+        } else if (c == '|') {
+            result = read_block_comment(vm, rdr);
+        } else {
+            result = read_constant(vm, rdr);
+        }
     } else if (isdigit(rdr->cur) || (rdr->cur == '-' && isdigit(get_peek_char(rdr)))) {
         result = read_number(vm, rdr);
     } else if (is_initial(rdr->cur)) {

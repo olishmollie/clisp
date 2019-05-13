@@ -24,6 +24,7 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_gte, ">=");
     register_builtin(vm, env, builtin_lt, "<");
     register_builtin(vm, env, builtin_lte, "<=");
+    register_builtin(vm, env, builtin_numeq, "=");
 
     register_builtin(vm, env, builtin_is_null, "null?");
     register_builtin(vm, env, builtin_is_boolean, "boolean?");
@@ -34,6 +35,7 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_is_string, "string?");
     register_builtin(vm, env, builtin_is_pair, "pair?");
     register_builtin(vm, env, builtin_is_list, "list?");
+    register_builtin(vm, env, builtin_is_vector, "vector?");
     register_builtin(vm, env, builtin_is_proc, "procedure?");
     register_builtin(vm, env, builtin_is_equal, "eq?");
 
@@ -49,6 +51,11 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_cdr, "cdr");
     register_builtin(vm, env, builtin_setcar, "set-car!");
     register_builtin(vm, env, builtin_setcdr, "set-cdr!");
+
+    register_builtin(vm, env, builtin_make_vector, "make-vector");
+    register_builtin(vm, env, builtin_vector_length, "vector-length");
+    register_builtin(vm, env, builtin_vector_ref, "vector-ref");
+    register_builtin(vm, env, builtin_vector_set, "vector-set!");
 
     register_builtin(vm, env, builtin_string_append, "string-append");
 
@@ -79,11 +86,7 @@ void init() {
     if_sym = mk_sym(vm, "if");
     lambda_sym = mk_sym(vm, "lambda");
     begin_sym = mk_sym(vm, "begin");
-    and_sym = mk_sym(vm, "and");
-    or_sym = mk_sym(vm, "or");
-    cond_sym = mk_sym(vm, "cond");
-    else_sym = mk_sym(vm, "else");
 
     universe = global_env(vm);
-    readfile(vm, STDLIB);
+    read_file(vm, STDLIB);
 }

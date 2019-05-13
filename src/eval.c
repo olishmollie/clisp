@@ -130,17 +130,9 @@ obj_t *eval_definition(VM *vm, obj_t *env, obj_t *expr) {
 
 int is_if(obj_t *expr) { return is_tagged_list(expr, if_sym); }
 
-int is_and(obj_t *expr) { return is_tagged_list(expr, and_sym); }
-
-int is_or(obj_t *expr) { return is_tagged_list(expr, or_sym); }
-
 int is_lambda(obj_t *expr) { return is_tagged_list(expr, lambda_sym); }
 
 int is_begin(obj_t *expr) { return is_tagged_list(expr, begin_sym); }
-
-int is_cond(obj_t *expr) { return is_tagged_list(expr, cond_sym); }
-
-int is_else(obj_t *expr) { return is_tagged_list(expr, else_sym); }
 
 int is_top_level_only(obj_t *expr) {
     return is_definition(expr) || is_assignment(expr);
@@ -193,7 +185,9 @@ tailcall:
         return eval_quasiquote(env, expr);
     }
     else if (is_unquote(expr)) {
-        return mk_err(vm, "improper setting for unquote");
+        return mk_err(vm, "improper setting for 'unquote'");
+    } else if (is_unquote_splicing(expr)) {
+        return mk_err(vm, "improper context for 'unquote-splicing'");
     }
     else if (is_definition(expr)) {
         return eval_definition(vm, env, expr);
@@ -206,6 +200,7 @@ tailcall:
     }
     else if (is_begin(expr)) {
         expr = cdr(expr);
+
         while (!is_the_empty_list(cdr(expr))) {
             obj_t *cur = eval(vm, env, car(expr));
             FIG_ERRORCHECK(cur);
@@ -236,66 +231,6 @@ tailcall:
 
         goto tailcall;
     }
-    else if (is_cond(expr)) {
-        FIG_ASSERT(vm, length(cdr(expr)) >= 1, "invalid syntax cond");
-
-        obj_t *clauses = cdr(expr);
-        while (!is_the_empty_list(cdr(clauses))) {
-            obj_t *clause = car(clauses);
-            FIG_ASSERT(vm, length(clause) == 2,
-                "clauses in cond must have a predicate and a consequent");
-
-            obj_t *pred = eval(vm, env, car(clause));
-            FIG_ERRORCHECK(pred);
-
-            if (is_true(pred)) {
-                expr = cadar(clauses);
-                goto tailcall;
-            }
-            clauses = cdr(clauses);
-        }
-
-        if (is_else(car(clauses))) {
-            expr = cadar(clauses);
-            goto tailcall;
-        }
-
-        obj_t *clause = car(clauses);
-        FIG_ASSERT(vm, length(clause) == 2,
-            "clauses in cond must have a predicate and a consequent");
-
-        obj_t *pred = eval(vm, env, caar(clauses));
-        FIG_ERRORCHECK(pred);
-
-        if (is_true(pred)) {
-            expr = cadar(clauses);
-            goto tailcall;
-        }
-
-        return NULL;
-    }
-    else if (is_and(expr)) {
-        obj_t *args = cdr(expr);
-        while (!is_the_empty_list(args)) {
-            obj_t *pred = eval(vm, env, car(args));
-            FIG_ERRORCHECK(pred);
-            if (is_false(pred))
-                return false;
-            args = cdr(args);
-        }
-        return true;
-    }
-    else if (is_or(expr)) {
-        obj_t *args = cdr(expr);
-        while (!is_the_empty_list(args)) {
-            obj_t *pred = eval(vm, env, car(args));
-            FIG_ERRORCHECK(pred);
-            if (is_true(pred))
-                return true;
-            args = cdr(args);
-        }
-        return false;
-    }
     else if (is_list(expr)) {
         if (is_the_empty_list(expr)) {
             return mk_err(vm, "cannot evaluate the empty list");
@@ -307,7 +242,7 @@ tailcall:
         procedure = eval(vm, env, procedure);
 
         FIG_ERRORCHECK(procedure);
-        FIG_ASSERT(vm, is_callable(procedure), "invalid procedure");
+        FIG_ASSERT(vm, is_callable(procedure), "invalid procedure %s", fn_name);
 
         obj_t *args = eval_arglist(vm, env, cdr(expr));
         FIG_ERRORCHECK(args);
@@ -321,7 +256,6 @@ tailcall:
             }
 
             env = env_extend(vm, procedure->env, procedure->params, args);
-
             expr = mk_cons(vm, begin_sym, procedure->body);
 
             goto tailcall;

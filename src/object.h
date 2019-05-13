@@ -11,7 +11,6 @@
 
 #define MAX_STRING_LENGTH 512
 
-typedef struct obj_t obj_t;
 typedef struct table_t table_t;
 
 obj_t *universe;
@@ -35,16 +34,13 @@ obj_t *set_sym;
 obj_t *if_sym;
 obj_t *lambda_sym;
 obj_t *begin_sym;
-obj_t *and_sym;
-obj_t *or_sym;
-obj_t *cond_sym;
-obj_t *else_sym;
 
 typedef enum {
     OBJ_NUM,
     OBJ_SYM,
     OBJ_STR,
     OBJ_PAIR,
+    OBJ_VEC,
     OBJ_BOOL,
     OBJ_CHAR,
     OBJ_BUILTIN,
@@ -79,6 +75,11 @@ struct obj_t {
         };
 
         struct {
+            obj_t **objects;
+            int size;
+        };
+
+        struct {
             char *name;
             builtin proc;
         };
@@ -97,6 +98,7 @@ struct obj_t {
 typedef struct VM VM;
 
 obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr);
+obj_t *mk_vec(VM *vm, obj_t **objects, int size);
 
 obj_t *mk_num_from_str(VM *vm, char *str, int is_decimal, int is_fractional);
 obj_t *mk_num_from_long(VM *vm, long numer, long denom);
@@ -126,6 +128,7 @@ int is_true(obj_t *c);
 
 int is_pair(obj_t *object);
 int is_list(obj_t *object);
+int is_vector(obj_t *object);
 
 int is_num(obj_t *object);
 int is_integer(obj_t *object);
@@ -148,34 +151,34 @@ obj_t *cdr(obj_t *pair);
 void set_car(obj_t *pair, obj_t *item);
 void set_cdr(obj_t *pair, obj_t *item);
 
-#define caar(obj_t) car(car(obj_t))
-#define cadr(obj_t) car(cdr(obj_t))
-#define cdar(obj_t) cdr(car(obj_t))
-#define cddr(obj_t) cdr(cdr(obj_t))
-#define caaar(obj_t) car(car(car(obj_t)))
-#define caadr(obj_t) car(car(cdr(obj_t)))
-#define cadar(obj_t) car(cdr(car(obj_t)))
-#define caddr(obj_t) car(cdr(cdr(obj_t)))
-#define cdaar(obj_t) cdr(car(car(obj_t)))
-#define cdadr(obj_t) cdr(car(cdr(obj_t)))
-#define cddar(obj_t) cdr(cdr(car(obj_t)))
-#define cdddr(obj_t) cdr(cdr(cdr(obj_t)))
-#define caaaar(obj_t) car(car(car(car(obj_t))))
-#define caaadr(obj_t) car(car(car(cdr(obj_t))))
-#define caadar(obj_t) car(car(cdr(car(obj_t))))
-#define caaddr(obj_t) car(car(cdr(cdr(obj_t))))
-#define cadaar(obj_t) car(cdr(car(car(obj_t))))
-#define cadadr(obj_t) car(cdr(car(cdr(obj_t))))
-#define caddar(obj_t) car(cdr(cdr(car(obj_t))))
-#define cadddr(obj_t) car(cdr(cdr(cdr(obj_t))))
-#define cdaaar(obj_t) cdr(car(car(car(obj_t))))
-#define cdaadr(obj_t) cdr(car(car(cdr(obj_t))))
-#define cdadar(obj_t) cdr(car(cdr(car(obj_t))))
-#define cdaddr(obj_t) cdr(car(cdr(cdr(obj_t))))
-#define cddaar(obj_t) cdr(cdr(car(car(obj_t))))
-#define cddadr(obj_t) cdr(cdr(car(cdr(obj_t))))
-#define cdddar(obj_t) cdr(cdr(cdr(car(obj_t))))
-#define cddddr(obj_t) cdr(cdr(cdr(cdr(obj_t))))
+#define caar(obj) car(car(obj))
+#define cadr(obj) car(cdr(obj))
+#define cdar(obj) cdr(car(obj))
+#define cddr(obj) cdr(cdr(obj))
+#define caaar(obj) car(car(car(obj)))
+#define caadr(obj) car(car(cdr(obj)))
+#define cadar(obj) car(cdr(car(obj)))
+#define caddr(obj) car(cdr(cdr(obj)))
+#define cdaar(obj) cdr(car(car(obj)))
+#define cdadr(obj) cdr(car(cdr(obj)))
+#define cddar(obj) cdr(cdr(car(obj)))
+#define cdddr(obj) cdr(cdr(cdr(obj)))
+#define caaaar(obj) car(car(car(car(obj))))
+#define caaadr(obj) car(car(car(cdr(obj))))
+#define caadar(obj) car(car(cdr(car(obj))))
+#define caaddr(obj) car(car(cdr(cdr(obj))))
+#define cadaar(obj) car(cdr(car(car(obj))))
+#define cadadr(obj) car(cdr(car(cdr(obj))))
+#define caddar(obj) car(cdr(cdr(car(obj))))
+#define cadddr(obj) car(cdr(cdr(cdr(obj))))
+#define cdaaar(obj) cdr(car(car(car(obj))))
+#define cdaadr(obj) cdr(car(car(cdr(obj))))
+#define cdadar(obj) cdr(car(cdr(car(obj))))
+#define cdaddr(obj) cdr(car(cdr(cdr(obj))))
+#define cddaar(obj) cdr(cdr(car(car(obj))))
+#define cddadr(obj) cdr(cdr(car(cdr(obj))))
+#define cdddar(obj) cdr(cdr(cdr(car(obj))))
+#define cddddr(obj) cdr(cdr(cdr(cdr(obj))))
 
 void print(obj_t *object);
 void println(obj_t *object);

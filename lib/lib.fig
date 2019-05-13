@@ -1,7 +1,29 @@
-(define (list . x) x)
+(define (list . items) items)
 
-(define (error msg fn-name)
-  (display (string-append "Error: " msg) fn-name))
+(define (length lis)
+  (define (length-iter lis count)
+     (if (null? lis)
+         count
+         (length-iter (cdr lis) (+ 1 count))))
+  (length-iter lis 0))
+
+(define (vector . items)
+  (define vec (make-vector (length items)))
+  (define (vector-iter vec items k)
+    (if (null? items)
+        vec
+        (begin (vector-set! vec k (car items))
+               (vector-iter vec (cdr items) (+ k 1)))))
+  (vector-iter vec items 0))
+
+(define (vector->list vec)
+  (define (iter count n)
+    (if (= count n)
+        '()
+        (cons (vector-ref vec count)
+              (iter (+ count 1) n))))
+  (iter 0 (vector-length vec)))
+
 
 (define (caar l) (car (car l)))
 (define (cadr l) (car (cdr l)))
@@ -31,24 +53,3 @@
 (define (cadddr l) (car (cdr (cdr (cdr l)))))
 (define (cadadr l) (car (cdr (car (cdr l)))))
 (define (caaddr l) (car (car (cdr (cdr l)))))
-
-;; types/equality/comparison
-(define (not x)
-  (if x #f #t))
-
-(define (atom? x)
-  (not (pair? x)))
-
-(define (= x y)
-  (if (and (number? x) (number? y))
-      (eq? x y)
-      #f))
-
-(define (equal? x y)
-  (cond ((and (null? x) (null? y)) #t)
-        ((and (number? x) (number? y)) (= x y))
-        ((and (atom? x) (atom? y)) (eq? x y))
-        ((and (pair? x) (pair? y))
-         (and (equal? (car x) (car y))
-              (equal? (cdr x) (cdr y))))
-        (else #f)))

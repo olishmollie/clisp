@@ -82,5 +82,5 @@ obj_t *num_lte(VM *vm, obj_t *a, obj_t *b) {
 
 obj_t *num_eq(VM *vm, obj_t *a, obj_t *b) {
     long denom = a->denom * b->denom;
-    return (a->numer * denom == b->numer * denom) ? true : false;
+    return a->numer * denom == b->numer * denom ? true : false;
 }

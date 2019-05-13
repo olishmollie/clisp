@@ -2,6 +2,8 @@
 #include "numbers.h"
 #include "read.h"
 
+/* ------------------ math ----------------------- */
+
 obj_t *builtin_plus(VM *vm, obj_t *args) {
     obj_t *res = mk_num_from_long(vm, 0l, 1l);
     while (!is_the_empty_list(args)) {
@@ -110,6 +112,8 @@ obj_t *builtin_remainder(VM *vm, obj_t *args) {
     return res;
 }
 
+/* ------------------ comparison/equality ----------------------- */
+
 obj_t *builtin_gt(VM *vm, obj_t *args) {
     ARG_TYPECHECK(vm, args, "gt", OBJ_NUM);
     ARG_NUMCHECK(vm, args, "gt", 2);
@@ -149,6 +153,18 @@ obj_t *builtin_lte(VM *vm, obj_t *args) {
 
     return num_lte(vm, a, b);
 }
+
+obj_t *builtin_numeq(VM *vm, obj_t *args) {
+    ARG_TYPECHECK(vm, args, "=", OBJ_NUM);
+    ARG_NUMCHECK(vm, args, "=", 2);
+
+    obj_t *a = car(args);
+    obj_t *b = cadr(args);
+
+    return num_eq(vm, a, b);
+}
+
+/* -------------------- type predicates ------------------ */
 
 obj_t *builtin_is_null(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "null?", 1);
@@ -197,10 +213,17 @@ obj_t *builtin_is_list(VM *vm, obj_t *args) {
     return is_list(car(args)) ? true : false;
 }
 
+obj_t *builtin_is_vector(VM *vm, obj_t *args) {
+    ARG_NUMCHECK(vm, args, "vector?", 1);
+    return is_vector(car(args)) ? true : false;
+}
+
 obj_t *builtin_is_proc(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "proc?", 1);
     return is_builtin(car(args)) ? true : false;
 }
+
+/* ------------------------ pairs/lists ------------------------ */
 
 obj_t *builtin_cons(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "cons", 2);
@@ -241,6 +264,85 @@ obj_t *builtin_list(VM *vm, obj_t *args) {
     push(vm, args);
     return args;
 }
+
+/* ---------------------- vectors ----------------------------*/
+
+obj_t *builtin_make_vector(VM *vm, obj_t *args) {
+    if (!is_the_empty_list(cdr(args)) && !is_the_empty_list(cddr(args))) {
+        return mk_err(vm, "incorrect argument count to 'make-vector'");
+    }
+
+    obj_t *size = car(args);
+    if (!is_integer(size)) {
+        return mk_err(vm, "invalid argument passed to 'make-vector'");
+    }
+
+    obj_t **objects = malloc(sizeof(obj_t *) * size->numer);
+
+    if (is_the_empty_list(cdr(args))) {
+        for (int i = 0; i < size->numer; i++) {
+            objects[i] = mk_num_from_long(vm, 0l, 1l);
+        }
+    } else {
+        obj_t *fill = cadr(args);
+        for (int i = 0; i < size->numer; i++) {
+            objects[i] = fill;
+        }
+    }
+
+    return mk_vec(vm, objects, size->numer);
+}
+
+obj_t *builtin_vector_length(VM *vm, obj_t *args) {
+    ARG_NUMCHECK(vm, args, "vector-length", 1);
+    obj_t *vec = car(args);
+    return mk_num_from_long(vm, vec->size, 1l);
+}
+
+obj_t *builtin_vector_ref(VM *vm, obj_t *args) {
+    ARG_NUMCHECK(vm, args, "vector-ref", 2);
+
+    obj_t *vec = car(args);
+    if (!is_vector(vec)) {
+        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+    }
+
+    obj_t *k = cadr(args);
+    if (!is_integer(k)) {
+        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+    }
+
+    if (k->numer < 0 || k->numer >= vec->size) {
+        return mk_err(vm, "index out of bounds in 'vector-ref'");
+    }
+
+    return vec->objects[k->numer];
+}
+
+obj_t *builtin_vector_set(VM *vm, obj_t *args) {
+    ARG_NUMCHECK(vm, args, "vector-set!", 3);
+
+    obj_t *vec = car(args);
+    if (!is_vector(vec)) {
+        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+    }
+
+    obj_t *k = cadr(args);
+    if (!is_integer(k)) {
+        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+    }
+
+    if (k->numer < 0 || k->numer >= vec->size) {
+        return mk_err(vm, "index out of bounds in 'vector-ref'");
+    }
+
+    obj_t *obj = caddr(args);
+    vec->objects[k->numer] = obj;
+
+    return NULL;
+}
+
+/* ---------------------- conversions ------------------------ */
 
 obj_t *builtin_char_to_int(VM *vm, obj_t *args) {
     ARG_NUMCHECK(vm, args, "char->int", 1);
@@ -287,7 +389,6 @@ static obj_t *parse_number(VM *vm, char *str) {
     } else if (str[i] == '.') {
         is_decimal = 1;
     } else if (str[i] != '\0') {
-        printf("str[i] = %c\n", str[i]);
         return mk_err(vm, "invalid number syntax");
     }
 
@@ -394,7 +495,7 @@ obj_t *builtin_env(VM *vm, obj_t *args) {
 obj_t *builtin_load(VM *vm, obj_t *args) {
     obj_t *f = car(args);
     char *filename = f->str;
-    obj_t *res = readfile(vm, filename);
+    obj_t *res = read_file(vm, filename);
     return res;
 }
 

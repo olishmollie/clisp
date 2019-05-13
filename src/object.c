@@ -40,6 +40,13 @@ obj_t *mk_cons(VM *vm, obj_t *car, obj_t *cdr) {
     return object;
 }
 
+obj_t *mk_vec(VM *vm, obj_t **objects, int size) {
+    obj_t *vec = obj_new(vm, OBJ_VEC);
+    vec->size = size;
+    vec->objects = objects;
+    return vec;
+}
+
 obj_t *mk_num_from_str(VM *vm, char *str, int is_decimal, int is_fractional) {
     obj_t *num = obj_new(vm, OBJ_NUM);
 
@@ -199,6 +206,12 @@ obj_t *env_define(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
     symbols = car(frame);
     values = cdr(frame);
 
+    /* for variadic definitions */
+    if (!is_list(symbols)) {
+        add_binding_to_frame(vm, frame, symbol, value);
+        return NULL;
+    }
+
     while (!is_the_empty_list(symbols)) {
         if (car(symbols) == symbol) {
             set_car(values, value);
@@ -209,6 +222,7 @@ obj_t *env_define(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
     }
 
     add_binding_to_frame(vm, frame, symbol, value);
+
     return NULL;
 }
 
@@ -216,8 +230,6 @@ obj_t *env_set(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
     obj_t *frame;
     obj_t *symbols;
     obj_t *values;
-
-    frame = car(env);
 
     while (!is_the_empty_list(env)) {
         frame = car(env);
@@ -288,6 +300,10 @@ int is_list(obj_t *object) {
         object = cdr(object);
     }
     return is_the_empty_list(object);
+}
+
+int is_vector(obj_t *object) {
+    return object->type == OBJ_VEC;
 }
 
 int is_num(obj_t *object) { return object->type == OBJ_NUM; }
@@ -398,6 +414,16 @@ void print(obj_t *object) {
             break;
         case OBJ_PAIR:
             print_cons(object);
+            break;
+        case OBJ_VEC:
+            printf("#(");
+            for (int i = 0; i < object->size; i++) {
+                print(object->objects[i]);
+                if (i != object->size - 1) {
+                    printf(" ");
+                }
+            }
+            printf(")");
             break;
         case OBJ_BOOL:
             printf("%s", object->boolean ? "#t" : "#f");
