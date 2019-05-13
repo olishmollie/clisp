@@ -53,10 +53,15 @@ obj_t *builtin_vector_ref(VM *vm, obj_t *args);
 obj_t *builtin_string_append(VM *vm, obj_t *args);
 
 obj_t *builtin_display(VM *vm, obj_t *args);
+
 obj_t *builtin_env(VM *vm, obj_t *args);
+
 obj_t *read_file(VM *vm, char *fname);
+
 obj_t *builtin_load(VM *vm, obj_t *args);
 
 obj_t *builtin_exit(VM *vm, obj_t *args);
+
+obj_t *builtin_raise(VM *vm, obj_t *args);
 
 #endif

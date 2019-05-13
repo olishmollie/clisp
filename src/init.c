@@ -14,6 +14,7 @@ void register_builtin(VM *vm, obj_t *env, builtin fun, char *name) {
 
 obj_t *global_env(VM *vm) {
     obj_t *env = mk_env(vm);
+
     register_builtin(vm, env, builtin_plus, "+");
     register_builtin(vm, env, builtin_minus, "-");
     register_builtin(vm, env, builtin_times, "*");
@@ -63,6 +64,8 @@ obj_t *global_env(VM *vm) {
     register_builtin(vm, env, builtin_env, "env");
     register_builtin(vm, env, builtin_load, "load");
     register_builtin(vm, env, builtin_exit, "exit");
+
+    register_builtin(vm, env, builtin_raise, "raise");
 
     return env;
 }

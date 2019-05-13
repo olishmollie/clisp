@@ -509,3 +509,16 @@ obj_t *builtin_exit(VM *vm, obj_t *args) {
     exit(0);
     return NULL;
 }
+
+obj_t *builtin_raise(VM *vm, obj_t *args) {
+    FIG_ASSERT(vm, length(args) == 1, "incorrect argument count in 'raise'");
+
+    obj_t *msg = car(args);
+    if (!is_string(msg)) {
+        raise(vm, "first argument to raise must be of type string");
+    }
+
+    raise(vm, msg->str);
+
+    return NULL; /* unreachable */
+}
