@@ -1,8 +1,9 @@
-#include <math.h>
-#include <stdarg.h>
-
+#include "common.h"
 #include "numbers.h"
 #include "object.h"
+
+#include <math.h>
+#include <stdarg.h>
 
 obj_t *obj_new(VM *vm, object_type type) {
     obj_t *object = malloc(sizeof(obj_t));
@@ -79,7 +80,7 @@ obj_t *mk_num_from_str(VM *vm, char *str, int is_decimal, int is_fractional) {
 
 obj_t *mk_num_from_long(VM *vm, long numer, long denom) {
     if (denom == 0) {
-        return mk_err(vm, "division by zero");
+        raise(vm, "division by zero");
     }
 
     obj_t *num = obj_new(vm, OBJ_NUM);
@@ -173,14 +174,11 @@ obj_t *mk_nil(VM *vm) {
     return object;
 }
 
-obj_t *mk_err(VM *vm, char *fmt, ...) {
+obj_t *mk_err(VM *vm, char *msg) {
     obj_t *object = obj_new(vm, OBJ_ERR);
 
-    va_list args;
-    va_start(args, fmt);
-    object->err = malloc(sizeof(char) * 512);
-    vsnprintf(object->err, 511, fmt, args);
-    va_end(args);
+    object->err = malloc(sizeof(char) * strlen(msg) + 1);
+    strcpy(object->err, msg);
 
     push(vm, object);
     return object;
@@ -247,7 +245,9 @@ obj_t *env_set(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
         env = cdr(env);
     }
 
-    return mk_err(vm, "unbound symbol '%s'", symbol->sym);
+    raise(vm, "unbound symbol '%s'", symbol->sym);
+
+    return NULL; /* unreachable */
 }
 
 obj_t *env_lookup(VM *vm, obj_t *env, obj_t *symbol) {
@@ -277,7 +277,9 @@ obj_t *env_lookup(VM *vm, obj_t *env, obj_t *symbol) {
         env = cdr(env);
     }
 
-    return mk_err(vm, "unbound symbol '%s'", symbol->sym);
+    raise(vm, "unbound symbol '%s'", symbol->sym);
+
+    return NULL; /* unreachable */
 }
 
 obj_t *mk_frame(VM *vm, obj_t *symbols, obj_t *values) {
@@ -446,7 +448,7 @@ void print(obj_t *object) {
             printf("#<procedure>");
             break;
         case OBJ_ERR:
-            printf("error: %s", object->err);
+            printf("Exception: %s", object->err);
             break;
         case OBJ_NIL:
             printf("()");

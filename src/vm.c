@@ -1,3 +1,5 @@
+#include "builtins.h"
+#include "common.h"
 #include "vm.h"
 
 #define INITIAL_GC_THRESHOLD 500
@@ -80,4 +82,16 @@ void sweep(VM *vm) {
 void gc(VM *vm) {
     mark_all(vm);
     sweep(vm);
+}
+
+void cleanup(VM *vm) {
+    obj_t *object = vm->alloc_list;
+    while (object) {
+        obj_t *tmp = object->next;
+        obj_delete(object);
+        object = tmp;
+    }
+
+    free(vm);
+    table_delete(symbol_table);
 }

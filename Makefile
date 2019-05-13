@@ -14,4 +14,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm src/*.o $(EXECUTABLE) && make all
+	rm src/*.o $(EXECUTABLE)

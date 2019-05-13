@@ -1,5 +1,8 @@
 #include "table.h"
 
+#include <stdio.h>
+#include <string.h>
+
 entry_t *entry_new(obj_t *object) {
     entry_t *entry = malloc(sizeof(entry_t));
     entry->object = object;
@@ -8,8 +11,13 @@ entry_t *entry_new(obj_t *object) {
 }
 
 table_t *table_new(void) {
-    table_t *table = calloc(MAX_TABLE_SIZE, sizeof(table_t));
+    table_t *table = malloc(sizeof(table_t));
     table->size = MAX_TABLE_SIZE;
+
+    for (int i = 0; i < MAX_TABLE_SIZE; i++) {
+        table->store[i] = NULL;
+    }
+
     return table;
 }
 
@@ -62,8 +70,9 @@ void table_delete(table_t *table) {
     for (int i = 0; i < table->size; i++) {
         entry_t *entry = table->store[i];
         while (entry) {
+            entry_t *tmp = entry->next;
             free(entry);
-            entry = entry->next;
+            entry = tmp;
         }
     }
     free(table);

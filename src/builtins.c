@@ -1,6 +1,9 @@
+#include "assert.h"
 #include "builtins.h"
 #include "numbers.h"
 #include "read.h"
+
+#include <ctype.h>
 
 /* ------------------ math ----------------------- */
 
@@ -9,7 +12,7 @@ obj_t *builtin_plus(VM *vm, obj_t *args) {
     while (!is_the_empty_list(args)) {
         obj_t *x = car(args);
         if (!is_num(x)) {
-            return mk_err(vm, "invalid argument of type '%s' passed to '+'", type_name(x->type));
+            raise(vm, "invalid argument of type '%s' passed to '+'", type_name(x->type));
         }
         res = num_add(vm, res, x);
         args = cdr(args);
@@ -18,12 +21,13 @@ obj_t *builtin_plus(VM *vm, obj_t *args) {
 }
 
 obj_t *builtin_minus(VM *vm, obj_t *args) {
-    if (args == the_empty_list)
-        return mk_err(vm, "incorrect argument count for '-'");
+    if (args == the_empty_list) {
+        raise(vm, "incorrect argument count for '-'");
+    }
 
     obj_t *res = car(args);
     if (!is_num(res)) {
-        return mk_err(vm, "invalid argument passed to '-'");
+        raise(vm, "invalid argument passed to '-'");
     }
 
     /* unary minus */
@@ -37,7 +41,7 @@ obj_t *builtin_minus(VM *vm, obj_t *args) {
     while (!is_the_empty_list(args)) {
         obj_t *x = car(args);
         if (!is_num(x)) {
-            return mk_err(vm, "invalid argument passed to '-'");
+            raise(vm, "invalid argument passed to '-'");
         }
         res = num_sub(vm, res, x);
         args = cdr(args);
@@ -51,7 +55,7 @@ obj_t *builtin_times(VM *vm, obj_t *args) {
     while (!is_the_empty_list(args)) {
         obj_t *x = car(args);
         if (!is_num(x)) {
-            return mk_err(vm, "invalid argument passed to '*'");
+            raise(vm, "invalid argument passed to '*'");
         }
         res = num_mul(vm, res, x);
         args = cdr(args);
@@ -62,22 +66,22 @@ obj_t *builtin_times(VM *vm, obj_t *args) {
 
 obj_t *builtin_divide(VM *vm, obj_t *args) {
     if (args == the_empty_list) {
-        return mk_err(vm, "incorrect argument count for '/'");
+        raise(vm, "incorrect argument count for '/'");
     }
 
     obj_t *res = car(args);
     if (!is_num(res)) {
-        return mk_err(vm, "invalid argument passed to '/'");
+        raise(vm, "invalid argument passed to '/'");
     }
 
     args = cdr(args);
     while (!is_the_empty_list(args)) {
         obj_t *x = car(args);
         if (!is_num(x)) {
-            return mk_err(vm, "invalid argument passed to '/'");
+            raise(vm, "invalid argument passed to '/'");
         }
         if (x->numer == 0) {
-            return mk_err(vm, "division by zero");
+            raise(vm, "division by zero");
         }
         res = num_div(vm, res, x);
         args = cdr(args);
@@ -88,22 +92,22 @@ obj_t *builtin_divide(VM *vm, obj_t *args) {
 
 obj_t *builtin_remainder(VM *vm, obj_t *args) {
     if (args == the_empty_list) {
-        return mk_err(vm, "incorrect argument count for 'mod'");
+        raise(vm, "incorrect argument count for 'mod'");
     }
 
     obj_t *res = car(args);
     if (!is_num(res) || res->denom != 1) {
-        return mk_err(vm, "invalid argument passed to 'mod'");
+        raise(vm, "invalid argument passed to 'mod'");
     }
 
     args = cdr(args);
     while (!is_the_empty_list(args)) {
         obj_t *x = car(args);
         if (!is_num(res) || res->denom != 1) {
-            return mk_err(vm, "invalid argument passed to 'mod'");
+            raise(vm, "invalid argument passed to 'mod'");
         }
         if (res->numer == 0) {
-            return mk_err(vm, "division by zero");
+            raise(vm, "division by zero");
         }
         res = num_mod(vm, res, x);
         args = cdr(args);
@@ -269,12 +273,12 @@ obj_t *builtin_list(VM *vm, obj_t *args) {
 
 obj_t *builtin_make_vector(VM *vm, obj_t *args) {
     if (!is_the_empty_list(cdr(args)) && !is_the_empty_list(cddr(args))) {
-        return mk_err(vm, "incorrect argument count to 'make-vector'");
+        raise(vm, "incorrect argument count to 'make-vector'");
     }
 
     obj_t *size = car(args);
     if (!is_integer(size)) {
-        return mk_err(vm, "invalid argument passed to 'make-vector'");
+        raise(vm, "invalid argument passed to 'make-vector'");
     }
 
     obj_t **objects = malloc(sizeof(obj_t *) * size->numer);
@@ -304,16 +308,16 @@ obj_t *builtin_vector_ref(VM *vm, obj_t *args) {
 
     obj_t *vec = car(args);
     if (!is_vector(vec)) {
-        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+        raise(vm, "invalid argument passed to 'vector-ref'");
     }
 
     obj_t *k = cadr(args);
     if (!is_integer(k)) {
-        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+        raise(vm, "invalid argument passed to 'vector-ref'");
     }
 
     if (k->numer < 0 || k->numer >= vec->size) {
-        return mk_err(vm, "index out of bounds in 'vector-ref'");
+        raise(vm, "index out of bounds in 'vector-ref'");
     }
 
     return vec->objects[k->numer];
@@ -324,16 +328,16 @@ obj_t *builtin_vector_set(VM *vm, obj_t *args) {
 
     obj_t *vec = car(args);
     if (!is_vector(vec)) {
-        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+        raise(vm, "invalid argument passed to 'vector-ref'");
     }
 
     obj_t *k = cadr(args);
     if (!is_integer(k)) {
-        return mk_err(vm, "invalid argument passed to 'vector-ref'");
+        raise(vm, "invalid argument passed to 'vector-ref'");
     }
 
     if (k->numer < 0 || k->numer >= vec->size) {
-        return mk_err(vm, "index out of bounds in 'vector-ref'");
+        raise(vm, "index out of bounds in 'vector-ref'");
     }
 
     obj_t *obj = caddr(args);
@@ -389,7 +393,7 @@ static obj_t *parse_number(VM *vm, char *str) {
     } else if (str[i] == '.') {
         is_decimal = 1;
     } else if (str[i] != '\0') {
-        return mk_err(vm, "invalid number syntax");
+        raise(vm, "invalid number syntax");
     }
 
     i++;
@@ -397,11 +401,12 @@ static obj_t *parse_number(VM *vm, char *str) {
         i++;
     }
 
-    if (is_delim(str[i])) {
-        return mk_num_from_str(vm, str, is_decimal, is_fraction);
+    if (!is_delim(str[i])) {
+        raise(vm, "invalid number syntax");
     }
 
-    return mk_err(vm, "invalid number syntax");
+    return mk_num_from_str(vm, str, is_decimal, is_fraction);
+
 }
 
 obj_t *builtin_string_to_number(VM *vm, obj_t *args) {
@@ -497,17 +502,6 @@ obj_t *builtin_load(VM *vm, obj_t *args) {
     char *filename = f->str;
     obj_t *res = read_file(vm, filename);
     return res;
-}
-
-void cleanup(VM *vm) {
-    obj_t *object = vm->alloc_list;
-    while (object) {
-        obj_delete(object);
-        object = object->next;
-    }
-
-    free(vm);
-    table_delete(symbol_table);
 }
 
 obj_t *builtin_exit(VM *vm, obj_t *args) {

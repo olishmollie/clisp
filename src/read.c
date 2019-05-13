@@ -1,4 +1,7 @@
+#include "eval.h"
 #include "read.h"
+
+#include <ctype.h>
 
 Reader *reader_new(FILE *in) {
     Reader *rdr = malloc(sizeof(Reader));
@@ -23,10 +26,13 @@ static int get_peek_char(Reader *rdr) {
     return c;
 }
 
-void reader_delete(Reader *rdr) {
-    /* flush input buffer */
+void reader_flush(Reader *rdr) {
     while (get_next_char(rdr) != '\n' && !reader_eof(rdr)) {
     }
+}
+
+void reader_delete(Reader *rdr) {
+    reader_flush(rdr);
     if (rdr->in != stdin) {
         fclose(rdr->in);
     }
@@ -95,8 +101,9 @@ obj_t *read_character(VM *vm, Reader *rdr) {
         res = mk_char(vm, rdr->cur);
     }
 
-    if (!is_delim(get_peek_char(rdr)))
-        return mk_err(vm, "invalid constant");
+    if (!is_delim(get_peek_char(rdr))) {
+        raise(vm, "invalid constant");
+    }
 
     return res;
 }
@@ -111,7 +118,9 @@ obj_t *read_constant(VM *vm, Reader *rdr) {
         return false;
     }
 
-    return mk_err(vm, "invalid constant");
+    raise(vm, "invalid constant");
+
+    return NULL; /* unreachable */
 }
 
 obj_t *read_symbol(VM *vm, Reader *rdr) {
@@ -154,7 +163,7 @@ obj_t *read_string(VM *vm, Reader *rdr) {
         str[i++] = rdr->cur;
         get_next_char(rdr);
         if (reader_eof(rdr)) {
-            return mk_err(vm, "unclosed string literal");
+            raise(vm, "unclosed string literal");
         }
     }
     str[i] = '\0';
@@ -177,7 +186,7 @@ obj_t *read_number(VM *vm, Reader *rdr) {
     }
 
     if (i == MAX_STRING_LENGTH)
-        return mk_err(vm, "string exceeds max length");
+        raise(vm, "string exceeds max length");
 
     if (rdr->cur == '/' || rdr->cur == '.') {
         is_decimal = rdr->cur == '.';
@@ -193,12 +202,13 @@ obj_t *read_number(VM *vm, Reader *rdr) {
 
     num[i] = '\0';
 
-    if (is_delim(rdr->cur)) {
-        ungetc(rdr->cur, rdr->in);
-        return mk_num_from_str(vm, num, is_decimal, is_fractional);
+    if (!is_delim(rdr->cur)) {
+        raise(vm, "invalid number syntax");
     }
 
-    return mk_err(vm, "invalid number syntax");
+    ungetc(rdr->cur, rdr->in);
+
+    return mk_num_from_str(vm, num, is_decimal, is_fractional);
 }
 
 obj_t *read_quote(VM *vm, Reader *rdr, obj_t *quote_sym) {
@@ -212,7 +222,7 @@ obj_t *read_quote(VM *vm, Reader *rdr, obj_t *quote_sym) {
 obj_t *read_list(VM *vm, Reader *rdr) {
     skip_whitespace_and_comments(rdr);
     if (rdr->cur == EOF)
-        return mk_err(vm, "unexpected EOF");
+        raise(vm, "unexpected EOF");
 
     get_next_char(rdr);
     if (rdr->cur == ')') {
@@ -227,10 +237,7 @@ obj_t *read_list(VM *vm, Reader *rdr) {
 
     car_obj = read(vm, rdr);
     if (!car_obj) {
-        return mk_err(vm, "unexpected EOF");
-    }
-    if (is_error(car_obj)) {
-        return car_obj;
+        raise(vm, "unexpected EOF");
     }
 
     skip_whitespace_and_comments(rdr);
@@ -238,11 +245,9 @@ obj_t *read_list(VM *vm, Reader *rdr) {
     if (rdr->cur == '.') {
         get_next_char(rdr);
         cdr_obj = read(vm, rdr);
-        if (is_error(cdr_obj))
-            return car_obj;
 
         if (rdr->cur != ')') {
-            return mk_err(vm, "expected ')'");
+            raise(vm, "expected ')'");
         }
 
         get_next_char(rdr);
@@ -252,10 +257,7 @@ obj_t *read_list(VM *vm, Reader *rdr) {
 
     cdr_obj = read_list(vm, rdr);
     if (!cdr_obj) {
-        return mk_err(vm, "unexpected EOF");
-    }
-    if (is_error(cdr_obj)) {
-        return cdr_obj;
+        raise(vm, "unexpected EOF");
     }
 
     popn(vm, vm->sp - sp);
@@ -286,27 +288,27 @@ obj_t *read_block_comment(VM *vm, Reader *rdr) {
 
 obj_t *read_file(VM *vm, char *fname) {
 
+    if (setjmp(exc_env)) {
+        println(exc);
+        return NULL;
+    }
+
     FILE *infile;
     infile = fopen(fname, "r");
 
     if (!infile) {
-        return mk_err(vm, "could not open %s", fname);
-    }
+        raise(vm, "could not find file '%s'", fname);
+    } else {
 
-    Reader *rdr = reader_new(infile);
+        Reader *rdr = reader_new(infile);
 
-    while (!feof(infile)) {
-        int sp = vm->sp;
-        obj_t *object = eval(vm, universe, read(vm, rdr));
-        if (object && object->type == OBJ_ERR) {
-            popn(vm, vm->sp - sp);
-            println(object);
-            break;
+        while (!feof(infile)) {
+
+            interpret(vm, rdr);
         }
-        popn(vm, vm->sp - sp);
-    }
 
-    reader_delete(rdr);
+        reader_delete(rdr);
+    }
 
     return NULL;
 }
@@ -319,7 +321,7 @@ obj_t *read(VM *vm, Reader *rdr) {
     if (reader_eof(rdr))
         return NULL;
 
-    obj_t *result;
+    obj_t *result = NULL;
     if (rdr->cur == '#') {
         char c = get_peek_char(rdr);
         if (c == '(') {
@@ -349,12 +351,24 @@ obj_t *read(VM *vm, Reader *rdr) {
             result = read_quote(vm, rdr, unquote_sym);
         }
     } else if (rdr->cur == ')') {
-        result = mk_err(vm, "unexpected ')'");
+        raise(vm, "unexpected ')'");
     } else if (rdr->cur == '.') {
-        result = mk_err(vm, "unexpected '.'");
+        raise(vm, "unexpected '.'");
     } else {
-        result = mk_err(vm, "unknown character %c", rdr->cur);
+        raise(vm, "unknown character %c", rdr->cur);
     }
 
     return result;
+}
+
+obj_t *interpret(VM *vm, Reader *rdr) {
+    int sp = vm->sp;
+    obj_t *ast = read(vm, rdr);
+    popn(vm, vm->sp - sp);
+
+    sp = vm->sp;
+    obj_t *object = eval(vm, universe, ast);
+    popn(vm, vm->sp - sp);
+
+    return object;
 }

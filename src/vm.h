@@ -2,7 +2,6 @@
 #define VM_H
 
 #include "object.h"
-#include "builtins.h"
 
 #define MAX_STACK_SIZE 8192
 
@@ -25,6 +24,6 @@ void stack_print(VM *vm);
 
 void gc(VM *vm);
 
-VM *vm;
+void cleanup(VM *vm);
 
 #endif

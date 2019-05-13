@@ -4,36 +4,7 @@
 #include "table.h"
 #include "vm.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-
 #define MAX_STRING_LENGTH 512
-
-typedef struct table_t table_t;
-
-obj_t *universe;
-
-table_t *symbol_table;
-
-typedef struct obj_t obj_t;
-
-obj_t *the_empty_list;
-
-obj_t * true;
-obj_t * false;
-
-obj_t *quote_sym;
-obj_t *quasiquote_sym;
-obj_t *unquote_sym;
-obj_t *unquote_splicing_sym;
-
-obj_t *define_sym;
-obj_t *set_sym;
-obj_t *if_sym;
-obj_t *lambda_sym;
-obj_t *begin_sym;
 
 typedef enum {
     OBJ_NUM,
@@ -114,7 +85,7 @@ obj_t *mk_builtin(VM *vm, char *name, builtin proc);
 obj_t *mk_fun(VM *vm, obj_t *env, obj_t *params, obj_t *body);
 
 obj_t *mk_nil(VM *vm);
-obj_t *mk_err(VM *vm, char *fmt, ...);
+obj_t *mk_err(VM *vm, char *msg);
 
 obj_t *mk_env(VM *vm);
 obj_t *env_lookup(VM *vm, obj_t *env, obj_t *symbol);

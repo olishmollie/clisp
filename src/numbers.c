@@ -1,3 +1,4 @@
+#include "common.h"
 #include "numbers.h"
 
 static long gcd(long a, long b) {

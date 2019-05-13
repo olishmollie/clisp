@@ -1,3 +1,4 @@
+#include "common.h"
 #include "eval.h"
 #include "builtins.h"
 #include "init.h"
@@ -10,41 +11,47 @@ void repl_println(obj_t *object) {
     }
 }
 
-obj_t *interpret(VM *vm, Reader *rdr) {
-    int sp = vm->sp;
-    obj_t *ast = read(vm, rdr);
-    popn(vm, vm->sp - sp);
-
-    sp = vm->sp;
-    obj_t *object = eval(vm, universe, ast);
-    popn(vm, vm->sp - sp);
-
-    return object;
-}
-
 void repl(VM *vm) {
 
     printf("fig version 0.2\n\n");
 
+    Reader *rdr = reader_new(stdin);
+
     while (1) {
-        printf("> ");
-        Reader *rdr = reader_new(stdin);
 
-        /* Hack. User hits enter with no data */
-        int c = getc(stdin);
-        if (c == '\n')
-            continue;
-        ungetc(c, stdin);
+        int done = 0;
 
-        obj_t *object = interpret(vm, rdr);
+        /* an exception has been raised */
+        if (setjmp(exc_env)) {
 
-        int done = reader_eof(rdr);
+            println(exc);
 
-        repl_println(object);
+        } else {
+
+            printf("> ");
+
+            /* Hack. User hits enter with no data */
+            int c = getc(stdin);
+            if (c == '\n')
+                continue;
+            ungetc(c, stdin);
+            /* ------------------- */
+
+            obj_t *object = interpret(vm, rdr);
+
+            done = reader_eof(rdr);
+
+            repl_println(object);
+        }
+
         reader_delete(rdr);
 
         if (done) break;
+
+        rdr = reader_new(stdin);
     }
+
+    printf("\n");
 }
 
 int main(int argc, char **argv) {
@@ -57,6 +64,5 @@ int main(int argc, char **argv) {
         repl(vm);
     }
 
-    printf("\n");
     return 0;
 }
