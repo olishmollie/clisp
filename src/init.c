@@ -1,6 +1,8 @@
+#include "common.h"
 #include "init.h"
 
-#define STDLIB "lib/lib.fig"
+/* TODO: possible to specity a relative path instead? */
+#define STDLIB "/usr/local/Cellar/fig/"VERSION"/lib/lib.fig"
 
 void register_builtin(VM *vm, obj_t *env, builtin fun, char *name) {
     obj_t *var = mk_sym(vm, name);

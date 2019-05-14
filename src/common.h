@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#define VERSION "0.3"
+
 #include "exception.h"
 #include "object.h"
 #include "table.h"

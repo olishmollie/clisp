@@ -13,7 +13,7 @@ void repl_println(obj_t *object) {
 
 void repl(VM *vm) {
 
-    printf("fig version 0.2\n\n");
+    printf("fig version "VERSION"\n\n");
 
     Reader *rdr = reader_new(stdin);
 
