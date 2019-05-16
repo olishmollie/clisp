@@ -130,11 +130,11 @@ obj_t *mk_string(VM *vm, char *str) {
     return object;
 }
 
-obj_t *mk_builtin(VM *vm, char *name, builtin proc) {
+obj_t *mk_builtin(VM *vm, char *bname, builtin proc) {
     obj_t *object = obj_new(vm, OBJ_BUILTIN);
 
-    object->name = malloc(sizeof(char) * (strlen(name) + 1));
-    strcpy(object->name, name);
+    object->bname = malloc(sizeof(char) * (strlen(bname) + 1));
+    strcpy(object->bname, bname);
 
     object->proc = proc;
 
@@ -149,6 +149,7 @@ obj_t *mk_fun(VM *vm, obj_t *env, obj_t *params, obj_t *body) {
     object->params = params;
     object->body = body;
     object->variadic = is_list(object->params) ? 0 : 1;
+    object->fname = NULL;
 
     push(vm, object);
     return object;
@@ -196,6 +197,10 @@ void add_binding_to_frame(VM *vm, obj_t *frame, obj_t *symbol, obj_t *object) {
 }
 
 obj_t *env_define(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
+    if (is_fun(value)) {
+        value->fname = symbol;
+    }
+
     obj_t *frame;
     obj_t *symbols;
     obj_t *values;
@@ -225,6 +230,10 @@ obj_t *env_define(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
 }
 
 obj_t *env_set(VM *vm, obj_t *env, obj_t *symbol, obj_t *value) {
+    if (is_fun(value)) {
+        value->fname = symbol;
+    }
+
     obj_t *frame;
     obj_t *symbols;
     obj_t *values;
@@ -442,7 +451,7 @@ void print(obj_t *object) {
             }
             break;
         case OBJ_BUILTIN:
-            printf("#<procedure '%s'>", object->name);
+            printf("#<procedure '%s'>", object->bname);
             break;
         case OBJ_FUN:
             printf("#<procedure>");
@@ -471,7 +480,7 @@ void obj_delete(obj_t *object) {
         else if (is_string(object))
             free(object->sym);
         else if (is_builtin(object))
-            free(object->name);
+            free(object->bname);
         else if (is_error(object))
             free(object->err);
 

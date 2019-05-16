@@ -222,12 +222,10 @@ tailcall:
             raise(vm, "cannot evaluate the empty list");
         }
 
-        obj_t *procedure = car(expr);
-        char *fn_name = procedure->sym;
+        obj_t *procedure_sym = car(expr);
+        obj_t *procedure = eval(vm, env, procedure_sym);
 
-        procedure = eval(vm, env, procedure);
-
-        FIG_ASSERT(vm, is_callable(procedure), "invalid procedure %s", fn_name);
+        FIG_ASSERT(vm, is_callable(procedure), "cannot invoke object of type '%s'", type_name(procedure->type));
 
         obj_t *args = eval_arglist(vm, env, cdr(expr));
 
@@ -236,7 +234,7 @@ tailcall:
         } else {
             if (!is_variadic(procedure)) {
                 FIG_ASSERT(vm, length(procedure->params) == length(args),
-                        "incorrect number of arguments to %s", fn_name);
+                        "incorrect number of arguments passed to '%s'", procedure->fname ? procedure->fname->sym : "anonymous");
             }
 
             env = env_extend(vm, procedure->env, procedure->params, args);

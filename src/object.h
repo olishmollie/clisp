@@ -51,12 +51,13 @@ struct obj_t {
         };
 
         struct {
-            char *name;
+            char *bname;
             builtin proc;
         };
 
         struct {
             int variadic;
+            obj_t *fname;
             obj_t *env;
             obj_t *params;
             obj_t *body;
@@ -75,7 +76,7 @@ obj_t *mk_num_from_str(VM *vm, char *str, int is_decimal, int is_fractional);
 obj_t *mk_num_from_long(VM *vm, long numer, long denom);
 char *num_to_string(obj_t *object);
 
-obj_t *mk_sym(VM *vm, char *name);
+obj_t *mk_sym(VM *vm, char *bname);
 obj_t *mk_string(VM *vm, char *str);
 
 obj_t *mk_char(VM *vm, char c);

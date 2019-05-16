@@ -4,9 +4,9 @@
 /* TODO: possible to specity a relative path instead? */
 #define STDLIB "/usr/local/Cellar/fig/"VERSION"/lib/lib.fig"
 
-void register_builtin(VM *vm, obj_t *env, builtin fun, char *name) {
-    obj_t *var = mk_sym(vm, name);
-    obj_t *fn = mk_builtin(vm, name, fun);
+void register_builtin(VM *vm, obj_t *env, builtin fun, char *bname) {
+    obj_t *var = mk_sym(vm, bname);
+    obj_t *fn = mk_builtin(vm, bname, fun);
     env_define(vm, env, var, fn);
 
     /* pop global symbols and builtins off the stack */
