@@ -84,7 +84,6 @@ void init() {
     quote_sym = mk_sym(vm, "quote");
     quasiquote_sym = mk_sym(vm, "quasiquote");
     unquote_sym = mk_sym(vm, "unquote");
-    unquote_splicing_sym = mk_sym(vm, "unquote-splicing");
 
     define_sym = mk_sym(vm, "define");
     set_sym = mk_sym(vm, "set!");

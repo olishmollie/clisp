@@ -45,7 +45,7 @@ int is_delim(int c) {
 }
 
 int is_initial(int c) {
-    char *allowed = "+-*/%!?<>=&^|";
+    char *allowed = "+-*/%!?<>=&^|@";
     return isalpha(c) || strchr(allowed, c);
 }
 
@@ -344,12 +344,7 @@ obj_t *read(VM *vm, Reader *rdr) {
     } else if (rdr->cur == '`') {
         result = read_quote(vm, rdr, quasiquote_sym);
     } else if (rdr->cur == ',') {
-        if (get_peek_char(rdr) == '@') {
-            get_next_char(rdr);
-            result = read_quote(vm, rdr, unquote_splicing_sym);
-        } else {
-            result = read_quote(vm, rdr, unquote_sym);
-        }
+        result = read_quote(vm, rdr, unquote_sym);
     } else if (rdr->cur == ')') {
         raise(vm, "unexpected ')'");
     } else if (rdr->cur == '.') {

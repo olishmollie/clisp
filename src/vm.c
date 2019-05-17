@@ -51,6 +51,7 @@ void mark(obj_t *object) {
         mark(object->car);
         mark(object->cdr);
     } else if (is_fun(object)) {
+        mark(object->fname);
         mark(object->params);
         mark(object->body);
     }

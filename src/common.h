@@ -27,7 +27,6 @@ obj_t *false;
 obj_t *quote_sym;
 obj_t *quasiquote_sym;
 obj_t *unquote_sym;
-obj_t *unquote_splicing_sym;
 
 obj_t *define_sym;
 obj_t *set_sym;
